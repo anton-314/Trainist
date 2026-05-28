@@ -54,6 +54,14 @@ Unit tests live in `app/src/test/`. Fakes (no mocking library) are in `.../fake/
 
 Tests use `kotlinx-coroutines-test` + `turbine`. All ViewModels have full test coverage.
 
+### Backup & data portability
+
+- **Auto Backup**: `backup_rules.xml` (pre-12) and `data_extraction_rules.xml` (Android 12+) explicitly include `macromind.db` + WAL files. Android backs these up to Google Drive automatically when the user has backup enabled — no code required.
+- **CSV Export** (`data/backup/CsvExporter`): reads all entries via `FoodEntryRepository.allEntries()`, writes a header-named CSV to `cacheDir`, shares it via `FileProvider` + `Intent.ACTION_SEND`.
+- **CSV Import** (`data/backup/CsvImporter`): opens a user-picked URI via SAF (`OpenDocument`), delegates parsing to `CsvFormat`.
+- **CsvFormat** (`data/backup/CsvFormat.kt`): pure Kotlin, no Android deps — fully unit-tested. Columns are identified by name (not position), so adding a new nutrient (e.g. `fiber_g`) only requires updating `CsvColumns` + `CsvFormat.toRow/fromRow`. Old CSV files with missing columns are imported with defaults; old app versions ignore unknown columns.
+- **FileProvider** authority: `dev.antonlammers.macromind.fileprovider`, paths configured in `res/xml/file_paths.xml` (cache dir).
+
 ### Key design decisions
 
 - **Domain layer is Android-free.** ViewModels depend only on `domain/repository` interfaces. Swapping the data source touches only `data/` and `di/`.

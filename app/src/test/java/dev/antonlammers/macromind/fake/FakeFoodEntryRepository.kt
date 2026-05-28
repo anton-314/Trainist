@@ -16,6 +16,8 @@ class FakeFoodEntryRepository : FoodEntryRepository {
     override fun entriesForDate(date: LocalDate): Flow<List<FoodEntry>> =
         _entries.map { list -> list.filter { it.date == date } }
 
+    override suspend fun allEntries(): List<FoodEntry> = _entries.value
+
     override suspend fun add(entry: FoodEntry) {
         _entries.update { it + entry.copy(id = nextId++) }
     }

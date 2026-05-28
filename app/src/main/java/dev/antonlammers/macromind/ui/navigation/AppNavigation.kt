@@ -8,6 +8,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import dev.antonlammers.macromind.ui.addfood.AddFoodScreen
 import dev.antonlammers.macromind.ui.addfood.BarcodeScannerScreen
+import dev.antonlammers.macromind.ui.data.DataScreen
 import dev.antonlammers.macromind.ui.goals.GoalsScreen
 import dev.antonlammers.macromind.ui.overview.OverviewScreen
 
@@ -16,6 +17,7 @@ sealed class Screen(val route: String) {
     object AddFood : Screen("add_food")
     object Goals : Screen("goals")
     object BarcodeScanner : Screen("barcode_scanner")
+    object Data : Screen("data")
 }
 
 @ExperimentalGetImage
@@ -26,5 +28,6 @@ fun AppNavigation(navController: NavHostController = rememberNavController()) {
         composable(Screen.AddFood.route) { AddFoodScreen(navController) }
         composable(Screen.Goals.route) { GoalsScreen(navController) }
         composable(Screen.BarcodeScanner.route) { BarcodeScannerScreen(navController) }
+        composable(Screen.Data.route) { DataScreen(navController) }
     }
 }

@@ -6,6 +6,7 @@ import java.time.LocalDate
 
 interface FoodEntryRepository {
     fun entriesForDate(date: LocalDate): Flow<List<FoodEntry>>
+    suspend fun allEntries(): List<FoodEntry>
     suspend fun add(entry: FoodEntry)
     suspend fun delete(id: Long)
 }

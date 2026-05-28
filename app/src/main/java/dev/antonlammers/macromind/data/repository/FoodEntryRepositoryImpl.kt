@@ -18,6 +18,8 @@ class FoodEntryRepositoryImpl @Inject constructor(
             entities.map { it.toDomain() }
         }
 
+    override suspend fun allEntries(): List<FoodEntry> = dao.allEntries().map { it.toDomain() }
+
     override suspend fun add(entry: FoodEntry) = dao.insert(entry.toEntity())
 
     override suspend fun delete(id: Long) = dao.delete(id)

@@ -55,6 +55,9 @@ fun OverviewScreen(
                     TextButton(onClick = { navController.navigate(Screen.Goals.route) }) {
                         Text("Ziele")
                     }
+                    TextButton(onClick = { navController.navigate(Screen.Data.route) }) {
+                        Text("Daten")
+                    }
                 },
             )
         },

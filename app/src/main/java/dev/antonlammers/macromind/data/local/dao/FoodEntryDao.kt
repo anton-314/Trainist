@@ -14,6 +14,9 @@ interface FoodEntryDao {
     @Insert
     suspend fun insert(entry: FoodEntryEntity)
 
+    @Query("SELECT * FROM food_entries ORDER BY date DESC, timestampMs DESC")
+    suspend fun allEntries(): List<FoodEntryEntity>
+
     @Query("DELETE FROM food_entries WHERE id = :id")
     suspend fun delete(id: Long)
 }
