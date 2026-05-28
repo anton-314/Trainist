@@ -1,0 +1,43 @@
+name: Build & Release APK
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: gradle
+
+      - name: Build debug APK
+        run: ./gradlew assembleDebug
+
+      - name: Publish to "latest" release
+        uses: ncipollo/release-action@v1
+        with:
+          tag: latest
+          name: "Aktuellster Build"
+          prerelease: true
+          allowUpdates: true
+          removeArtifacts: true
+          artifacts: "app/build/outputs/apk/debug/app-debug.apk"
+          body: |
+            Automatisch generierter Debug-Build vom letzten Commit auf `main`.
+
+            ### Installation
+            1. `app-debug.apk` herunterladen
+            2. Datei auf dem Android-Gerät öffnen
+            3. *"Aus unbekannter Quelle installieren"* erlauben
+
+            > Mindestanforderung: Android 7.0 (API 24)

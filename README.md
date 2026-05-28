@@ -9,6 +9,10 @@ A minimalistic, open-source calorie and nutrient tracking app for Android.
 - Set your own daily macro targets
 - All data stored locally — no account, no cloud
 
+## Download
+
+Die aktuellste APK ist immer direkt als [GitHub Release](https://github.com/anton-314/MacroMind/releases/tag/latest) verfügbar — kein Build nötig.
+
 ## Requirements
 
 - Android 7.0 (API 24) or higher
