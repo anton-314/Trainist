@@ -10,13 +10,13 @@ JAVA_HOME=/opt/android-studio/jbr ./gradlew assembleDebug
 
 # Install on connected emulator and launch
 JAVA_HOME=/opt/android-studio/jbr ./gradlew installDebug
-/home/anon/Android/Sdk/platform-tools/adb shell am start -n dev.antonlammers.macromind/.MainActivity
+/home/anon/Android/Sdk/platform-tools/adb shell am start -n dev.antonlammers.macrotrac/.MainActivity
 
 # Run all unit tests
 JAVA_HOME=/opt/android-studio/jbr ./gradlew test
 
 # Run a specific test class
-JAVA_HOME=/opt/android-studio/jbr ./gradlew :app:testDebugUnitTest --tests "dev.antonlammers.macromind.ui.overview.OverviewViewModelTest"
+JAVA_HOME=/opt/android-studio/jbr ./gradlew :app:testDebugUnitTest --tests "dev.antonlammers.macrotrac.ui.overview.OverviewViewModelTest"
 
 # Lint
 JAVA_HOME=/opt/android-studio/jbr ./gradlew lint
@@ -27,7 +27,7 @@ JAVA_HOME=/opt/android-studio/jbr ./gradlew lint
 MVVM, single `app` module, Jetpack Compose + Material3. All dependency versions live in `gradle/libs.versions.toml`.
 
 ```
-app/src/main/java/dev/antonlammers/macromind/
+app/src/main/java/dev/antonlammers/macrotrac/
 ├── domain/                  # Pure Kotlin — no Android deps
 │   ├── model/               # Food, FoodEntry, DailyGoal
 │   └── repository/          # FoodSearchRepository, FoodEntryRepository, GoalRepository (interfaces)
@@ -43,8 +43,8 @@ app/src/main/java/dev/antonlammers/macromind/
 │   ├── addfood/             # Food search + barcode scanner (AddFoodScreen, AddFoodViewModel,
 │   │                        #   BarcodeScannerScreen, BarcodeAnalyzer)
 │   └── goals/               # Goal editor (GoalsScreen + GoalsViewModel)
-├── MacroMindApp.kt          # @HiltAndroidApp
-└── MainActivity.kt          # @AndroidEntryPoint, hosts AppNavigation inside MacroMindTheme
+├── MacroTracApp.kt          # @HiltAndroidApp
+└── MainActivity.kt          # @AndroidEntryPoint, hosts AppNavigation inside MacroTracTheme
 ```
 
 ### Tests
@@ -56,11 +56,11 @@ Tests use `kotlinx-coroutines-test` + `turbine`. All ViewModels have full test c
 
 ### Backup & data portability
 
-- **Auto Backup**: `backup_rules.xml` (pre-12) and `data_extraction_rules.xml` (Android 12+) explicitly include `macromind.db` + WAL files. Android backs these up to Google Drive automatically when the user has backup enabled — no code required.
+- **Auto Backup**: `backup_rules.xml` (pre-12) and `data_extraction_rules.xml` (Android 12+) explicitly include `macrotrac.db` + WAL files. Android backs these up to Google Drive automatically when the user has backup enabled — no code required.
 - **CSV Export** (`data/backup/CsvExporter`): reads all entries via `FoodEntryRepository.allEntries()`, writes a header-named CSV to `cacheDir`, shares it via `FileProvider` + `Intent.ACTION_SEND`.
 - **CSV Import** (`data/backup/CsvImporter`): opens a user-picked URI via SAF (`OpenDocument`), delegates parsing to `CsvFormat`.
 - **CsvFormat** (`data/backup/CsvFormat.kt`): pure Kotlin, no Android deps — fully unit-tested. Columns are identified by name (not position), so adding a new nutrient (e.g. `fiber_g`) only requires updating `CsvColumns` + `CsvFormat.toRow/fromRow`. Old CSV files with missing columns are imported with defaults; old app versions ignore unknown columns.
-- **FileProvider** authority: `dev.antonlammers.macromind.fileprovider`, paths configured in `res/xml/file_paths.xml` (cache dir).
+- **FileProvider** authority: `dev.antonlammers.macrotrac.fileprovider`, paths configured in `res/xml/file_paths.xml` (cache dir).
 
 ### Key design decisions
 

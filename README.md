@@ -1,4 +1,4 @@
-# MacroMind
+# MacroTrac
 
 A minimalistic, open-source calorie and nutrient tracking app for Android.
 
@@ -11,7 +11,7 @@ A minimalistic, open-source calorie and nutrient tracking app for Android.
 
 ## Download
 
-Die aktuellste APK ist immer direkt als [GitHub Release](https://github.com/anton-314/MacroMind/releases/tag/latest) verfügbar — kein Build nötig.
+Die aktuellste APK ist immer direkt als [GitHub Release](https://github.com/anton-314/MacroTrac/releases/tag/latest) verfügbar — kein Build nötig.
 
 ## Requirements
 
@@ -21,8 +21,8 @@ Die aktuellste APK ist immer direkt als [GitHub Release](https://github.com/anto
 
 ```bash
 # Clone the repo
-git clone https://github.com/anton-314/MacroMind.git
-cd MacroMind
+git clone https://github.com/anton-314/MacroTrac.git
+cd MacroTrac
 
 # Build a debug APK
 ./gradlew assembleDebug

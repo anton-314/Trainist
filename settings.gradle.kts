@@ -19,6 +19,6 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "MacroMind"
+rootProject.name = "MacroTrac"
 include(":app")
  

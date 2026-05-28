@@ -7,13 +7,13 @@ plugins {
 }
 
 android {
-    namespace = "dev.antonlammers.macromind"
+    namespace = "dev.antonlammers.macrotrac"
     compileSdk {
         version = release(36)
     }
 
     defaultConfig {
-        applicationId = "dev.antonlammers.macromind"
+        applicationId = "dev.antonlammers.macrotrac"
         minSdk = 24
         targetSdk = 36
         versionCode = 1

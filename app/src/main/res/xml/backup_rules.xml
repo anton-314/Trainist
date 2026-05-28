@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <full-backup-content>
-    <include domain="database" path="macromind.db" />
-    <include domain="database" path="macromind.db-shm" />
-    <include domain="database" path="macromind.db-wal" />
+    <include domain="database" path="macrotrac.db" />
+    <include domain="database" path="macrotrac.db-shm" />
+    <include domain="database" path="macrotrac.db-wal" />
 </full-backup-content>
