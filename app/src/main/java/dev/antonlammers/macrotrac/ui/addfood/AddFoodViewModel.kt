@@ -6,6 +6,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import dev.antonlammers.macrotrac.domain.model.Food
 import dev.antonlammers.macrotrac.domain.model.FoodEntry
 import dev.antonlammers.macrotrac.domain.model.MealCategory
+import dev.antonlammers.macrotrac.domain.repository.CustomFoodRepository
 import dev.antonlammers.macrotrac.domain.repository.FoodEntryRepository
 import dev.antonlammers.macrotrac.domain.repository.FoodSearchRepository
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -22,12 +23,16 @@ import javax.inject.Inject
 class AddFoodViewModel @Inject constructor(
     private val foodSearchRepository: FoodSearchRepository,
     private val foodEntryRepository: FoodEntryRepository,
+    private val customFoodRepository: CustomFoodRepository,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(AddFoodUiState())
     val uiState: StateFlow<AddFoodUiState> = _uiState.asStateFlow()
 
     val recentFoods: StateFlow<List<FoodEntry>> = foodEntryRepository.recentFoods()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    val customFoods: StateFlow<List<Food>> = customFoodRepository.allFoods()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     fun onQueryChange(query: String) = _uiState.update { it.copy(query = query) }
@@ -61,6 +66,19 @@ class AddFoodViewModel @Inject constructor(
         val prevAmount = if (entry.amountGrams % 1.0 == 0.0) entry.amountGrams.toInt().toString()
                          else entry.amountGrams.toString()
         _uiState.update { it.copy(selectedFood = food, amountGrams = prevAmount) }
+    }
+
+    fun saveCustomFood(food: Food) {
+        viewModelScope.launch {
+            val saved = customFoodRepository.save(food)
+            _uiState.update { it.copy(selectedFood = saved, amountGrams = "100") }
+        }
+    }
+
+    fun deleteCustomFood(food: Food) {
+        food.id.toLongOrNull()?.let { id ->
+            viewModelScope.launch { customFoodRepository.delete(id) }
+        }
     }
 
     fun dismissSelection() = _uiState.update { it.copy(selectedFood = null) }

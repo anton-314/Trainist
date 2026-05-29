@@ -2,6 +2,7 @@ package dev.antonlammers.macrotrac.ui.addfood
 
 import app.cash.turbine.test
 import dev.antonlammers.macrotrac.domain.model.Food
+import dev.antonlammers.macrotrac.fake.FakeCustomFoodRepository
 import dev.antonlammers.macrotrac.fake.FakeFoodEntryRepository
 import dev.antonlammers.macrotrac.fake.FakeFoodSearchRepository
 import kotlinx.coroutines.Dispatchers
@@ -25,12 +26,14 @@ class AddFoodViewModelTest {
     private val testDispatcher = StandardTestDispatcher()
     private lateinit var searchRepo: FakeFoodSearchRepository
     private lateinit var entryRepo: FakeFoodEntryRepository
+    private lateinit var customRepo: FakeCustomFoodRepository
     private lateinit var viewModel: AddFoodViewModel
 
     @Before
     fun setup() {
         Dispatchers.setMain(testDispatcher)
         entryRepo = FakeFoodEntryRepository()
+        customRepo = FakeCustomFoodRepository()
     }
 
     @After
@@ -39,7 +42,7 @@ class AddFoodViewModelTest {
     @Test
     fun `search updates results on success`() = runTest {
         searchRepo = FakeFoodSearchRepository(searchResult = Result.success(listOf(apple())))
-        viewModel = AddFoodViewModel(searchRepo, entryRepo)
+        viewModel = AddFoodViewModel(searchRepo, entryRepo, customRepo)
 
         viewModel.onQueryChange("apfel")
 
@@ -60,7 +63,7 @@ class AddFoodViewModelTest {
     @Test
     fun `search sets error on failure`() = runTest {
         searchRepo = FakeFoodSearchRepository(searchResult = Result.failure(Exception("Netzwerkfehler")))
-        viewModel = AddFoodViewModel(searchRepo, entryRepo)
+        viewModel = AddFoodViewModel(searchRepo, entryRepo, customRepo)
 
         viewModel.onQueryChange("xyz")
 
@@ -80,7 +83,7 @@ class AddFoodViewModelTest {
     @Test
     fun `blank query does not trigger search`() = runTest {
         searchRepo = FakeFoodSearchRepository()
-        viewModel = AddFoodViewModel(searchRepo, entryRepo)
+        viewModel = AddFoodViewModel(searchRepo, entryRepo, customRepo)
 
         viewModel.uiState.test {
             awaitItem()
@@ -93,7 +96,7 @@ class AddFoodViewModelTest {
     @Test
     fun `confirmAdd with valid amount saves entry and signals entryAdded`() = runTest {
         searchRepo = FakeFoodSearchRepository()
-        viewModel = AddFoodViewModel(searchRepo, entryRepo)
+        viewModel = AddFoodViewModel(searchRepo, entryRepo, customRepo)
 
         viewModel.selectFood(apple())
         viewModel.onAmountChange("150")
@@ -110,7 +113,7 @@ class AddFoodViewModelTest {
     @Test
     fun `confirmAdd with invalid amount does nothing`() = runTest {
         searchRepo = FakeFoodSearchRepository()
-        viewModel = AddFoodViewModel(searchRepo, entryRepo)
+        viewModel = AddFoodViewModel(searchRepo, entryRepo, customRepo)
 
         viewModel.selectFood(apple())
         viewModel.onAmountChange("abc")
@@ -125,7 +128,7 @@ class AddFoodViewModelTest {
     @Test
     fun `confirmAdd scales macros by amount`() = runTest {
         searchRepo = FakeFoodSearchRepository()
-        viewModel = AddFoodViewModel(searchRepo, entryRepo)
+        viewModel = AddFoodViewModel(searchRepo, entryRepo, customRepo)
 
         viewModel.selectFood(apple()) // 52 kcal / 100g
         viewModel.onAmountChange("200")
@@ -147,7 +150,7 @@ class AddFoodViewModelTest {
     @Test
     fun `handleBarcode selects found product`() = runTest {
         searchRepo = FakeFoodSearchRepository(barcodeResult = Result.success(apple()))
-        viewModel = AddFoodViewModel(searchRepo, entryRepo)
+        viewModel = AddFoodViewModel(searchRepo, entryRepo, customRepo)
 
         viewModel.uiState.test {
             awaitItem()
@@ -164,7 +167,7 @@ class AddFoodViewModelTest {
     @Test
     fun `handleBarcode sets error when product not found`() = runTest {
         searchRepo = FakeFoodSearchRepository(barcodeResult = Result.success(null))
-        viewModel = AddFoodViewModel(searchRepo, entryRepo)
+        viewModel = AddFoodViewModel(searchRepo, entryRepo, customRepo)
 
         viewModel.uiState.test {
             awaitItem()
@@ -180,7 +183,7 @@ class AddFoodViewModelTest {
     @Test
     fun `handleBarcode sets error on network failure`() = runTest {
         searchRepo = FakeFoodSearchRepository(barcodeResult = Result.failure(Exception("Timeout")))
-        viewModel = AddFoodViewModel(searchRepo, entryRepo)
+        viewModel = AddFoodViewModel(searchRepo, entryRepo, customRepo)
 
         viewModel.uiState.test {
             awaitItem()
@@ -188,6 +191,44 @@ class AddFoodViewModelTest {
             awaitItem() // loading
             val done = awaitItem()
             assertEquals("Timeout", done.error)
+        }
+    }
+
+    @Test
+    fun `saveCustomFood saves food and selects it for amount dialog`() = runTest {
+        searchRepo = FakeFoodSearchRepository()
+        viewModel = AddFoodViewModel(searchRepo, entryRepo, customRepo)
+
+        val food = Food(
+            id = "",
+            name = "Haferflocken",
+            brand = null,
+            kcalPer100g = 370.0,
+            proteinPer100g = 13.0,
+            carbsPer100g = 59.0,
+            fatPer100g = 7.0,
+        )
+
+        viewModel.uiState.test {
+            awaitItem()
+            viewModel.saveCustomFood(food)
+            val state = awaitItem()
+            assertNotNull(state.selectedFood)
+            assertEquals("Haferflocken", state.selectedFood?.name)
+            assertEquals("100", state.amountGrams)
+        }
+    }
+
+    @Test
+    fun `saveCustomFood assigns a real id`() = runTest {
+        searchRepo = FakeFoodSearchRepository()
+        viewModel = AddFoodViewModel(searchRepo, entryRepo, customRepo)
+
+        viewModel.uiState.test {
+            awaitItem()
+            viewModel.saveCustomFood(Food("", "Reis", null, 130.0, 2.7, 28.0, 0.3))
+            val state = awaitItem()
+            assertTrue(state.selectedFood?.id?.isNotBlank() == true)
         }
     }
 

@@ -243,11 +243,26 @@ private fun CalorieRing(current: Double, goal: Double) {
                 fontWeight = FontWeight.Bold,
             )
             Text("kcal", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Text(
-                "von ${goal.toInt()}",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+            val remaining = goal - current
+            if (remaining > 0) {
+                Text(
+                    "noch ${remaining.toInt()}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            } else if (remaining < 0) {
+                Text(
+                    "+${(-remaining).toInt()} zuviel",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error,
+                )
+            } else {
+                Text(
+                    "Ziel erreicht",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.primary,
+                )
+            }
         }
     }
 }
