@@ -19,6 +19,8 @@ class WeightRepositoryImpl @Inject constructor(
     override fun entriesInRange(from: LocalDate, to: LocalDate): Flow<List<WeightEntry>> =
         dao.entriesInRange(from.toString(), to.toString()).map { list -> list.map { it.toDomain() } }
 
+    override suspend fun allEntries(): List<WeightEntry> = dao.allEntries().map { it.toDomain() }
+
     override suspend fun save(entry: WeightEntry) = dao.insert(entry.toEntity())
 
     private fun WeightEntryEntity.toDomain() = WeightEntry(

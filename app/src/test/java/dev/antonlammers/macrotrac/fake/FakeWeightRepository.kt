@@ -21,6 +21,9 @@ class FakeWeightRepository : WeightRepository {
             list.filter { it.date >= from && it.date <= to }.sortedBy { it.date }
         }
 
+    override suspend fun allEntries(): List<WeightEntry> =
+        _entries.value.sortedBy { it.date }
+
     override suspend fun save(entry: WeightEntry) {
         _entries.update { list ->
             list.filterNot { it.date == entry.date } + entry.copy(id = nextId++)

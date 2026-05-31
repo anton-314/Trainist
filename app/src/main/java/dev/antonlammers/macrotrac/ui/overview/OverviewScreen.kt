@@ -158,36 +158,87 @@ fun OverviewScreen(
                         )
                     }
                     items(categoryEntries, key = { it.id }) { entry ->
+                        var showEditDialog by remember { mutableStateOf(false) }
+                        var amountInput by remember { mutableStateOf("") }
+                        var selectedCategory by remember { mutableStateOf(entry.mealCategory) }
+
                         val dismissState = rememberSwipeToDismissBoxState(
-                            confirmValueChange = { it == SwipeToDismissBoxValue.EndToStart },
+                            confirmValueChange = { value ->
+                                when (value) {
+                                    SwipeToDismissBoxValue.EndToStart -> true
+                                    SwipeToDismissBoxValue.StartToEnd -> {
+                                        amountInput = entry.amountGrams.toInt().toString()
+                                        selectedCategory = entry.mealCategory
+                                        showEditDialog = true
+                                        false
+                                    }
+                                    else -> false
+                                }
+                            }
                         )
                         LaunchedEffect(dismissState.currentValue) {
                             if (dismissState.currentValue == SwipeToDismissBoxValue.EndToStart) {
                                 viewModel.delete(entry.id)
                             }
                         }
+
+                        if (showEditDialog) {
+                            EditFoodDialog(
+                                entry = entry,
+                                amountInput = amountInput,
+                                onAmountChange = { amountInput = it },
+                                selectedCategory = selectedCategory,
+                                onCategoryChange = { selectedCategory = it },
+                                onDismiss = { showEditDialog = false },
+                                onConfirm = { updated ->
+                                    viewModel.update(updated)
+                                    showEditDialog = false
+                                },
+                            )
+                        }
+
                         SwipeToDismissBox(
                             state = dismissState,
-                            enableDismissFromStartToEnd = false,
+                            enableDismissFromStartToEnd = true,
                             backgroundContent = {
+                                val bgColor = when (dismissState.targetValue) {
+                                    SwipeToDismissBoxValue.EndToStart -> MaterialTheme.colorScheme.errorContainer
+                                    SwipeToDismissBoxValue.StartToEnd -> MaterialTheme.colorScheme.primaryContainer
+                                    else -> Color.Transparent
+                                }
                                 Box(
                                     modifier = Modifier
                                         .fillMaxSize()
-                                        .background(MaterialTheme.colorScheme.errorContainer)
+                                        .background(bgColor)
                                         .padding(horizontal = 16.dp),
-                                    contentAlignment = Alignment.CenterEnd,
+                                    contentAlignment = when (dismissState.targetValue) {
+                                        SwipeToDismissBoxValue.StartToEnd -> Alignment.CenterStart
+                                        else -> Alignment.CenterEnd
+                                    },
                                 ) {
-                                    Icon(
-                                        Icons.Default.Delete,
-                                        contentDescription = "Löschen",
-                                        tint = MaterialTheme.colorScheme.onErrorContainer,
-                                    )
+                                    when (dismissState.targetValue) {
+                                        SwipeToDismissBoxValue.EndToStart -> Icon(
+                                            Icons.Default.Delete,
+                                            contentDescription = "Löschen",
+                                            tint = MaterialTheme.colorScheme.onErrorContainer,
+                                        )
+                                        SwipeToDismissBoxValue.StartToEnd -> Icon(
+                                            Icons.Default.Edit,
+                                            contentDescription = "Bearbeiten",
+                                            tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                                        )
+                                        else -> {}
+                                    }
                                 }
                             },
                         ) {
                             FoodEntryRow(
                                 entry = entry,
-                                onEdit = { viewModel.update(it) },
+                                onEditClick = {
+                                    amountInput = entry.amountGrams.toInt().toString()
+                                    selectedCategory = entry.mealCategory
+                                    showEditDialog = true
+                                },
                             )
                         }
                         HorizontalDivider()
@@ -196,6 +247,106 @@ fun OverviewScreen(
             }
         }
     }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun EditFoodDialog(
+    entry: FoodEntry,
+    amountInput: String,
+    onAmountChange: (String) -> Unit,
+    selectedCategory: MealCategory,
+    onCategoryChange: (MealCategory) -> Unit,
+    onDismiss: () -> Unit,
+    onConfirm: (FoodEntry) -> Unit,
+) {
+    val newAmount = amountInput.toDoubleOrNull() ?: 0.0
+    val factor = if (entry.amountGrams > 0 && newAmount > 0) newAmount / entry.amountGrams else 1.0
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Eintrag bearbeiten") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Text(
+                    buildString {
+                        append(entry.foodName)
+                        entry.brand?.let { append(" ($it)") }
+                    },
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Medium,
+                )
+                OutlinedTextField(
+                    value = amountInput,
+                    onValueChange = onAmountChange,
+                    label = { Text("Menge") },
+                    suffix = { Text("g") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                Text("Mahlzeit", style = MaterialTheme.typography.labelMedium)
+                Row(
+                    modifier = Modifier.horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
+                    MealCategory.entries.forEach { cat ->
+                        FilterChip(
+                            selected = cat == selectedCategory,
+                            onClick = { onCategoryChange(cat) },
+                            label = {
+                                Text(cat.displayName(), style = MaterialTheme.typography.labelSmall)
+                            },
+                        )
+                    }
+                }
+                if (newAmount > 0) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(MaterialTheme.colorScheme.surfaceVariant)
+                            .padding(horizontal = 12.dp, vertical = 8.dp),
+                    ) {
+                        Text(
+                            "${(entry.kcal * factor).toInt()} kcal · " +
+                                "${(entry.proteinG * factor).toInt()}g P · " +
+                                "${(entry.carbsG * factor).toInt()}g K · " +
+                                "${(entry.fatG * factor).toInt()}g F",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(
+                enabled = amountInput.toDoubleOrNull()?.let { it > 0 } == true,
+                onClick = {
+                    val newAmt = amountInput.toDoubleOrNull() ?: return@TextButton
+                    if (newAmt > 0) {
+                        val f = newAmt / entry.amountGrams
+                        onConfirm(
+                            entry.copy(
+                                amountGrams = newAmt,
+                                kcal = entry.kcal * f,
+                                proteinG = entry.proteinG * f,
+                                carbsG = entry.carbsG * f,
+                                fatG = entry.fatG * f,
+                                sugarG = entry.sugarG * f,
+                                fiberG = entry.fiberG * f,
+                                mealCategory = selectedCategory,
+                            )
+                        )
+                    }
+                },
+            ) { Text("Speichern") }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("Abbrechen") }
+        },
+    )
 }
 
 @Composable
@@ -429,105 +580,11 @@ private fun MealCategory.displayName() = when (this) {
 }
 
 @Composable
-private fun FoodEntryRow(entry: FoodEntry, onEdit: (FoodEntry) -> Unit) {
-    var showEditDialog by remember { mutableStateOf(false) }
-    var amountInput by remember { mutableStateOf("") }
-    var selectedCategory by remember { mutableStateOf(entry.mealCategory) }
-
-    if (showEditDialog) {
-        val newAmount = amountInput.toDoubleOrNull() ?: 0.0
-        val factor = if (entry.amountGrams > 0 && newAmount > 0) newAmount / entry.amountGrams else 1.0
-
-        AlertDialog(
-            onDismissRequest = { showEditDialog = false },
-            title = { Text("Eintrag bearbeiten") },
-            text = {
-                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Text(
-                        buildString {
-                            append(entry.foodName)
-                            entry.brand?.let { append(" ($it)") }
-                        },
-                        style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = FontWeight.Medium,
-                    )
-                    OutlinedTextField(
-                        value = amountInput,
-                        onValueChange = { amountInput = it },
-                        label = { Text("Menge") },
-                        suffix = { Text("g") },
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                    Text("Mahlzeit", style = MaterialTheme.typography.labelMedium)
-                    Row(
-                        modifier = Modifier.horizontalScroll(rememberScrollState()),
-                        horizontalArrangement = Arrangement.spacedBy(6.dp),
-                    ) {
-                        MealCategory.entries.forEach { cat ->
-                            FilterChip(
-                                selected = cat == selectedCategory,
-                                onClick = { selectedCategory = cat },
-                                label = {
-                                    Text(cat.displayName(), style = MaterialTheme.typography.labelSmall)
-                                },
-                            )
-                        }
-                    }
-                    if (newAmount > 0) {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clip(RoundedCornerShape(8.dp))
-                                .background(MaterialTheme.colorScheme.surfaceVariant)
-                                .padding(horizontal = 12.dp, vertical = 8.dp),
-                        ) {
-                            Text(
-                                "${(entry.kcal * factor).toInt()} kcal · " +
-                                    "${(entry.proteinG * factor).toInt()}g P · " +
-                                    "${(entry.carbsG * factor).toInt()}g K · " +
-                                    "${(entry.fatG * factor).toInt()}g F",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        }
-                    }
-                }
-            },
-            confirmButton = {
-                TextButton(
-                    enabled = amountInput.toDoubleOrNull()?.let { it > 0 } == true,
-                    onClick = {
-                        val newAmt = amountInput.toDoubleOrNull()
-                        if (newAmt != null && newAmt > 0) {
-                            val f = newAmt / entry.amountGrams
-                            onEdit(
-                                entry.copy(
-                                    amountGrams = newAmt,
-                                    kcal = entry.kcal * f,
-                                    proteinG = entry.proteinG * f,
-                                    carbsG = entry.carbsG * f,
-                                    fatG = entry.fatG * f,
-                                    sugarG = entry.sugarG * f,
-                                    fiberG = entry.fiberG * f,
-                                    mealCategory = selectedCategory,
-                                )
-                            )
-                        }
-                        showEditDialog = false
-                    },
-                ) { Text("Speichern") }
-            },
-            dismissButton = {
-                TextButton(onClick = { showEditDialog = false }) { Text("Abbrechen") }
-            },
-        )
-    }
-
+private fun FoodEntryRow(entry: FoodEntry, onEditClick: () -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .background(MaterialTheme.colorScheme.surface)
             .padding(vertical = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween,
@@ -547,11 +604,7 @@ private fun FoodEntryRow(entry: FoodEntry, onEdit: (FoodEntry) -> Unit) {
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
-        IconButton(onClick = {
-            amountInput = entry.amountGrams.toInt().toString()
-            selectedCategory = entry.mealCategory
-            showEditDialog = true
-        }) {
+        IconButton(onClick = onEditClick) {
             Icon(Icons.Default.Edit, contentDescription = "Bearbeiten")
         }
     }

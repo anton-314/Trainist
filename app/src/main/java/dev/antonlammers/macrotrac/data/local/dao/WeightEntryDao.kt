@@ -15,6 +15,9 @@ interface WeightEntryDao {
     @Query("SELECT * FROM weight_entries WHERE date >= :from AND date <= :to ORDER BY date ASC")
     fun entriesInRange(from: String, to: String): Flow<List<WeightEntryEntity>>
 
+    @Query("SELECT * FROM weight_entries ORDER BY date ASC")
+    suspend fun allEntries(): List<WeightEntryEntity>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(entry: WeightEntryEntity)
 }

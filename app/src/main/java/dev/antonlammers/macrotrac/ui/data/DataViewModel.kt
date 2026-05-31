@@ -4,8 +4,8 @@ import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
-import dev.antonlammers.macrotrac.data.backup.CsvExporter
-import dev.antonlammers.macrotrac.data.backup.CsvImporter
+import dev.antonlammers.macrotrac.data.backup.BackupExporter
+import dev.antonlammers.macrotrac.data.backup.BackupImporter
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -15,8 +15,8 @@ import javax.inject.Inject
 
 @HiltViewModel
 class DataViewModel @Inject constructor(
-    private val exporter: CsvExporter,
-    private val importer: CsvImporter,
+    private val exporter: BackupExporter,
+    private val importer: BackupImporter,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(DataUiState())
@@ -41,8 +41,14 @@ class DataViewModel @Inject constructor(
             _uiState.update { it.copy(isLoading = true) }
             runCatching { importer.import(uri) }
                 .onSuccess { result ->
-                    val msg = "${result.imported} Einträge importiert" +
-                            if (result.skipped > 0) ", ${result.skipped} übersprungen" else ""
+                    val parts = buildList {
+                        val food = "${result.foodImported} Lebensmitteleinträge" +
+                            if (result.foodSkipped > 0) " (${result.foodSkipped} übersprungen)" else ""
+                        if (result.foodImported > 0 || result.foodSkipped > 0) add(food)
+                        if (result.weightImported > 0) add("${result.weightImported} Gewichtseinträge")
+                        if (result.goalRestored) add("Ziele wiederhergestellt")
+                    }
+                    val msg = if (parts.isEmpty()) "Nichts importiert" else parts.joinToString(", ")
                     _uiState.update { it.copy(isLoading = false, message = msg) }
                 }
                 .onFailure { e ->

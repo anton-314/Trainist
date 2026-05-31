@@ -85,13 +85,13 @@ fun DataScreen(
 
             DataCard(
                 title = "Export",
-                description = "Alle Einträge als CSV-Datei teilen.",
+                description = "Alle Daten (Lebensmittel, Gewicht, Ziele) als ZIP-Backup exportieren.",
             ) {
                 Button(
                     onClick = {
                         viewModel.export { uri ->
                             val intent = Intent(Intent.ACTION_SEND).apply {
-                                type = "text/csv"
+                                type = "application/zip"
                                 putExtra(Intent.EXTRA_STREAM, uri)
                                 addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
                             }
@@ -106,16 +106,16 @@ fun DataScreen(
                         contentDescription = null,
                         modifier = Modifier.padding(end = 8.dp),
                     )
-                    Text("Als CSV exportieren")
+                    Text("Vollständiges Backup exportieren")
                 }
             }
 
             DataCard(
                 title = "Import",
-                description = "CSV-Datei importieren. Bestehende Einträge bleiben erhalten.",
+                description = "ZIP-Backup oder alte CSV-Datei importieren. Bestehende Einträge bleiben erhalten.",
             ) {
                 OutlinedButton(
-                    onClick = { importLauncher.launch(arrayOf("text/csv", "text/comma-separated-values", "*/*")) },
+                    onClick = { importLauncher.launch(arrayOf("application/zip", "text/csv", "*/*")) },
                     modifier = Modifier.fillMaxWidth(),
                     enabled = !state.isLoading,
                 ) {
@@ -124,14 +124,14 @@ fun DataScreen(
                         contentDescription = null,
                         modifier = Modifier.padding(end = 8.dp),
                     )
-                    Text("CSV-Datei auswählen")
+                    Text("Backup auswählen")
                 }
             }
 
             Spacer(Modifier.height(8.dp))
             Text(
-                "Das CSV-Format ist vorwärtskompatibel: Spalten werden beim Import nach Namen erkannt." +
-                        " Neue Nährwerte können jederzeit ergänzt werden.",
+                "Das Backup enthält Lebensmitteleinträge, Gewichtsverlauf und Tagesziele. " +
+                        "Alte CSV-Exporte (nur Lebensmittel) werden ebenfalls erkannt.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )

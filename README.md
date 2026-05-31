@@ -11,7 +11,8 @@ A minimalistic, open-source calorie and nutrient tracking app for Android.
 - **Weight tracking** — log today's weight directly from the overview with a single tap
 - **Stats screen** — calorie bar chart + weight line chart for the last 7 days, 30 days, or 1 year
 - Set your own daily macro targets
-- CSV export and import for full data portability
+- **Edit food entries** — swipe right-to-left to delete, left-to-right to edit amount and meal category
+- **Full backup export/import** — ZIP file containing all food entries, weight history, and goals; backward-compatible with old food-only CSV exports
 - All data stored locally — no account, no cloud
 
 ## Download

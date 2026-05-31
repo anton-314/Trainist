@@ -176,7 +176,7 @@ fun StatsScreen(
                 onClick = {
                     dataViewModel.export { uri ->
                         val intent = Intent(Intent.ACTION_SEND).apply {
-                            type = "text/csv"
+                            type = "application/zip"
                             putExtra(Intent.EXTRA_STREAM, uri)
                             addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
                         }
@@ -187,16 +187,16 @@ fun StatsScreen(
                 enabled = !dataState.isLoading,
             ) {
                 Icon(Icons.Default.FileDownload, contentDescription = null, modifier = Modifier.padding(end = 8.dp))
-                Text("Als CSV exportieren")
+                Text("Vollständiges Backup exportieren")
             }
 
             OutlinedButton(
-                onClick = { importLauncher.launch(arrayOf("text/csv", "text/comma-separated-values", "*/*")) },
+                onClick = { importLauncher.launch(arrayOf("application/zip", "text/csv", "*/*")) },
                 modifier = Modifier.fillMaxWidth(),
                 enabled = !dataState.isLoading,
             ) {
                 Icon(Icons.Default.FileUpload, contentDescription = null, modifier = Modifier.padding(end = 8.dp))
-                Text("CSV-Datei importieren")
+                Text("Backup importieren")
             }
         }
     }

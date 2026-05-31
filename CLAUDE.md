@@ -59,9 +59,11 @@ Tests use `kotlinx-coroutines-test` + `turbine`. All ViewModels have full test c
 ### Backup & data portability
 
 - **Auto Backup**: `backup_rules.xml` (pre-12) and `data_extraction_rules.xml` (Android 12+) explicitly include `macrotrac.db` + WAL files. Android backs these up to Google Drive automatically when the user has backup enabled — no code required.
-- **CSV Export** (`data/backup/CsvExporter`): reads all entries via `FoodEntryRepository.allEntries()`, writes a header-named CSV to `cacheDir`, shares it via `FileProvider` + `Intent.ACTION_SEND`.
-- **CSV Import** (`data/backup/CsvImporter`): opens a user-picked URI via SAF (`OpenDocument`), delegates parsing to `CsvFormat`.
-- **CsvFormat** (`data/backup/CsvFormat.kt`): pure Kotlin, no Android deps — fully unit-tested. Columns are identified by name (not position), so adding a new nutrient (e.g. `fiber_g`) only requires updating `CsvColumns` + `CsvFormat.toRow/fromRow`. Old CSV files with missing columns are imported with defaults; old app versions ignore unknown columns.
+- **Full Backup Export** (`data/backup/BackupExporter`): reads all three data types (food entries, weight entries, daily goal), writes a ZIP to `cacheDir` containing three named CSVs (`food_entries.csv`, `weight_entries.csv`, `daily_goal.csv`), shares via `FileProvider` + `Intent.ACTION_SEND`.
+- **Full Backup Import** (`data/backup/BackupImporter`): opens a user-picked URI, auto-detects ZIP vs legacy CSV by checking the PK magic bytes. ZIP imports all three sections; legacy CSV imports only food entries (backward-compatible).
+- **CsvFormat** (`data/backup/CsvFormat.kt`): pure Kotlin — food entries. Columns identified by name; missing columns fall back to defaults; extra columns are ignored.
+- **WeightCsvFormat** (`data/backup/WeightCsvFormat.kt`): pure Kotlin — weight entries. Columns: `date`, `weight_kg`, `timestamp_ms`.
+- **GoalCsvFormat** (`data/backup/GoalCsvFormat.kt`): pure Kotlin — single-row daily goal. Columns: `kcal`, `protein_g`, `carbs_g`, `fat_g`.
 - **FileProvider** authority: `dev.antonlammers.macrotrac.fileprovider`, paths configured in `res/xml/file_paths.xml` (cache dir).
 
 ### Key design decisions
@@ -73,6 +75,7 @@ Tests use `kotlinx-coroutines-test` + `turbine`. All ViewModels have full test c
 - **WeightEntry** is one per day, enforced via a `UNIQUE` index on the `date` column + `OnConflictStrategy.REPLACE` on insert.
 - **Day navigation** in `OverviewViewModel` is driven by a `MutableStateFlow<LocalDate>`. The `uiState` uses `flatMapLatest` to re-subscribe to food entries and today's weight whenever the date changes.
 - **Recently eaten** in `AddFoodScreen`: shown when the search field is empty. `FoodEntryRepository.recentFoods()` fetches the last 100 entries, deduplicates by `foodName`, and returns the 15 most recent distinct foods. Tapping one back-calculates per-100g values and opens the amount dialog with the previous portion pre-filled.
+- **Swipe gestures on food entries** (OverviewScreen): EndToStart (right-to-left) shows a red delete background and deletes the entry on full swipe. StartToEnd (left-to-right) shows a green edit background and opens the edit dialog (swipe snaps back via `confirmValueChange` returning `false`). `FoodEntryRow` has an explicit `surface` background so the swipe background only shows when actively swiping. Edit can also be triggered by the pencil IconButton in the row.
 - **Stats screen** (`ui/stats/`) uses Canvas-based charts (no chart library dependency). Calorie data is aggregated daily for 7-day/30-day views and monthly for the 1-year view. The time range drives a `flatMapLatest` to re-subscribe to both food and weight repositories.
 - **Open Food Facts** base URL: `https://world.openfoodfacts.org/`. Two endpoints used:
   - `api/v2/search?search_terms=…` — text search
