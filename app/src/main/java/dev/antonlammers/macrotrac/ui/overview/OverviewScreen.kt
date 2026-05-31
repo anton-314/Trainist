@@ -20,6 +20,8 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
@@ -28,6 +30,7 @@ import androidx.compose.material.icons.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.filled.KeyboardArrowRight
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
@@ -157,7 +160,11 @@ fun OverviewScreen(
                         )
                     }
                     items(categoryEntries, key = { it.id }) { entry ->
-                        FoodEntryRow(entry = entry, onDelete = { viewModel.delete(entry.id) })
+                        FoodEntryRow(
+                            entry = entry,
+                            onEdit = { viewModel.update(it) },
+                            onDelete = { viewModel.delete(entry.id) },
+                        )
                         HorizontalDivider()
                     }
                 }
@@ -397,7 +404,102 @@ private fun MealCategory.displayName() = when (this) {
 }
 
 @Composable
-private fun FoodEntryRow(entry: FoodEntry, onDelete: () -> Unit) {
+private fun FoodEntryRow(entry: FoodEntry, onEdit: (FoodEntry) -> Unit, onDelete: () -> Unit) {
+    var showEditDialog by remember { mutableStateOf(false) }
+    var amountInput by remember { mutableStateOf("") }
+    var selectedCategory by remember { mutableStateOf(entry.mealCategory) }
+
+    if (showEditDialog) {
+        val newAmount = amountInput.toDoubleOrNull() ?: 0.0
+        val factor = if (entry.amountGrams > 0 && newAmount > 0) newAmount / entry.amountGrams else 1.0
+
+        AlertDialog(
+            onDismissRequest = { showEditDialog = false },
+            title = { Text("Eintrag bearbeiten") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Text(
+                        buildString {
+                            append(entry.foodName)
+                            entry.brand?.let { append(" ($it)") }
+                        },
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Medium,
+                    )
+                    OutlinedTextField(
+                        value = amountInput,
+                        onValueChange = { amountInput = it },
+                        label = { Text("Menge") },
+                        suffix = { Text("g") },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    Text("Mahlzeit", style = MaterialTheme.typography.labelMedium)
+                    Row(
+                        modifier = Modifier.horizontalScroll(rememberScrollState()),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    ) {
+                        MealCategory.entries.forEach { cat ->
+                            FilterChip(
+                                selected = cat == selectedCategory,
+                                onClick = { selectedCategory = cat },
+                                label = {
+                                    Text(cat.displayName(), style = MaterialTheme.typography.labelSmall)
+                                },
+                            )
+                        }
+                    }
+                    if (newAmount > 0) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(MaterialTheme.colorScheme.surfaceVariant)
+                                .padding(horizontal = 12.dp, vertical = 8.dp),
+                        ) {
+                            Text(
+                                "${(entry.kcal * factor).toInt()} kcal · " +
+                                    "${(entry.proteinG * factor).toInt()}g P · " +
+                                    "${(entry.carbsG * factor).toInt()}g K · " +
+                                    "${(entry.fatG * factor).toInt()}g F",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    enabled = amountInput.toDoubleOrNull()?.let { it > 0 } == true,
+                    onClick = {
+                        val newAmt = amountInput.toDoubleOrNull()
+                        if (newAmt != null && newAmt > 0) {
+                            val f = newAmt / entry.amountGrams
+                            onEdit(
+                                entry.copy(
+                                    amountGrams = newAmt,
+                                    kcal = entry.kcal * f,
+                                    proteinG = entry.proteinG * f,
+                                    carbsG = entry.carbsG * f,
+                                    fatG = entry.fatG * f,
+                                    sugarG = entry.sugarG * f,
+                                    fiberG = entry.fiberG * f,
+                                    mealCategory = selectedCategory,
+                                )
+                            )
+                        }
+                        showEditDialog = false
+                    },
+                ) { Text("Speichern") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showEditDialog = false }) { Text("Abbrechen") }
+            },
+        )
+    }
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -419,6 +521,13 @@ private fun FoodEntryRow(entry: FoodEntry, onDelete: () -> Unit) {
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
+        }
+        IconButton(onClick = {
+            amountInput = entry.amountGrams.toInt().toString()
+            selectedCategory = entry.mealCategory
+            showEditDialog = true
+        }) {
+            Icon(Icons.Default.Edit, contentDescription = "Bearbeiten")
         }
         IconButton(onClick = onDelete) {
             Icon(Icons.Default.Delete, contentDescription = "Löschen")

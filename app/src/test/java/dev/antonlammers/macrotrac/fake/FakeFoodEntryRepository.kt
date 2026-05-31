@@ -39,6 +39,10 @@ class FakeFoodEntryRepository : FoodEntryRepository {
         _entries.update { it + entry.copy(id = nextId++) }
     }
 
+    override suspend fun update(entry: FoodEntry) {
+        _entries.update { list -> list.map { if (it.id == entry.id) entry else it } }
+    }
+
     override suspend fun delete(id: Long) {
         _entries.update { it.filterNot { e -> e.id == id } }
     }

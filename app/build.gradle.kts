@@ -66,6 +66,10 @@ dependencies {
     implementation(libs.androidx.room.ktx)
     ksp(libs.androidx.room.compiler)
 
+    // Glance (App Widgets)
+    implementation(libs.glance.appwidget)
+    implementation(libs.glance.material3)
+
     // CameraX + ML Kit Barcode
     implementation(libs.androidx.camera.core)
     implementation(libs.androidx.camera.camera2)

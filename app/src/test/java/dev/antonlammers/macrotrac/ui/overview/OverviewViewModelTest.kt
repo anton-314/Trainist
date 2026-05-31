@@ -146,6 +146,40 @@ class OverviewViewModelTest {
     }
 
     @Test
+    fun `updating an entry recalculates totals`() = runTest {
+        viewModel.uiState.test {
+            awaitItem() // initial
+
+            foodEntryRepo.add(buildEntry(kcal = 200.0, date = LocalDate.now()))
+            val afterAdd = awaitItem()
+            val original = afterAdd.entries.first()
+
+            viewModel.update(original.copy(kcal = 350.0, amountGrams = 175.0))
+            val afterEdit = awaitItem()
+
+            assertEquals(350.0, afterEdit.totalKcal, 0.001)
+            assertEquals(175.0, afterEdit.entries.first().amountGrams, 0.001)
+        }
+    }
+
+    @Test
+    fun `updating meal category changes category without affecting kcal`() = runTest {
+        viewModel.uiState.test {
+            awaitItem()
+
+            foodEntryRepo.add(buildEntry(kcal = 300.0, date = LocalDate.now()))
+            val afterAdd = awaitItem()
+            val original = afterAdd.entries.first()
+
+            viewModel.update(original.copy(mealCategory = dev.antonlammers.macrotrac.domain.model.MealCategory.DINNER))
+            val afterEdit = awaitItem()
+
+            assertEquals(dev.antonlammers.macrotrac.domain.model.MealCategory.DINNER, afterEdit.entries.first().mealCategory)
+            assertEquals(300.0, afterEdit.totalKcal, 0.001)
+        }
+    }
+
+    @Test
     fun `goToToday returns to today from a different date`() = runTest {
         viewModel.uiState.test {
             awaitItem() // today

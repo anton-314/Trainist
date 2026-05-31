@@ -49,6 +49,10 @@ class OverviewViewModel @Inject constructor(
     fun nextDay() = _date.update { it.plusDays(1) }
     fun goToToday() = _date.update { LocalDate.now() }
 
+    fun update(entry: FoodEntry) {
+        viewModelScope.launch { foodEntryRepository.update(entry) }
+    }
+
     fun delete(id: Long) {
         viewModelScope.launch { foodEntryRepository.delete(id) }
     }

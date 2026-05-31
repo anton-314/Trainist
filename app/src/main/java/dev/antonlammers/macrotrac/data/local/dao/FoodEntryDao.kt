@@ -3,6 +3,7 @@ package dev.antonlammers.macrotrac.data.local.dao
 import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.Query
+import androidx.room.Update
 import dev.antonlammers.macrotrac.data.local.entity.FoodEntryEntity
 import kotlinx.coroutines.flow.Flow
 
@@ -19,6 +20,9 @@ interface FoodEntryDao {
 
     @Insert
     suspend fun insert(entry: FoodEntryEntity)
+
+    @Update
+    suspend fun update(entry: FoodEntryEntity)
 
     @Query("SELECT * FROM food_entries ORDER BY date DESC, timestampMs DESC")
     suspend fun allEntries(): List<FoodEntryEntity>

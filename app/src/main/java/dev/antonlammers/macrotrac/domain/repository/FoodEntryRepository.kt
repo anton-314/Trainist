@@ -11,5 +11,6 @@ interface FoodEntryRepository {
     fun recentEntries(limit: Int = 500): Flow<List<FoodEntry>>
     suspend fun allEntries(): List<FoodEntry>
     suspend fun add(entry: FoodEntry)
+    suspend fun update(entry: FoodEntry)
     suspend fun delete(id: Long)
 }
