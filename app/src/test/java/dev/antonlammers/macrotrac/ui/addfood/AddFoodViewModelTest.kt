@@ -3,12 +3,15 @@ package dev.antonlammers.macrotrac.ui.addfood
 import androidx.lifecycle.SavedStateHandle
 import app.cash.turbine.test
 import dev.antonlammers.macrotrac.domain.model.Food
+import dev.antonlammers.macrotrac.domain.model.FoodEntry
+import dev.antonlammers.macrotrac.domain.model.MealCategory
 import dev.antonlammers.macrotrac.fake.FakeCustomFoodRepository
 import dev.antonlammers.macrotrac.fake.FakeFoodEntryRepository
 import dev.antonlammers.macrotrac.fake.FakeFoodSearchRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.StandardTestDispatcher
+import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
@@ -36,73 +39,121 @@ class AddFoodViewModelTest {
         Dispatchers.setMain(testDispatcher)
         entryRepo = FakeFoodEntryRepository()
         customRepo = FakeCustomFoodRepository()
+        searchRepo = FakeFoodSearchRepository()
     }
 
     @After
     fun tearDown() = Dispatchers.resetMain()
 
+    // --- local search ---
+
     @Test
-    fun `search updates results on success`() = runTest {
-        searchRepo = FakeFoodSearchRepository(searchResult = Result.success(listOf(apple())))
-        viewModel = AddFoodViewModel(SavedStateHandle(mapOf("date" to LocalDate.now().toString())), searchRepo, entryRepo, customRepo)
-
-        viewModel.onQueryChange("apfel")
-
-        viewModel.uiState.test {
-            awaitItem() // initial
-
-            viewModel.search()
-            val loading = awaitItem()
-            assertTrue(loading.isLoading)
-
-            val done = awaitItem()
-            assertFalse(done.isLoading)
-            assertEquals(1, done.results.size)
-            assertEquals("Apfel", done.results.first().name)
+    fun `localSearchResults is empty when query is blank`() = runTest {
+        viewModel = viewModel()
+        viewModel.localSearchResults.test {
+            assertTrue(awaitItem().isEmpty())
+            cancelAndIgnoreRemainingEvents()
         }
     }
 
     @Test
-    fun `search sets error on failure`() = runTest {
-        searchRepo = FakeFoodSearchRepository(searchResult = Result.failure(Exception("Netzwerkfehler")))
-        viewModel = AddFoodViewModel(SavedStateHandle(mapOf("date" to LocalDate.now().toString())), searchRepo, entryRepo, customRepo)
-
+    fun `localSearchResults returns empty list when no match`() = runTest {
+        customRepo.save(haferflocken())
+        viewModel = viewModel()
         viewModel.onQueryChange("xyz")
+        advanceUntilIdle()
+        // emptyList() == emptyList() so StateFlow emits no new value; read current value directly
+        assertTrue(viewModel.localSearchResults.value.isEmpty())
+    }
 
-        viewModel.uiState.test {
-            awaitItem()
-
-            viewModel.search()
-            awaitItem() // loading
-            val done = awaitItem()
-
-            assertFalse(done.isLoading)
-            assertEquals("Netzwerkfehler", done.error)
-            assertTrue(done.results.isEmpty())
+    @Test
+    fun `localSearchResults returns matching custom food`() = runTest {
+        customRepo.save(haferflocken())
+        viewModel = viewModel()
+        viewModel.localSearchResults.test {
+            awaitItem() // emptyList (query blank)
+            viewModel.onQueryChange("hafer")
+            val results = awaitItem()
+            assertEquals(1, results.size)
+            val result = results[0] as LocalSearchResult.CustomFoodResult
+            assertEquals("Haferflocken", result.food.name)
+            cancelAndIgnoreRemainingEvents()
         }
     }
 
     @Test
-    fun `blank query does not trigger search`() = runTest {
-        searchRepo = FakeFoodSearchRepository()
-        viewModel = AddFoodViewModel(SavedStateHandle(mapOf("date" to LocalDate.now().toString())), searchRepo, entryRepo, customRepo)
-
-        viewModel.uiState.test {
-            awaitItem()
-            viewModel.search()
-            expectNoEvents()
-            assertNull(searchRepo.lastQuery)
+    fun `localSearchResults returns matching history entry`() = runTest {
+        entryRepo.add(entry("Banane", 150.0))
+        viewModel = viewModel()
+        viewModel.localSearchResults.test {
+            awaitItem() // emptyList (query blank)
+            viewModel.onQueryChange("bana")
+            val results = awaitItem()
+            assertEquals(1, results.size)
+            val result = results[0] as LocalSearchResult.HistoryResult
+            assertEquals("Banane", result.entry.foodName)
+            cancelAndIgnoreRemainingEvents()
         }
     }
+
+    @Test
+    fun `localSearchResults deduplicates history entries by food name`() = runTest {
+        entryRepo.add(entry("Banane", 100.0, timestampMs = 1000L))
+        entryRepo.add(entry("Banane", 150.0, timestampMs = 2000L))
+        entryRepo.add(entry("Banane", 200.0, timestampMs = 3000L))
+        viewModel = viewModel()
+        viewModel.localSearchResults.test {
+            awaitItem() // emptyList (query blank)
+            viewModel.onQueryChange("Banane")
+            val results = awaitItem()
+            assertEquals(1, results.size)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `localSearchResults matching is case insensitive`() = runTest {
+        customRepo.save(haferflocken())
+        entryRepo.add(entry("Banane", 100.0))
+        viewModel = viewModel()
+        viewModel.localSearchResults.test {
+            awaitItem() // emptyList (query blank)
+            viewModel.onQueryChange("HAFER")
+            val haferResult = awaitItem()
+            assertEquals(1, haferResult.size)
+            assertTrue(haferResult[0] is LocalSearchResult.CustomFoodResult)
+
+            viewModel.onQueryChange("BANA")
+            val banaResult = awaitItem()
+            assertEquals(1, banaResult.size)
+            assertTrue(banaResult[0] is LocalSearchResult.HistoryResult)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `localSearchResults shows custom foods before history entries`() = runTest {
+        customRepo.save(Food("", "Apfel", null, 52.0, 0.3, 14.0, 0.2))
+        entryRepo.add(entry("Apfel", 120.0))
+        viewModel = viewModel()
+        viewModel.localSearchResults.test {
+            awaitItem() // emptyList (query blank)
+            viewModel.onQueryChange("apfel")
+            val results = awaitItem()
+            assertEquals(2, results.size)
+            assertTrue(results[0] is LocalSearchResult.CustomFoodResult)
+            assertTrue(results[1] is LocalSearchResult.HistoryResult)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    // --- confirmAdd ---
 
     @Test
     fun `confirmAdd with valid amount saves entry and signals entryAdded`() = runTest {
-        searchRepo = FakeFoodSearchRepository()
-        viewModel = AddFoodViewModel(SavedStateHandle(mapOf("date" to LocalDate.now().toString())), searchRepo, entryRepo, customRepo)
-
+        viewModel = viewModel()
         viewModel.selectFood(apple())
         viewModel.onAmountChange("150")
-
         viewModel.uiState.test {
             awaitItem()
             viewModel.confirmAdd()
@@ -114,12 +165,9 @@ class AddFoodViewModelTest {
 
     @Test
     fun `confirmAdd with invalid amount does nothing`() = runTest {
-        searchRepo = FakeFoodSearchRepository()
-        viewModel = AddFoodViewModel(SavedStateHandle(mapOf("date" to LocalDate.now().toString())), searchRepo, entryRepo, customRepo)
-
+        viewModel = viewModel()
         viewModel.selectFood(apple())
         viewModel.onAmountChange("abc")
-
         viewModel.uiState.test {
             awaitItem()
             viewModel.confirmAdd()
@@ -129,31 +177,27 @@ class AddFoodViewModelTest {
 
     @Test
     fun `confirmAdd scales macros by amount`() = runTest {
-        searchRepo = FakeFoodSearchRepository()
-        viewModel = AddFoodViewModel(SavedStateHandle(mapOf("date" to LocalDate.now().toString())), searchRepo, entryRepo, customRepo)
-
+        viewModel = viewModel()
         viewModel.selectFood(apple()) // 52 kcal / 100g
         viewModel.onAmountChange("200")
-
         viewModel.uiState.test {
             awaitItem()
             viewModel.confirmAdd()
             awaitItem()
         }
-
         // 200g → 104 kcal
-        val saved = entryRepo.entriesForDate(java.time.LocalDate.now())
-        saved.test {
+        entryRepo.entriesForDate(LocalDate.now()).test {
             val entries = awaitItem()
             assertEquals(104.0, entries.first().kcal, 0.001)
         }
     }
 
+    // --- barcode ---
+
     @Test
     fun `handleBarcode selects found product`() = runTest {
         searchRepo = FakeFoodSearchRepository(barcodeResult = Result.success(apple()))
-        viewModel = AddFoodViewModel(SavedStateHandle(mapOf("date" to LocalDate.now().toString())), searchRepo, entryRepo, customRepo)
-
+        viewModel = viewModel()
         viewModel.uiState.test {
             awaitItem()
             viewModel.handleBarcode("4001686311456")
@@ -169,8 +213,7 @@ class AddFoodViewModelTest {
     @Test
     fun `handleBarcode sets error when product not found`() = runTest {
         searchRepo = FakeFoodSearchRepository(barcodeResult = Result.success(null))
-        viewModel = AddFoodViewModel(SavedStateHandle(mapOf("date" to LocalDate.now().toString())), searchRepo, entryRepo, customRepo)
-
+        viewModel = viewModel()
         viewModel.uiState.test {
             awaitItem()
             viewModel.handleBarcode("0000000000000")
@@ -185,8 +228,7 @@ class AddFoodViewModelTest {
     @Test
     fun `handleBarcode sets error on network failure`() = runTest {
         searchRepo = FakeFoodSearchRepository(barcodeResult = Result.failure(Exception("Timeout")))
-        viewModel = AddFoodViewModel(SavedStateHandle(mapOf("date" to LocalDate.now().toString())), searchRepo, entryRepo, customRepo)
-
+        viewModel = viewModel()
         viewModel.uiState.test {
             awaitItem()
             viewModel.handleBarcode("1234567890")
@@ -196,24 +238,14 @@ class AddFoodViewModelTest {
         }
     }
 
+    // --- custom foods ---
+
     @Test
     fun `saveCustomFood saves food and selects it for amount dialog`() = runTest {
-        searchRepo = FakeFoodSearchRepository()
-        viewModel = AddFoodViewModel(SavedStateHandle(mapOf("date" to LocalDate.now().toString())), searchRepo, entryRepo, customRepo)
-
-        val food = Food(
-            id = "",
-            name = "Haferflocken",
-            brand = null,
-            kcalPer100g = 370.0,
-            proteinPer100g = 13.0,
-            carbsPer100g = 59.0,
-            fatPer100g = 7.0,
-        )
-
+        viewModel = viewModel()
         viewModel.uiState.test {
             awaitItem()
-            viewModel.saveCustomFood(food)
+            viewModel.saveCustomFood(haferflocken())
             val state = awaitItem()
             assertNotNull(state.selectedFood)
             assertEquals("Haferflocken", state.selectedFood?.name)
@@ -223,9 +255,7 @@ class AddFoodViewModelTest {
 
     @Test
     fun `saveCustomFood assigns a real id`() = runTest {
-        searchRepo = FakeFoodSearchRepository()
-        viewModel = AddFoodViewModel(SavedStateHandle(mapOf("date" to LocalDate.now().toString())), searchRepo, entryRepo, customRepo)
-
+        viewModel = viewModel()
         viewModel.uiState.test {
             awaitItem()
             viewModel.saveCustomFood(Food("", "Reis", null, 130.0, 2.7, 28.0, 0.3))
@@ -233,6 +263,15 @@ class AddFoodViewModelTest {
             assertTrue(state.selectedFood?.id?.isNotBlank() == true)
         }
     }
+
+    // --- helpers ---
+
+    private fun viewModel() = AddFoodViewModel(
+        SavedStateHandle(mapOf("date" to LocalDate.now().toString())),
+        searchRepo,
+        entryRepo,
+        customRepo,
+    )
 
     private fun apple() = Food(
         id = "1",
@@ -244,5 +283,32 @@ class AddFoodViewModelTest {
         fatPer100g = 0.2,
         sugarPer100g = 10.0,
         fiberPer100g = 2.4,
+    )
+
+    private fun haferflocken() = Food(
+        id = "",
+        name = "Haferflocken",
+        brand = null,
+        kcalPer100g = 370.0,
+        proteinPer100g = 13.0,
+        carbsPer100g = 59.0,
+        fatPer100g = 7.0,
+    )
+
+    private fun entry(
+        name: String,
+        amount: Double,
+        timestampMs: Long = System.currentTimeMillis(),
+    ) = FoodEntry(
+        foodName = name,
+        brand = null,
+        amountGrams = amount,
+        kcal = 52.0 * amount / 100.0,
+        proteinG = 0.3 * amount / 100.0,
+        carbsG = 14.0 * amount / 100.0,
+        fatG = 0.2 * amount / 100.0,
+        mealCategory = MealCategory.SNACK,
+        date = LocalDate.now(),
+        timestampMs = timestampMs,
     )
 }

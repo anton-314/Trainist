@@ -74,12 +74,12 @@ Tests use `kotlinx-coroutines-test` + `turbine`. All ViewModels have full test c
 - **DailyGoal** is a singleton row (`id = 1`, `OnConflictStrategy.REPLACE`) — no per-day goal history.
 - **WeightEntry** is one per day, enforced via a `UNIQUE` index on the `date` column + `OnConflictStrategy.REPLACE` on insert.
 - **Day navigation** in `OverviewViewModel` is driven by a `MutableStateFlow<LocalDate>`. The `uiState` uses `flatMapLatest` to re-subscribe to food entries and today's weight whenever the date changes.
-- **Recently eaten** in `AddFoodScreen`: shown when the search field is empty. `FoodEntryRepository.recentFoods()` fetches the last 100 entries, deduplicates by `foodName`, and returns the 15 most recent distinct foods. Tapping one back-calculates per-100g values and opens the amount dialog with the previous portion pre-filled.
+- **AddFoodScreen lists**: when the search field is empty, two sections are shown — "Meine Lebensmittel" (custom foods) and "Verlauf" (last 500 entries grouped by date). When a query is typed, a flat filtered list replaces both sections: matching custom foods first, then deduplicated history entries (one per food name, most recent). Tapping a history entry back-calculates per-100g values and pre-fills the previous portion in the amount dialog.
 - **Swipe gestures on food entries** (OverviewScreen): EndToStart (right-to-left) shows a red delete background and deletes the entry on full swipe. StartToEnd (left-to-right) shows a green edit background and opens the edit dialog (swipe snaps back via `confirmValueChange` returning `false`). `FoodEntryRow` has an explicit `surface` background so the swipe background only shows when actively swiping. There is no separate edit button — swiping is the only way to edit or delete.
 - **Stats screen** (`ui/stats/`) uses Canvas-based charts (no chart library dependency). Calorie data is aggregated daily for 7-day/30-day views and monthly for the 1-year view. The time range drives a `flatMapLatest` to re-subscribe to both food and weight repositories.
-- **Open Food Facts** base URL: `https://world.openfoodfacts.org/`. Two endpoints used:
-  - `api/v2/search?search_terms=…` — text search
+- **Open Food Facts** base URL: `https://world.openfoodfacts.org/`. Used only for barcode lookup:
   - `api/v2/product/{barcode}` — barcode lookup (`status == 1` means found)
+  - Text search endpoint is no longer used; search is local-only.
 - **Barcode scanner** (`BarcodeScannerScreen`) uses CameraX + ML Kit. It passes the detected barcode back via `NavBackStackEntry.savedStateHandle["barcode"]` and `AddFoodViewModel.handleBarcode()` resolves it against the API. `BarcodeAnalyzer` uses an `AtomicBoolean` to fire the callback exactly once per scan session.
 - **`@ExperimentalGetImage`** propagates from `BarcodeAnalyzer` → `BarcodeScannerScreen` → `AppNavigation` → `MainActivity`. This is expected and not a warning to suppress.
 - **DB schema**: version 3. Migrations: 1→2 adds sugar/fiber/mealCategory columns; 2→3 adds the `weight_entries` table.

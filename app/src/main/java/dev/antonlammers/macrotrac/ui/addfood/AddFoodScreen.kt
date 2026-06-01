@@ -13,7 +13,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -21,7 +20,6 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.QrCodeScanner
-import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -43,7 +41,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -64,9 +61,9 @@ fun AddFoodScreen(
     viewModel: AddFoodViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
-    val recentFoods by viewModel.recentFoods.collectAsStateWithLifecycle()
     val recentEntries by viewModel.recentEntries.collectAsStateWithLifecycle()
     val customFoods by viewModel.customFoods.collectAsStateWithLifecycle()
+    val localSearchResults by viewModel.localSearchResults.collectAsStateWithLifecycle()
 
     var showCreateDialog by remember { mutableStateOf(false) }
 
@@ -147,31 +144,16 @@ fun AddFoodScreen(
                 placeholder = { Text("Lebensmittel suchen…") },
                 singleLine = true,
                 trailingIcon = {
-                    Row {
-                        IconButton(onClick = viewModel::search) {
-                            Icon(Icons.Default.Search, contentDescription = "Suchen")
-                        }
-                        IconButton(onClick = { navController.navigate(Screen.BarcodeScanner.route) }) {
-                            Icon(Icons.Default.QrCodeScanner, contentDescription = "Barcode scannen")
-                        }
+                    IconButton(onClick = { navController.navigate(Screen.BarcodeScanner.route) }) {
+                        Icon(Icons.Default.QrCodeScanner, contentDescription = "Barcode scannen")
                     }
                 },
-                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-                keyboardActions = KeyboardActions(onSearch = { viewModel.search() }),
+                keyboardOptions = KeyboardOptions.Default,
             )
 
             LazyColumn {
-                // Empty state: show recent + custom foods
+                // Empty state: custom foods + history grouped by date
                 if (state.query.isEmpty() && !state.isLoading) {
-                    if (recentFoods.isNotEmpty()) {
-                        item {
-                            SectionLabel("Zuletzt gegessen")
-                        }
-                        items(recentFoods, key = { "recent_${it.id}" }) { entry ->
-                            RecentFoodRow(entry = entry, onClick = { viewModel.selectRecentFood(entry) })
-                            HorizontalDivider()
-                        }
-                    }
                     if (customFoods.isNotEmpty()) {
                         item { SectionLabel("Meine Lebensmittel") }
                         items(customFoods, key = { "custom_${it.id}" }) { food ->
@@ -183,7 +165,6 @@ fun AddFoodScreen(
                             HorizontalDivider()
                         }
                     }
-
                     if (recentEntries.isNotEmpty()) {
                         item { SectionLabel("Verlauf") }
                         val grouped = recentEntries
@@ -207,7 +188,7 @@ fun AddFoodScreen(
                     }
                 }
 
-                // Loading
+                // Loading (barcode)
                 if (state.isLoading) {
                     item {
                         Box(
@@ -217,7 +198,7 @@ fun AddFoodScreen(
                     }
                 }
 
-                // Error
+                // Error (barcode)
                 if (state.error != null) {
                     item {
                         Box(
@@ -233,27 +214,44 @@ fun AddFoodScreen(
                     }
                 }
 
-                // Custom foods matching search query
+                // Search results: flat list of matching custom foods + deduplicated history
                 if (state.query.isNotBlank() && !state.isLoading) {
-                    val matched = customFoods.filter { it.name.contains(state.query, ignoreCase = true) }
-                    if (matched.isNotEmpty()) {
-                        item { SectionLabel("Meine Lebensmittel") }
-                        items(matched, key = { "custom_match_${it.id}" }) { food ->
-                            CustomFoodRow(
-                                food = food,
-                                onClick = { viewModel.selectFood(food) },
-                                onDelete = { viewModel.deleteCustomFood(food) },
-                            )
+                    if (localSearchResults.isEmpty()) {
+                        item {
+                            Box(
+                                modifier = Modifier.fillMaxWidth().padding(32.dp),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                Text(
+                                    "Keine Ergebnisse",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+                        }
+                    } else {
+                        items(
+                            localSearchResults,
+                            key = { result ->
+                                when (result) {
+                                    is LocalSearchResult.CustomFoodResult -> "search_custom_${result.food.id}"
+                                    is LocalSearchResult.HistoryResult -> "search_history_${result.entry.id}"
+                                }
+                            },
+                        ) { result ->
+                            when (result) {
+                                is LocalSearchResult.CustomFoodResult -> CustomFoodRow(
+                                    food = result.food,
+                                    onClick = { viewModel.selectFood(result.food) },
+                                    onDelete = { viewModel.deleteCustomFood(result.food) },
+                                )
+                                is LocalSearchResult.HistoryResult -> RecentFoodRow(
+                                    entry = result.entry,
+                                    onClick = { viewModel.selectRecentFood(result.entry) },
+                                )
+                            }
                             HorizontalDivider()
                         }
-                    }
-                }
-
-                // API results
-                if (state.results.isNotEmpty()) {
-                    items(state.results, key = { "api_${it.id}" }) { food ->
-                        FoodResultRow(food = food, onClick = { viewModel.selectFood(food) })
-                        HorizontalDivider()
                     }
                 }
             }
@@ -333,29 +331,6 @@ private fun RecentFoodRow(entry: FoodEntry, onClick: () -> Unit) {
     }
 }
 
-@Composable
-private fun FoodResultRow(food: Food, onClick: () -> Unit) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick)
-            .padding(horizontal = 16.dp, vertical = 12.dp),
-    ) {
-        Text(food.name, style = MaterialTheme.typography.bodyMedium)
-        Text(
-            buildString {
-                append("${food.kcalPer100g.toInt()} kcal")
-                append(" · ${food.proteinPer100g.toInt()}g P")
-                append(" · ${food.carbsPer100g.toInt()}g K")
-                append(" · ${food.fatPer100g.toInt()}g F")
-                append(" (pro 100 g)")
-                food.brand?.let { append(" · $it") }
-            },
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-    }
-}
 
 @Composable
 private fun CreateCustomFoodDialog(onDismiss: () -> Unit, onSave: (Food) -> Unit) {

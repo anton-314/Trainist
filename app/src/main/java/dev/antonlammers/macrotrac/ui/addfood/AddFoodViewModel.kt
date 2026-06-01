@@ -14,6 +14,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -34,27 +36,31 @@ class AddFoodViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(AddFoodUiState())
     val uiState: StateFlow<AddFoodUiState> = _uiState.asStateFlow()
 
-    val recentFoods: StateFlow<List<FoodEntry>> = foodEntryRepository.recentFoods()
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
-
     val recentEntries: StateFlow<List<FoodEntry>> = foodEntryRepository.recentEntries()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     val customFoods: StateFlow<List<Food>> = customFoodRepository.allFoods()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
-    fun onQueryChange(query: String) = _uiState.update { it.copy(query = query) }
-
-    fun search() {
-        val query = _uiState.value.query.trim()
-        if (query.isBlank()) return
-        viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true, error = null, results = emptyList()) }
-            foodSearchRepository.search(query)
-                .onSuccess { results -> _uiState.update { it.copy(results = results, isLoading = false) } }
-                .onFailure { e -> _uiState.update { it.copy(error = e.message ?: "Unbekannter Fehler", isLoading = false) } }
+    val localSearchResults: StateFlow<List<LocalSearchResult>> = combine(
+        _uiState.map { it.query },
+        customFoodRepository.allFoods(),
+        foodEntryRepository.recentEntries(),
+    ) { query, customs, entries ->
+        if (query.isBlank()) emptyList()
+        else {
+            val matchedCustoms = customs
+                .filter { it.name.contains(query, ignoreCase = true) }
+                .map { LocalSearchResult.CustomFoodResult(it) }
+            val matchedHistory = entries
+                .filter { it.foodName.contains(query, ignoreCase = true) }
+                .distinctBy { it.foodName.lowercase() }
+                .map { LocalSearchResult.HistoryResult(it) }
+            matchedCustoms + matchedHistory
         }
-    }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    fun onQueryChange(query: String) = _uiState.update { it.copy(query = query) }
 
     fun selectFood(food: Food) = _uiState.update { it.copy(selectedFood = food, amountGrams = "100") }
 
@@ -141,9 +147,13 @@ class AddFoodViewModel @Inject constructor(
     fun entryAddedHandled() = _uiState.update { it.copy(entryAdded = false) }
 }
 
+sealed interface LocalSearchResult {
+    data class HistoryResult(val entry: FoodEntry) : LocalSearchResult
+    data class CustomFoodResult(val food: Food) : LocalSearchResult
+}
+
 data class AddFoodUiState(
     val query: String = "",
-    val results: List<Food> = emptyList(),
     val isLoading: Boolean = false,
     val error: String? = null,
     val selectedFood: Food? = null,
