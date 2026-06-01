@@ -22,6 +22,7 @@ object CsvFormat {
         entry.fatG,
         entry.sugarG,
         entry.fiberG,
+        entry.saltG,
         entry.mealCategory.name,
         entry.timestampMs,
     ).joinToString(",")
@@ -47,6 +48,7 @@ object CsvFormat {
             fatG = cols.dbl(headers, CsvColumns.FAT_G) ?: 0.0,
             sugarG = cols.dbl(headers, CsvColumns.SUGAR_G) ?: 0.0,
             fiberG = cols.dbl(headers, CsvColumns.FIBER_G) ?: 0.0,
+            saltG = cols.dbl(headers, CsvColumns.SALT_G) ?: 0.0,
             mealCategory = cols.str(headers, CsvColumns.MEAL_CATEGORY)
                 ?.let { runCatching { MealCategory.valueOf(it) }.getOrNull() }
                 ?: MealCategory.SNACK,

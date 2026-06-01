@@ -14,4 +14,5 @@ data class CustomFoodEntity(
     val fatPer100g: Double,
     val sugarPer100g: Double = 0.0,
     val fiberPer100g: Double = 0.0,
+    val saltPer100g: Double = 0.0,
 )

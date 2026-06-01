@@ -13,6 +13,7 @@ data class FoodEntry(
     val fatG: Double,
     val sugarG: Double = 0.0,
     val fiberG: Double = 0.0,
+    val saltG: Double = 0.0,
     val mealCategory: MealCategory = MealCategory.SNACK,
     val date: LocalDate,
     val timestampMs: Long,

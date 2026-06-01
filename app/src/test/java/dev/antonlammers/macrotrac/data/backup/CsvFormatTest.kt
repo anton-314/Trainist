@@ -78,6 +78,22 @@ class CsvFormatTest {
         assertEquals(LocalDate.parse("2026-05-28"), entry.date)
         assertEquals(0.0, entry.sugarG, 0.001)
         assertEquals(0.0, entry.fiberG, 0.001)
+        assertEquals(0.0, entry.saltG, 0.001)
+    }
+
+    @Test
+    fun `fromRow uses 0 as default for salt_g when column is absent (backward compat)`() {
+        // Simulate an old export that has no salt_g column
+        val oldHeader = listOf(
+            CsvColumns.DATE, CsvColumns.FOOD_NAME, CsvColumns.BRAND, CsvColumns.AMOUNT_GRAMS,
+            CsvColumns.KCAL, CsvColumns.PROTEIN_G, CsvColumns.CARBS_G, CsvColumns.FAT_G,
+            CsvColumns.SUGAR_G, CsvColumns.FIBER_G, CsvColumns.MEAL_CATEGORY, CsvColumns.TIMESTAMP_MS,
+        ).joinToString(",")
+        val oldHeaders = CsvFormat.parseHeaders(oldHeader)
+        val row = "2026-05-28,Apfel,,150.0,78.0,0.5,21.0,0.3,2.0,1.5,SNACK,1748000000000"
+        val entry = CsvFormat.fromRow(row, oldHeaders)!!
+        assertEquals(0.0, entry.saltG, 0.001)
+        assertEquals(2.0, entry.sugarG, 0.001)
     }
 
     @Test
@@ -92,12 +108,13 @@ class CsvFormatTest {
     }
 
     @Test
-    fun `toRow and fromRow round-trip preserves sugar fiber and mealCategory`() {
-        val entry = buildEntry(sugarG = 5.5, fiberG = 2.3, mealCategory = MealCategory.LUNCH)
+    fun `toRow and fromRow round-trip preserves sugar fiber salt and mealCategory`() {
+        val entry = buildEntry(sugarG = 5.5, fiberG = 2.3, saltG = 1.2, mealCategory = MealCategory.LUNCH)
         val row = CsvFormat.toRow(entry)
         val parsed = CsvFormat.fromRow(row, headers)!!
         assertEquals(entry.sugarG, parsed.sugarG, 0.001)
         assertEquals(entry.fiberG, parsed.fiberG, 0.001)
+        assertEquals(entry.saltG, parsed.saltG, 0.001)
         assertEquals(entry.mealCategory, parsed.mealCategory)
     }
 
@@ -107,6 +124,7 @@ class CsvFormatTest {
         amountGrams: Double = 100.0,
         sugarG: Double = 0.0,
         fiberG: Double = 0.0,
+        saltG: Double = 0.0,
         mealCategory: MealCategory = MealCategory.SNACK,
     ) = FoodEntry(
         foodName = foodName,
@@ -118,6 +136,7 @@ class CsvFormatTest {
         fatG = 8.0,
         sugarG = sugarG,
         fiberG = fiberG,
+        saltG = saltG,
         mealCategory = mealCategory,
         date = LocalDate.of(2026, 5, 28),
         timestampMs = 1748000000000L,

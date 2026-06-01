@@ -32,6 +32,7 @@ class CustomFoodRepositoryImpl @Inject constructor(
         fatPer100g = fatPer100g,
         sugarPer100g = sugarPer100g,
         fiberPer100g = fiberPer100g,
+        saltPer100g = saltPer100g,
     )
 
     private fun Food.toEntity() = CustomFoodEntity(
@@ -43,5 +44,6 @@ class CustomFoodRepositoryImpl @Inject constructor(
         fatPer100g = fatPer100g,
         sugarPer100g = sugarPer100g,
         fiberPer100g = fiberPer100g,
+        saltPer100g = saltPer100g,
     )
 }

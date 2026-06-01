@@ -76,6 +76,7 @@ class AddFoodViewModel @Inject constructor(
             fatPer100g = entry.fatG * factor,
             sugarPer100g = entry.sugarG * factor,
             fiberPer100g = entry.fiberG * factor,
+            saltPer100g = entry.saltG * factor,
         )
         val prevAmount = if (entry.amountGrams % 1.0 == 0.0) entry.amountGrams.toInt().toString()
                          else entry.amountGrams.toString()
@@ -118,6 +119,7 @@ class AddFoodViewModel @Inject constructor(
                     fatG = food.fatPer100g * factor,
                     sugarG = food.sugarPer100g * factor,
                     fiberG = food.fiberPer100g * factor,
+                    saltG = food.saltPer100g * factor,
                     mealCategory = state.mealCategory,
                     date = targetDate,
                     timestampMs = System.currentTimeMillis(),

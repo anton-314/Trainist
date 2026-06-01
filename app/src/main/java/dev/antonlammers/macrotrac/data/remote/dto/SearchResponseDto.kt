@@ -24,4 +24,5 @@ data class NutrimentsDto(
     @Json(name = "fat_100g") val fatPer100g: Double? = null,
     @Json(name = "sugars_100g") val sugarPer100g: Double? = null,
     @Json(name = "fiber_100g") val fiberPer100g: Double? = null,
+    @Json(name = "salt_100g") val saltPer100g: Double? = null,
 )

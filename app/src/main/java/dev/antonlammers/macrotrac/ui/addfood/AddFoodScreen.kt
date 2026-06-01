@@ -342,6 +342,7 @@ private fun CreateCustomFoodDialog(onDismiss: () -> Unit, onSave: (Food) -> Unit
     var fat by remember { mutableStateOf("") }
     var sugar by remember { mutableStateOf("") }
     var fiber by remember { mutableStateOf("") }
+    var salt by remember { mutableStateOf("") }
 
     val isValid = name.isNotBlank()
         && kcal.toDoubleOrNull() != null
@@ -366,6 +367,7 @@ private fun CreateCustomFoodDialog(onDismiss: () -> Unit, onSave: (Food) -> Unit
                 OutlinedTextField(fat, { fat = it }, label = { Text("Fett g / 100 g *") }, singleLine = true, keyboardOptions = decimalKeyboard, modifier = Modifier.fillMaxWidth())
                 OutlinedTextField(sugar, { sugar = it }, label = { Text("Zucker g / 100 g") }, singleLine = true, keyboardOptions = decimalKeyboard, modifier = Modifier.fillMaxWidth())
                 OutlinedTextField(fiber, { fiber = it }, label = { Text("Ballaststoffe g / 100 g") }, singleLine = true, keyboardOptions = decimalKeyboard, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(salt, { salt = it }, label = { Text("Salz g / 100 g") }, singleLine = true, keyboardOptions = decimalKeyboard, modifier = Modifier.fillMaxWidth())
             }
         },
         confirmButton = {
@@ -382,6 +384,7 @@ private fun CreateCustomFoodDialog(onDismiss: () -> Unit, onSave: (Food) -> Unit
                             fatPer100g = fat.toDouble(),
                             sugarPer100g = sugar.toDoubleOrNull() ?: 0.0,
                             fiberPer100g = fiber.toDoubleOrNull() ?: 0.0,
+                            saltPer100g = salt.toDoubleOrNull() ?: 0.0,
                         )
                     )
                 },

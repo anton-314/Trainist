@@ -5,8 +5,10 @@ import android.net.Uri
 import androidx.core.content.FileProvider
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dev.antonlammers.macrotrac.domain.model.DailyGoal
+import dev.antonlammers.macrotrac.domain.model.Food
 import dev.antonlammers.macrotrac.domain.model.FoodEntry
 import dev.antonlammers.macrotrac.domain.model.WeightEntry
+import dev.antonlammers.macrotrac.domain.repository.CustomFoodRepository
 import dev.antonlammers.macrotrac.domain.repository.FoodEntryRepository
 import dev.antonlammers.macrotrac.domain.repository.GoalRepository
 import dev.antonlammers.macrotrac.domain.repository.WeightRepository
@@ -24,18 +26,21 @@ class BackupExporter @Inject constructor(
     private val foodEntryRepository: FoodEntryRepository,
     private val weightRepository: WeightRepository,
     private val goalRepository: GoalRepository,
+    private val customFoodRepository: CustomFoodRepository,
 ) {
     suspend fun export(): Uri {
         val foodEntries = foodEntryRepository.allEntries()
             .sortedWith(compareBy({ it.date.toString() }, { it.timestampMs }))
         val weightEntries = weightRepository.allEntries()
         val goal = goalRepository.goal().first()
+        val customFoods = customFoodRepository.allFoods().first()
 
         val file = File(context.cacheDir, "macrotrac_backup_${LocalDate.now()}.zip")
         ZipOutputStream(file.outputStream().buffered()).use { zip ->
             zip.putEntry("food_entries.csv", buildFoodCsv(foodEntries))
             zip.putEntry("weight_entries.csv", buildWeightCsv(weightEntries))
             zip.putEntry("daily_goal.csv", buildGoalCsv(goal))
+            zip.putEntry("custom_foods.csv", buildCustomFoodCsv(customFoods))
         }
 
         return FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
@@ -60,5 +65,10 @@ class BackupExporter @Inject constructor(
     private fun buildGoalCsv(goal: DailyGoal) = buildString {
         appendLine(GoalCsvFormat.HEADER)
         appendLine(GoalCsvFormat.toRow(goal))
+    }
+
+    private fun buildCustomFoodCsv(foods: List<Food>) = buildString {
+        appendLine(CustomFoodCsvFormat.HEADER)
+        foods.forEach { appendLine(CustomFoodCsvFormat.toRow(it)) }
     }
 }

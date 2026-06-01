@@ -59,9 +59,10 @@ Tests use `kotlinx-coroutines-test` + `turbine`. All ViewModels have full test c
 ### Backup & data portability
 
 - **Auto Backup**: `backup_rules.xml` (pre-12) and `data_extraction_rules.xml` (Android 12+) explicitly include `macrotrac.db` + WAL files. Android backs these up to Google Drive automatically when the user has backup enabled — no code required.
-- **Full Backup Export** (`data/backup/BackupExporter`): reads all three data types (food entries, weight entries, daily goal), writes a ZIP to `cacheDir` containing three named CSVs (`food_entries.csv`, `weight_entries.csv`, `daily_goal.csv`), shares via `FileProvider` + `Intent.ACTION_SEND`.
-- **Full Backup Import** (`data/backup/BackupImporter`): opens a user-picked URI, auto-detects ZIP vs legacy CSV by checking the PK magic bytes. ZIP imports all three sections; legacy CSV imports only food entries (backward-compatible).
+- **Full Backup Export** (`data/backup/BackupExporter`): reads all four data types (food entries, weight entries, daily goal, custom foods), writes a ZIP to `cacheDir` containing four named CSVs (`food_entries.csv`, `weight_entries.csv`, `daily_goal.csv`, `custom_foods.csv`), shares via `FileProvider` + `Intent.ACTION_SEND`.
+- **Full Backup Import** (`data/backup/BackupImporter`): opens a user-picked URI, auto-detects ZIP vs legacy CSV by checking the PK magic bytes. ZIP imports all four sections; legacy CSV imports only food entries (backward-compatible). `Result` includes `customFoodsImported`.
 - **CsvFormat** (`data/backup/CsvFormat.kt`): pure Kotlin — food entries. Columns identified by name; missing columns fall back to defaults; extra columns are ignored.
+- **CustomFoodCsvFormat** (`data/backup/CustomFoodCsvFormat.kt`): pure Kotlin — custom foods. Columns: `name`, `brand`, `kcal_per_100g`, `protein_per_100g`, `carbs_per_100g`, `fat_per_100g`, `sugar_per_100g`, `fiber_per_100g`, `salt_per_100g`.
 - **WeightCsvFormat** (`data/backup/WeightCsvFormat.kt`): pure Kotlin — weight entries. Columns: `date`, `weight_kg`, `timestamp_ms`.
 - **GoalCsvFormat** (`data/backup/GoalCsvFormat.kt`): pure Kotlin — single-row daily goal. Columns: `kcal`, `protein_g`, `carbs_g`, `fat_g`.
 - **FileProvider** authority: `dev.antonlammers.macrotrac.fileprovider`, paths configured in `res/xml/file_paths.xml` (cache dir).
@@ -82,4 +83,4 @@ Tests use `kotlinx-coroutines-test` + `turbine`. All ViewModels have full test c
   - Text search endpoint is no longer used; search is local-only.
 - **Barcode scanner** (`BarcodeScannerScreen`) uses CameraX + ML Kit. It passes the detected barcode back via `NavBackStackEntry.savedStateHandle["barcode"]` and `AddFoodViewModel.handleBarcode()` resolves it against the API. `BarcodeAnalyzer` uses an `AtomicBoolean` to fire the callback exactly once per scan session.
 - **`@ExperimentalGetImage`** propagates from `BarcodeAnalyzer` → `BarcodeScannerScreen` → `AppNavigation` → `MainActivity`. This is expected and not a warning to suppress.
-- **DB schema**: version 3. Migrations: 1→2 adds sugar/fiber/mealCategory columns; 2→3 adds the `weight_entries` table.
+- **DB schema**: version 5. Migrations: 1→2 adds sugar/fiber/mealCategory columns; 2→3 adds the `weight_entries` table; 3→4 adds the `custom_foods` table; 4→5 adds `saltG` to `food_entries` and `saltPer100g` to `custom_foods`.

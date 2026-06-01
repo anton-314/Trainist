@@ -82,4 +82,5 @@ data class OverviewUiState(
     val totalFat get() = entries.sumOf { it.fatG }
     val totalSugar get() = entries.sumOf { it.sugarG }
     val totalFiber get() = entries.sumOf { it.fiberG }
+    val totalSalt get() = entries.sumOf { it.saltG }
 }

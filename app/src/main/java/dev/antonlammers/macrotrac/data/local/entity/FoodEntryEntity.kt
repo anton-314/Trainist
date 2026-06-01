@@ -15,6 +15,7 @@ data class FoodEntryEntity(
     val fatG: Double,
     val sugarG: Double = 0.0,
     val fiberG: Double = 0.0,
+    val saltG: Double = 0.0,
     val mealCategory: String = "SNACK",
     val date: String,
     val timestampMs: Long,

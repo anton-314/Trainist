@@ -3,6 +3,7 @@ package dev.antonlammers.macrotrac.data.backup
 import android.content.Context
 import android.net.Uri
 import dagger.hilt.android.qualifiers.ApplicationContext
+import dev.antonlammers.macrotrac.domain.repository.CustomFoodRepository
 import dev.antonlammers.macrotrac.domain.repository.FoodEntryRepository
 import dev.antonlammers.macrotrac.domain.repository.GoalRepository
 import dev.antonlammers.macrotrac.domain.repository.WeightRepository
@@ -16,12 +17,14 @@ class BackupImporter @Inject constructor(
     private val foodEntryRepository: FoodEntryRepository,
     private val weightRepository: WeightRepository,
     private val goalRepository: GoalRepository,
+    private val customFoodRepository: CustomFoodRepository,
 ) {
     data class Result(
         val foodImported: Int = 0,
         val foodSkipped: Int = 0,
         val weightImported: Int = 0,
         val goalRestored: Boolean = false,
+        val customFoodsImported: Int = 0,
     )
 
     suspend fun import(uri: Uri): Result =
@@ -38,6 +41,7 @@ class BackupImporter @Inject constructor(
         var foodSkipped = 0
         var weightImported = 0
         var goalRestored = false
+        var customFoodsImported = 0
 
         context.contentResolver.openInputStream(uri)?.use { input ->
             ZipInputStream(input).use { zip ->
@@ -66,6 +70,13 @@ class BackupImporter @Inject constructor(
                             val goal = runCatching { GoalCsvFormat.fromRow(lines[1], headers) }.getOrNull()
                             if (goal != null) { goalRepository.save(goal); goalRestored = true }
                         }
+                        "custom_foods.csv" -> if (lines.size > 1) {
+                            val headers = CustomFoodCsvFormat.parseHeaders(lines.first())
+                            lines.drop(1).forEach { line ->
+                                val f = runCatching { CustomFoodCsvFormat.fromRow(line, headers) }.getOrNull()
+                                if (f != null) { customFoodRepository.save(f); customFoodsImported++ }
+                            }
+                        }
                     }
                     zip.closeEntry()
                     entry = zip.nextEntry
@@ -73,7 +84,7 @@ class BackupImporter @Inject constructor(
             }
         }
 
-        return Result(foodImported, foodSkipped, weightImported, goalRestored)
+        return Result(foodImported, foodSkipped, weightImported, goalRestored, customFoodsImported)
     }
 
     private suspend fun importLegacyCsv(uri: Uri): Result {

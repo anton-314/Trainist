@@ -369,6 +369,7 @@ private fun MacroSummaryCard(state: OverviewUiState) {
             ) {
                 SecondaryMacro("Zucker", state.totalSugar, "g")
                 SecondaryMacro("Ballaststoffe", state.totalFiber, "g")
+                SecondaryMacro("Salz", state.totalSalt, "g")
             }
         }
     }
