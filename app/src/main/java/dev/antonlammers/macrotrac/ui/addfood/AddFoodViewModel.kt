@@ -22,6 +22,7 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.time.LocalDate
+import java.time.LocalTime
 import javax.inject.Inject
 
 @HiltViewModel
@@ -35,7 +36,7 @@ class AddFoodViewModel @Inject constructor(
     val targetDate: LocalDate = savedStateHandle.get<String>("date")
         ?.let { LocalDate.parse(it) } ?: LocalDate.now()
 
-    private val _uiState = MutableStateFlow(AddFoodUiState())
+    private val _uiState = MutableStateFlow(AddFoodUiState(mealCategory = mealCategoryForHour(LocalTime.now().hour)))
     val uiState: StateFlow<AddFoodUiState> = _uiState.asStateFlow()
 
     private val _pendingDeleteCustomFood = MutableStateFlow<Food?>(null)
@@ -79,7 +80,7 @@ class AddFoodViewModel @Inject constructor(
 
     fun onQueryChange(query: String) = _uiState.update { it.copy(query = query) }
 
-    fun selectFood(food: Food) = _uiState.update { it.copy(selectedFood = food, amountGrams = "100") }
+    fun selectFood(food: Food) = _uiState.update { it.copy(selectedFood = food, amountGrams = "100", mealCategory = defaultMealCategory()) }
 
     fun selectRecentFood(entry: FoodEntry) {
         val factor = if (entry.amountGrams > 0) 100.0 / entry.amountGrams else 1.0
@@ -97,7 +98,7 @@ class AddFoodViewModel @Inject constructor(
         )
         val prevAmount = if (entry.amountGrams % 1.0 == 0.0) entry.amountGrams.toInt().toString()
                          else entry.amountGrams.toString()
-        _uiState.update { it.copy(selectedFood = food, amountGrams = prevAmount) }
+        _uiState.update { it.copy(selectedFood = food, amountGrams = prevAmount, mealCategory = defaultMealCategory()) }
     }
 
     fun saveCustomFood(food: Food) {
@@ -170,7 +171,7 @@ class AddFoodViewModel @Inject constructor(
                     timestampMs = System.currentTimeMillis(),
                 )
             )
-            _uiState.update { it.copy(selectedFood = null, amountGrams = "100", entryAdded = true) }
+            _uiState.update { it.copy(selectedFood = null, amountGrams = "100", mealCategory = defaultMealCategory(), entryAdded = true) }
         }
     }
 
@@ -198,6 +199,8 @@ class AddFoodViewModel @Inject constructor(
 
     fun clearError() = _uiState.update { it.copy(error = null) }
 
+    private fun defaultMealCategory() = mealCategoryForHour(LocalTime.now().hour)
+
     fun entryAddedHandled() = _uiState.update { it.copy(entryAdded = false) }
 }
 
@@ -215,3 +218,10 @@ data class AddFoodUiState(
     val mealCategory: MealCategory = MealCategory.SNACK,
     val entryAdded: Boolean = false,
 )
+
+internal fun mealCategoryForHour(hour: Int): MealCategory = when {
+    hour in 5..9   -> MealCategory.BREAKFAST
+    hour in 10..13 -> MealCategory.LUNCH
+    hour in 17..21 -> MealCategory.DINNER
+    else           -> MealCategory.SNACK
+}
