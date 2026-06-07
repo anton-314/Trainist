@@ -4,6 +4,7 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dev.antonlammers.macrotrac.domain.model.BarcodeException
 import dev.antonlammers.macrotrac.domain.model.Food
 import dev.antonlammers.macrotrac.domain.model.FoodEntry
 import dev.antonlammers.macrotrac.domain.model.MealCategory
@@ -185,10 +186,17 @@ class AddFoodViewModel @Inject constructor(
                     }
                 }
                 .onFailure { e ->
-                    _uiState.update { it.copy(isLoading = false, error = e.message ?: "Unbekannter Fehler") }
+                    val msg = when (e) {
+                        is BarcodeException.ServerUnavailable -> "Open Food Facts nicht erreichbar"
+                        is BarcodeException.NetworkUnavailable -> "Keine Internetverbindung"
+                        else -> "Unbekannter Fehler"
+                    }
+                    _uiState.update { it.copy(isLoading = false, error = msg) }
                 }
         }
     }
+
+    fun clearError() = _uiState.update { it.copy(error = null) }
 
     fun entryAddedHandled() = _uiState.update { it.copy(entryAdded = false) }
 }

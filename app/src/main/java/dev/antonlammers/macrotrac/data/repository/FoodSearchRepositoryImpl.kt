@@ -1,8 +1,11 @@
 package dev.antonlammers.macrotrac.data.repository
 
 import dev.antonlammers.macrotrac.data.remote.OpenFoodFactsApi
+import dev.antonlammers.macrotrac.domain.model.BarcodeException
 import dev.antonlammers.macrotrac.domain.model.Food
 import dev.antonlammers.macrotrac.domain.repository.FoodSearchRepository
+import retrofit2.HttpException
+import java.io.IOException
 import javax.inject.Inject
 
 class FoodSearchRepositoryImpl @Inject constructor(
@@ -10,7 +13,14 @@ class FoodSearchRepositoryImpl @Inject constructor(
 ) : FoodSearchRepository {
 
     override suspend fun getByBarcode(barcode: String): Result<Food?> = runCatching {
-        val response = api.getProduct(barcode)
+        val response = try {
+            api.getProduct(barcode)
+        } catch (e: HttpException) {
+            if (e.code() in 400..499) return@runCatching null
+            throw BarcodeException.ServerUnavailable
+        } catch (e: IOException) {
+            throw BarcodeException.NetworkUnavailable
+        }
         if (response.status != 1) return@runCatching null
         val dto = response.product ?: return@runCatching null
         val name = dto.productName?.takeIf { it.isNotBlank() } ?: return@runCatching null

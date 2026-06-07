@@ -121,6 +121,17 @@ fun AddFoodScreen(
         )
     }
 
+    state.error?.let { errorMsg ->
+        AlertDialog(
+            onDismissRequest = viewModel::clearError,
+            title = { Text("Barcode-Suche") },
+            text = { Text(errorMsg) },
+            confirmButton = {
+                TextButton(onClick = viewModel::clearError) { Text("OK") }
+            },
+        )
+    }
+
     state.selectedFood?.let { food ->
         AmountDialog(
             food = food,
@@ -254,22 +265,6 @@ fun AddFoodScreen(
                             modifier = Modifier.fillMaxWidth().padding(32.dp),
                             contentAlignment = Alignment.Center,
                         ) { CircularProgressIndicator() }
-                    }
-                }
-
-                // Error (barcode)
-                if (state.error != null) {
-                    item {
-                        Box(
-                            modifier = Modifier.fillMaxWidth().padding(32.dp),
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            Text(
-                                state.error!!,
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.error,
-                            )
-                        }
                     }
                 }
 

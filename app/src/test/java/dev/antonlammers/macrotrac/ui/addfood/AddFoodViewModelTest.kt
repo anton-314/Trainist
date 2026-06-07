@@ -2,6 +2,7 @@ package dev.antonlammers.macrotrac.ui.addfood
 
 import androidx.lifecycle.SavedStateHandle
 import app.cash.turbine.test
+import dev.antonlammers.macrotrac.domain.model.BarcodeException
 import dev.antonlammers.macrotrac.domain.model.Food
 import dev.antonlammers.macrotrac.domain.model.FoodEntry
 import dev.antonlammers.macrotrac.domain.model.MealCategory
@@ -243,15 +244,55 @@ class AddFoodViewModelTest {
     }
 
     @Test
-    fun `handleBarcode sets error on network failure`() = runTest {
-        searchRepo = FakeFoodSearchRepository(barcodeResult = Result.failure(Exception("Timeout")))
+    fun `handleBarcode shows network error for NetworkUnavailable`() = runTest {
+        searchRepo = FakeFoodSearchRepository(barcodeResult = Result.failure(BarcodeException.NetworkUnavailable))
         viewModel = viewModel()
         viewModel.uiState.test {
             awaitItem()
             viewModel.handleBarcode("1234567890")
             awaitItem() // loading
             val done = awaitItem()
-            assertEquals("Timeout", done.error)
+            assertEquals("Keine Internetverbindung", done.error)
+        }
+    }
+
+    @Test
+    fun `handleBarcode shows server error for ServerUnavailable`() = runTest {
+        searchRepo = FakeFoodSearchRepository(barcodeResult = Result.failure(BarcodeException.ServerUnavailable))
+        viewModel = viewModel()
+        viewModel.uiState.test {
+            awaitItem()
+            viewModel.handleBarcode("1234567890")
+            awaitItem() // loading
+            val done = awaitItem()
+            assertEquals("Open Food Facts nicht erreichbar", done.error)
+        }
+    }
+
+    @Test
+    fun `handleBarcode shows generic error for unknown exception`() = runTest {
+        searchRepo = FakeFoodSearchRepository(barcodeResult = Result.failure(RuntimeException("unexpected")))
+        viewModel = viewModel()
+        viewModel.uiState.test {
+            awaitItem()
+            viewModel.handleBarcode("1234567890")
+            awaitItem() // loading
+            val done = awaitItem()
+            assertEquals("Unbekannter Fehler", done.error)
+        }
+    }
+
+    @Test
+    fun `clearError resets error to null`() = runTest {
+        searchRepo = FakeFoodSearchRepository(barcodeResult = Result.success(null))
+        viewModel = viewModel()
+        viewModel.uiState.test {
+            awaitItem()
+            viewModel.handleBarcode("0000000000000")
+            awaitItem() // loading
+            awaitItem() // error state
+            viewModel.clearError()
+            assertNull(awaitItem().error)
         }
     }
 
