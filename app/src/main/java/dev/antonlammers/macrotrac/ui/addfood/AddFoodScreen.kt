@@ -38,6 +38,8 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.SwipeToDismissBox
 import androidx.compose.material3.SwipeToDismissBoxValue
+import androidx.compose.material3.Tab
+import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -82,6 +84,7 @@ fun AddFoodScreen(
 
     var showCreateDialog by remember { mutableStateOf(false) }
     var foodToEdit by remember { mutableStateOf<Food?>(null) }
+    var selectedTab by remember { mutableStateOf(0) }
 
     LaunchedEffect(state.entryAdded) {
         if (state.entryAdded) {
@@ -190,69 +193,112 @@ fun AddFoodScreen(
                 keyboardOptions = KeyboardOptions.Default,
             )
 
+            if (state.query.isEmpty() && !state.isLoading) {
+                TabRow(selectedTabIndex = selectedTab) {
+                    Tab(
+                        selected = selectedTab == 0,
+                        onClick = { selectedTab = 0 },
+                        text = { Text("Meine Lebensmittel") },
+                    )
+                    Tab(
+                        selected = selectedTab == 1,
+                        onClick = { selectedTab = 1 },
+                        text = { Text("Verlauf") },
+                    )
+                }
+            }
+
             LazyColumn {
-                // Empty state: custom foods + history grouped by date
+                // Empty state: active tab content
                 if (state.query.isEmpty() && !state.isLoading) {
-                    if (customFoods.isNotEmpty()) {
-                        item { SectionLabel("Meine Lebensmittel") }
-                        items(customFoods, key = { "custom_${it.id}" }) { food ->
-                            SwipeableCustomFoodRow(
-                                food = food,
-                                onClick = { viewModel.selectFood(food) },
-                                onEdit = { foodToEdit = food },
-                                onDelete = {
-                                    viewModel.deletePendingCustomFood(food)
-                                    coroutineScope.launch {
-                                        val result = snackbar.showSnackbar(
-                                            message = "Lebensmittel gelöscht",
-                                            actionLabel = "Rückgängig",
-                                            duration = SnackbarDuration.Short,
-                                        )
-                                        when (result) {
-                                            SnackbarResult.ActionPerformed -> viewModel.undoDeleteCustomFood(food)
-                                            SnackbarResult.Dismissed -> viewModel.confirmDeleteCustomFood(food)
-                                        }
-                                    }
-                                },
-                            )
-                            HorizontalDivider()
-                        }
-                    }
-                    if (recentEntries.isNotEmpty()) {
-                        item { SectionLabel("Verlauf") }
-                        val grouped = recentEntries
-                            .groupBy { it.date }
-                            .entries
-                            .sortedByDescending { it.key }
-                        grouped.forEach { (date, entries) ->
-                            item(key = "header_$date") {
-                                Text(
-                                    date.formatRelative(),
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 2.dp),
-                                )
+                    if (selectedTab == 0) {
+                        if (customFoods.isEmpty()) {
+                            item {
+                                Box(
+                                    modifier = Modifier.fillMaxWidth().padding(32.dp),
+                                    contentAlignment = Alignment.Center,
+                                ) {
+                                    Text(
+                                        "Noch keine eigenen Lebensmittel.\nTippe auf + um eines anzulegen.",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                                    )
+                                }
                             }
-                            items(entries, key = { "history_${it.id}" }) { entry ->
-                                SwipeableHistoryRow(
-                                    entry = entry,
-                                    onClick = { viewModel.selectRecentFood(entry) },
+                        } else {
+                            items(customFoods, key = { "custom_${it.id}" }) { food ->
+                                SwipeableCustomFoodRow(
+                                    food = food,
+                                    onClick = { viewModel.selectFood(food) },
+                                    onEdit = { foodToEdit = food },
                                     onDelete = {
-                                        viewModel.deletePendingEntry(entry)
+                                        viewModel.deletePendingCustomFood(food)
                                         coroutineScope.launch {
                                             val result = snackbar.showSnackbar(
-                                                message = "Eintrag gelöscht",
+                                                message = "Lebensmittel gelöscht",
                                                 actionLabel = "Rückgängig",
                                                 duration = SnackbarDuration.Short,
                                             )
                                             when (result) {
-                                                SnackbarResult.ActionPerformed -> viewModel.undoDeleteEntry(entry)
-                                                SnackbarResult.Dismissed -> viewModel.confirmDeleteEntry(entry)
+                                                SnackbarResult.ActionPerformed -> viewModel.undoDeleteCustomFood(food)
+                                                SnackbarResult.Dismissed -> viewModel.confirmDeleteCustomFood(food)
                                             }
                                         }
                                     },
                                 )
                                 HorizontalDivider()
+                            }
+                        }
+                    } else {
+                        if (recentEntries.isEmpty()) {
+                            item {
+                                Box(
+                                    modifier = Modifier.fillMaxWidth().padding(32.dp),
+                                    contentAlignment = Alignment.Center,
+                                ) {
+                                    Text(
+                                        "Noch keine Einträge im Verlauf.",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    )
+                                }
+                            }
+                        } else {
+                            val grouped = recentEntries
+                                .groupBy { it.date }
+                                .entries
+                                .sortedByDescending { it.key }
+                            grouped.forEach { (date, entries) ->
+                                item(key = "header_$date") {
+                                    Text(
+                                        date.formatRelative(),
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 2.dp),
+                                    )
+                                }
+                                items(entries, key = { "history_${it.id}" }) { entry ->
+                                    SwipeableHistoryRow(
+                                        entry = entry,
+                                        onClick = { viewModel.selectRecentFood(entry) },
+                                        onDelete = {
+                                            viewModel.deletePendingEntry(entry)
+                                            coroutineScope.launch {
+                                                val result = snackbar.showSnackbar(
+                                                    message = "Eintrag gelöscht",
+                                                    actionLabel = "Rückgängig",
+                                                    duration = SnackbarDuration.Short,
+                                                )
+                                                when (result) {
+                                                    SnackbarResult.ActionPerformed -> viewModel.undoDeleteEntry(entry)
+                                                    SnackbarResult.Dismissed -> viewModel.confirmDeleteEntry(entry)
+                                                }
+                                            }
+                                        },
+                                    )
+                                    HorizontalDivider()
+                                }
                             }
                         }
                     }
@@ -430,16 +476,6 @@ private fun SwipeableHistoryRow(
     ) {
         RecentFoodRow(entry = entry, onClick = onClick)
     }
-}
-
-@Composable
-private fun SectionLabel(text: String) {
-    Text(
-        text,
-        style = MaterialTheme.typography.labelLarge,
-        color = MaterialTheme.colorScheme.primary,
-        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-    )
 }
 
 @Composable
