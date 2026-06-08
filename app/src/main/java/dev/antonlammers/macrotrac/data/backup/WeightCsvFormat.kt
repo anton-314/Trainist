@@ -14,16 +14,11 @@ object WeightCsvFormat {
         listOf(entry.date, entry.weightKg, entry.timestampMs).joinToString(",")
 
     fun fromRow(row: String, headers: Map<String, Int>): WeightEntry? {
-        val cols = row.split(",")
-        val date = headers[DATE]?.let { cols.getOrNull(it)?.trim() }
+        val cols = CsvFormat.parseLine(row)
+        val date = cols.csvStr(headers, DATE)
             ?.let { runCatching { LocalDate.parse(it) }.getOrNull() } ?: return null
-        val weightKg = headers[WEIGHT_KG]?.let { cols.getOrNull(it)?.trim()?.toDoubleOrNull() }
-            ?: return null
-        val timestampMs = headers[TIMESTAMP_MS]?.let { cols.getOrNull(it)?.trim()?.toLongOrNull() }
-            ?: System.currentTimeMillis()
+        val weightKg = cols.csvDbl(headers, WEIGHT_KG) ?: return null
+        val timestampMs = cols.csvDbl(headers, TIMESTAMP_MS)?.toLong() ?: System.currentTimeMillis()
         return WeightEntry(weightKg = weightKg, date = date, timestampMs = timestampMs)
     }
-
-    fun parseHeaders(headerLine: String): Map<String, Int> =
-        headerLine.split(",").mapIndexed { i, h -> h.trim() to i }.toMap()
 }

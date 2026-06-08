@@ -14,14 +14,11 @@ object GoalCsvFormat {
         listOf(goal.kcal, goal.proteinG, goal.carbsG, goal.fatG).joinToString(",")
 
     fun fromRow(row: String, headers: Map<String, Int>): DailyGoal? {
-        val cols = row.split(",")
-        val kcal = headers[KCAL]?.let { cols.getOrNull(it)?.trim()?.toDoubleOrNull() } ?: return null
-        val proteinG = headers[PROTEIN_G]?.let { cols.getOrNull(it)?.trim()?.toDoubleOrNull() } ?: return null
-        val carbsG = headers[CARBS_G]?.let { cols.getOrNull(it)?.trim()?.toDoubleOrNull() } ?: return null
-        val fatG = headers[FAT_G]?.let { cols.getOrNull(it)?.trim()?.toDoubleOrNull() } ?: return null
+        val cols = CsvFormat.parseLine(row)
+        val kcal = cols.csvDbl(headers, KCAL) ?: return null
+        val proteinG = cols.csvDbl(headers, PROTEIN_G) ?: return null
+        val carbsG = cols.csvDbl(headers, CARBS_G) ?: return null
+        val fatG = cols.csvDbl(headers, FAT_G) ?: return null
         return DailyGoal(kcal = kcal, proteinG = proteinG, carbsG = carbsG, fatG = fatG)
     }
-
-    fun parseHeaders(headerLine: String): Map<String, Int> =
-        headerLine.split(",").mapIndexed { i, h -> h.trim() to i }.toMap()
 }

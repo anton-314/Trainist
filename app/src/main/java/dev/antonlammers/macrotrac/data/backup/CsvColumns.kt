@@ -1,9 +1,10 @@
 package dev.antonlammers.macrotrac.data.backup
 
 /**
- * Central registry of CSV column names.
- * Add new nutrients/metrics here and update CsvExporter + CsvImporter accordingly.
+ * Central registry of CSV column names for food entries.
  * Column order in HEADER determines export order; import always reads by name.
+ * To add a column: add the constant, add it to HEADER, write it in CsvFormat.toRow,
+ * and read it in CsvFormat.fromRow with a sensible default for missing values.
  */
 object CsvColumns {
     const val DATE = "date"

@@ -60,12 +60,31 @@ Tests use `kotlinx-coroutines-test` + `turbine`. All ViewModels have full test c
 
 - **Auto Backup**: `backup_rules.xml` (pre-12) and `data_extraction_rules.xml` (Android 12+) explicitly include `macrotrac.db` + WAL files. Android backs these up to Google Drive automatically when the user has backup enabled — no code required.
 - **Full Backup Export** (`data/backup/BackupExporter`): reads all four data types (food entries, weight entries, daily goal, custom foods), writes a ZIP to `cacheDir` containing four named CSVs (`food_entries.csv`, `weight_entries.csv`, `daily_goal.csv`, `custom_foods.csv`), shares via `FileProvider` + `Intent.ACTION_SEND`.
-- **Full Backup Import** (`data/backup/BackupImporter`): opens a user-picked URI, auto-detects ZIP vs legacy CSV by checking the PK magic bytes. ZIP imports all four sections; legacy CSV imports only food entries (backward-compatible). `Result` includes `customFoodsImported`.
-- **CsvFormat** (`data/backup/CsvFormat.kt`): pure Kotlin — food entries. Columns identified by name; missing columns fall back to defaults; extra columns are ignored.
+- **Full Backup Import** (`data/backup/BackupImporter`): opens a user-picked URI, auto-detects ZIP vs single CSV by checking the PK magic bytes (`0x50 0x4B`). ZIP imports all four sections by entry name. A single CSV file is routed by type detection (`detectCsvType`) based on unique column presence — see table below. `Result` reports counts for each data type.
+- **CSV type detection** (`detectCsvType` in `BackupImporter.kt`): identifies a CSV by its unique column:
+  - `food_name` → `FOOD_ENTRIES` (parsed by `CsvFormat`)
+  - `weight_kg` → `WEIGHT_ENTRIES` (parsed by `WeightCsvFormat`)
+  - `kcal_per_100g` → `CUSTOM_FOODS` (parsed by `CustomFoodCsvFormat`)
+  - `kcal` (without the above) → `DAILY_GOAL` (parsed by `GoalCsvFormat`)
+- **CsvFormat** (`data/backup/CsvFormat.kt`): pure Kotlin — food entries. Columns identified by name; missing columns fall back to defaults; extra columns are ignored. `CsvFormat.parseHeaders` is the shared header-parsing function used by all format objects.
 - **CustomFoodCsvFormat** (`data/backup/CustomFoodCsvFormat.kt`): pure Kotlin — custom foods. Columns: `name`, `brand`, `kcal_per_100g`, `protein_per_100g`, `carbs_per_100g`, `fat_per_100g`, `sugar_per_100g`, `fiber_per_100g`, `salt_per_100g`.
 - **WeightCsvFormat** (`data/backup/WeightCsvFormat.kt`): pure Kotlin — weight entries. Columns: `date`, `weight_kg`, `timestamp_ms`.
 - **GoalCsvFormat** (`data/backup/GoalCsvFormat.kt`): pure Kotlin — single-row daily goal. Columns: `kcal`, `protein_g`, `carbs_g`, `fat_g`.
 - **FileProvider** authority: `dev.antonlammers.macrotrac.fileprovider`, paths configured in `res/xml/file_paths.xml` (cache dir).
+
+### Backup schema evolution — backward compatibility contract
+
+All CSV parsing is name-based (column order is irrelevant on import). This gives us forward and backward compatibility for free, as long as the following rules are followed:
+
+| Change | Export (`toRow` / `HEADER`) | Import (`fromRow`) |
+|---|---|---|
+| **Add a column** | Add constant to `CsvColumns` / format object, add to `HEADER` and `toRow` | Read with a sensible default for missing values — old exports that lack the column still parse |
+| **Remove a column** | Remove from `HEADER` and `toRow` | Remove the read; `fromRow` ignores unknown columns, so new exports with the column dropped still parse in old app versions |
+| **Rename a column** | Write both old and new names in `toRow` for at least one release, then drop the old name | Read the new name with fallback to the old name until the transition period ends |
+| **Add a new data type** | Add a new `*CsvFormat` object + ZIP entry name in `BackupExporter` | Add a new `CsvType` variant + detection rule in `detectCsvType`, add a `when` branch in `importZip` and `importSingleCsv` |
+| **Change the ZIP container format** | — | Extend `isZip` / add a new container detection path; keep old paths for legacy files |
+
+**No explicit version field is needed.** Structural detection (column presence, ZIP magic bytes, entry names) is sufficient and avoids the overhead of managing version numbers. Only introduce a version field if two formats become structurally ambiguous (same unique columns, different semantics).
 
 ### Key design decisions
 

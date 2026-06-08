@@ -7,7 +7,7 @@ import org.junit.Test
 
 class GoalCsvFormatTest {
 
-    private val headers = GoalCsvFormat.parseHeaders(GoalCsvFormat.HEADER)
+    private val headers = CsvFormat.parseHeaders(GoalCsvFormat.HEADER)
 
     @Test
     fun `toRow and fromRow round-trip preserves all fields`() {
@@ -35,11 +35,11 @@ class GoalCsvFormatTest {
 
     @Test
     fun `parseHeaders returns correct index map`() {
-        val headers = GoalCsvFormat.parseHeaders("kcal,protein_g,carbs_g,fat_g")
-        assertEquals(0, headers["kcal"])
-        assertEquals(1, headers["protein_g"])
-        assertEquals(2, headers["carbs_g"])
-        assertEquals(3, headers["fat_g"])
+        val h = CsvFormat.parseHeaders("kcal,protein_g,carbs_g,fat_g")
+        assertEquals(0, h["kcal"])
+        assertEquals(1, h["protein_g"])
+        assertEquals(2, h["carbs_g"])
+        assertEquals(3, h["fat_g"])
     }
 
     @Test

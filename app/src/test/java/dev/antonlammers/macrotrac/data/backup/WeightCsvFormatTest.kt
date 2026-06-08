@@ -9,7 +9,7 @@ import java.time.LocalDate
 
 class WeightCsvFormatTest {
 
-    private val headers = WeightCsvFormat.parseHeaders(WeightCsvFormat.HEADER)
+    private val headers = CsvFormat.parseHeaders(WeightCsvFormat.HEADER)
 
     @Test
     fun `toRow and fromRow round-trip preserves all fields`() {
@@ -40,7 +40,7 @@ class WeightCsvFormatTest {
 
     @Test
     fun `fromRow uses current time when timestamp_ms is missing`() {
-        val sparseHeaders = mapOf("date" to 0, "weight_kg" to 1)
+        val sparseHeaders = CsvFormat.parseHeaders("date,weight_kg")
         val before = System.currentTimeMillis()
         val entry = WeightCsvFormat.fromRow("2026-05-28,75.0", sparseHeaders)!!
         val after = System.currentTimeMillis()
@@ -51,15 +51,15 @@ class WeightCsvFormatTest {
 
     @Test
     fun `parseHeaders returns correct index map`() {
-        val headers = WeightCsvFormat.parseHeaders("date,weight_kg,timestamp_ms")
-        assertEquals(0, headers["date"])
-        assertEquals(1, headers["weight_kg"])
-        assertEquals(2, headers["timestamp_ms"])
+        val h = CsvFormat.parseHeaders("date,weight_kg,timestamp_ms")
+        assertEquals(0, h["date"])
+        assertEquals(1, h["weight_kg"])
+        assertEquals(2, h["timestamp_ms"])
     }
 
     @Test
     fun `fromRow ignores extra unknown columns`() {
-        val extendedHeaders = WeightCsvFormat.parseHeaders("date,weight_kg,timestamp_ms,extra_col")
+        val extendedHeaders = CsvFormat.parseHeaders("date,weight_kg,timestamp_ms,extra_col")
         val entry = WeightCsvFormat.fromRow("2026-05-28,82.0,1748000000000,ignored", extendedHeaders)!!
         assertEquals(82.0, entry.weightKg, 0.001)
     }
