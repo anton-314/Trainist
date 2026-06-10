@@ -9,12 +9,14 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -23,6 +25,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.SwipeToDismissBox
@@ -39,6 +42,7 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
@@ -138,7 +142,7 @@ fun OverviewScreen(
         ) {
             item { MacroSummaryCard(state = state) }
             item { WeightCard(weight = state.todayWeight, onSave = viewModel::saveWeight) }
-            if (state.entries.isEmpty()) {
+            if (state.entries.isEmpty() && state.copyableMeals.isEmpty()) {
                 item {
                     Box(
                         modifier = Modifier
@@ -154,15 +158,23 @@ fun OverviewScreen(
                     }
                 }
             } else {
-                val grouped = state.entries.groupBy { it.mealCategory }
                 MealCategory.entries.forEach { category ->
-                    val categoryEntries = grouped[category] ?: return@forEach
-                    item(key = category.name) {
-                        Text(
-                            category.displayName(),
-                            style = MaterialTheme.typography.labelLarge,
-                            color = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.padding(top = 8.dp, bottom = 2.dp),
+                    val categoryEntries = state.entriesForMeal(category)
+                    if (categoryEntries.isEmpty()) {
+                        if (category in state.copyableMeals) {
+                            item(key = "copy_${category.name}") {
+                                CopyMealButton(
+                                    label = "${category.displayName()} von Gestern kopieren",
+                                    onClick = { viewModel.copyMealFromPreviousDay(category) },
+                                )
+                            }
+                        }
+                        return@forEach
+                    }
+                    item(key = "header_${category.name}") {
+                        MealSectionHeader(
+                            name = category.displayName(),
+                            kcal = state.kcalForMeal(category).toInt(),
                         )
                     }
                     items(categoryEntries, key = { it.id }) { entry ->
@@ -584,6 +596,46 @@ private fun MealCategory.displayName() = when (this) {
     MealCategory.LUNCH -> "Mittagessen"
     MealCategory.DINNER -> "Abendessen"
     MealCategory.SNACK -> "Snack"
+}
+
+@Composable
+private fun MealSectionHeader(name: String, kcal: Int) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 8.dp, bottom = 2.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            name,
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.primary,
+        )
+        Text(
+            "$kcal kcal",
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
+}
+
+@Composable
+private fun CopyMealButton(label: String, onClick: () -> Unit) {
+    OutlinedButton(
+        onClick = onClick,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp),
+    ) {
+        Icon(
+            Icons.Default.ContentCopy,
+            contentDescription = null,
+            modifier = Modifier.size(18.dp),
+        )
+        Spacer(Modifier.width(8.dp))
+        Text(label)
+    }
 }
 
 @Composable

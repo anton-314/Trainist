@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dev.antonlammers.macrotrac.domain.model.DailyGoal
 import dev.antonlammers.macrotrac.domain.model.FoodEntry
+import dev.antonlammers.macrotrac.domain.model.MealCategory
 import dev.antonlammers.macrotrac.domain.model.WeightEntry
 import dev.antonlammers.macrotrac.domain.repository.FoodEntryRepository
 import dev.antonlammers.macrotrac.domain.repository.GoalRepository
@@ -34,12 +35,14 @@ class OverviewViewModel @Inject constructor(
         .flatMapLatest { date ->
             combine(
                 foodEntryRepository.entriesForDate(date),
+                foodEntryRepository.entriesForDate(date.minusDays(1)),
                 goalRepository.goal(),
                 weightRepository.entryForDate(date),
                 _pendingDelete,
-            ) { entries, goal, weight, pending ->
+            ) { entries, previousEntries, goal, weight, pending ->
                 OverviewUiState(
                     entries = if (pending != null) entries.filter { it.id != pending.id } else entries,
+                    previousDayEntries = previousEntries,
                     goal = goal,
                     date = date,
                     todayWeight = weight,
@@ -73,6 +76,28 @@ class OverviewViewModel @Inject constructor(
         if (_pendingDelete.value?.id == entry.id) _pendingDelete.value = null
     }
 
+    /**
+     * Copies every entry of [category] from the previous day into the currently viewed day,
+     * keeping the same foods, amounts and meal category. No-op if there is nothing to copy.
+     */
+    fun copyMealFromPreviousDay(category: MealCategory) {
+        val state = uiState.value
+        val toCopy = state.previousDayEntries.filter { it.mealCategory == category }
+        if (toCopy.isEmpty()) return
+        val targetDate = state.date
+        viewModelScope.launch {
+            toCopy.forEach { entry ->
+                foodEntryRepository.add(
+                    entry.copy(
+                        id = 0,
+                        date = targetDate,
+                        timestampMs = System.currentTimeMillis(),
+                    )
+                )
+            }
+        }
+    }
+
     fun saveWeight(weightKg: Double) {
         viewModelScope.launch {
             weightRepository.save(
@@ -88,6 +113,7 @@ class OverviewViewModel @Inject constructor(
 
 data class OverviewUiState(
     val entries: List<FoodEntry> = emptyList(),
+    val previousDayEntries: List<FoodEntry> = emptyList(),
     val goal: DailyGoal = DailyGoal(),
     val date: LocalDate = LocalDate.now(),
     val todayWeight: WeightEntry? = null,
@@ -99,4 +125,20 @@ data class OverviewUiState(
     val totalSugar get() = entries.sumOf { it.sugarG }
     val totalFiber get() = entries.sumOf { it.fiberG }
     val totalSalt get() = entries.sumOf { it.saltG }
+
+    fun entriesForMeal(category: MealCategory): List<FoodEntry> =
+        entries.filter { it.mealCategory == category }
+
+    fun kcalForMeal(category: MealCategory): Double =
+        entriesForMeal(category).sumOf { it.kcal }
+
+    /**
+     * Main meals that have no entry on the viewed day but do have entries on the previous day —
+     * i.e. the meals for which a "copy from yesterday" button should be offered.
+     */
+    val copyableMeals: Set<MealCategory>
+        get() = MealCategory.mainMeals.filter { meal ->
+            entries.none { it.mealCategory == meal } &&
+                previousDayEntries.any { it.mealCategory == meal }
+        }.toSet()
 }

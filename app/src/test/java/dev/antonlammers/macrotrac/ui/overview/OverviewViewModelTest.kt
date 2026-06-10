@@ -3,6 +3,7 @@ package dev.antonlammers.macrotrac.ui.overview
 import app.cash.turbine.test
 import dev.antonlammers.macrotrac.domain.model.DailyGoal
 import dev.antonlammers.macrotrac.domain.model.FoodEntry
+import dev.antonlammers.macrotrac.domain.model.MealCategory
 import dev.antonlammers.macrotrac.fake.FakeFoodEntryRepository
 import dev.antonlammers.macrotrac.fake.FakeGoalRepository
 import dev.antonlammers.macrotrac.fake.FakeWeightRepository
@@ -232,16 +233,93 @@ class OverviewViewModelTest {
         }
     }
 
-    private fun buildEntry(kcal: Double, date: LocalDate) = FoodEntry(
+    @Test
+    fun `kcalForMeal sums only that meal's entries`() = runTest {
+        viewModel.uiState.test {
+            awaitItem()
+
+            foodEntryRepo.add(buildEntry(kcal = 300.0, date = LocalDate.now(), mealCategory = MealCategory.BREAKFAST))
+            awaitItem()
+            foodEntryRepo.add(buildEntry(kcal = 500.0, date = LocalDate.now(), mealCategory = MealCategory.LUNCH))
+            val state = awaitItem()
+
+            assertEquals(300.0, state.kcalForMeal(MealCategory.BREAKFAST), 0.001)
+            assertEquals(500.0, state.kcalForMeal(MealCategory.LUNCH), 0.001)
+            assertEquals(0.0, state.kcalForMeal(MealCategory.DINNER), 0.001)
+        }
+    }
+
+    @Test
+    fun `copyableMeals lists main meals empty today but present yesterday`() = runTest {
+        val yesterday = LocalDate.now().minusDays(1)
+        foodEntryRepo.add(buildEntry(kcal = 300.0, date = yesterday, mealCategory = MealCategory.BREAKFAST))
+        foodEntryRepo.add(buildEntry(kcal = 400.0, date = yesterday, mealCategory = MealCategory.DINNER))
+        // A snack yesterday must never be offered for copy.
+        foodEntryRepo.add(buildEntry(kcal = 100.0, date = yesterday, mealCategory = MealCategory.SNACK))
+
+        viewModel.uiState.test {
+            awaitItem() // initial default
+            val state = awaitItem() // computed: today empty, yesterday populated
+
+            assertEquals(setOf(MealCategory.BREAKFAST, MealCategory.DINNER), state.copyableMeals)
+        }
+    }
+
+    @Test
+    fun `meal already filled today is not copyable`() = runTest {
+        val yesterday = LocalDate.now().minusDays(1)
+        foodEntryRepo.add(buildEntry(kcal = 300.0, date = yesterday, mealCategory = MealCategory.BREAKFAST))
+        foodEntryRepo.add(buildEntry(kcal = 250.0, date = LocalDate.now(), mealCategory = MealCategory.BREAKFAST))
+
+        viewModel.uiState.test {
+            awaitItem()
+            val state = awaitItem()
+
+            assertTrue(MealCategory.BREAKFAST !in state.copyableMeals)
+        }
+    }
+
+    @Test
+    fun `copyMealFromPreviousDay copies yesterday's meal into today with same amounts`() = runTest {
+        val yesterday = LocalDate.now().minusDays(1)
+        foodEntryRepo.add(buildEntry(kcal = 300.0, date = yesterday, mealCategory = MealCategory.BREAKFAST, amountGrams = 80.0))
+        foodEntryRepo.add(buildEntry(kcal = 500.0, date = yesterday, mealCategory = MealCategory.LUNCH))
+
+        viewModel.uiState.test {
+            awaitItem() // initial
+            val before = awaitItem()
+            assertTrue(before.entries.isEmpty())
+            assertEquals(setOf(MealCategory.BREAKFAST, MealCategory.LUNCH), before.copyableMeals)
+
+            viewModel.copyMealFromPreviousDay(MealCategory.BREAKFAST)
+            val after = awaitItem()
+
+            val breakfast = after.entriesForMeal(MealCategory.BREAKFAST)
+            assertEquals(1, breakfast.size)
+            assertEquals(LocalDate.now(), breakfast.first().date)
+            assertEquals(80.0, breakfast.first().amountGrams, 0.001)
+            assertEquals(300.0, after.kcalForMeal(MealCategory.BREAKFAST), 0.001)
+            // Breakfast is now filled, so only lunch remains copyable.
+            assertEquals(setOf(MealCategory.LUNCH), after.copyableMeals)
+        }
+    }
+
+    private fun buildEntry(
+        kcal: Double,
+        date: LocalDate,
+        mealCategory: MealCategory = MealCategory.SNACK,
+        amountGrams: Double = 100.0,
+    ) = FoodEntry(
         foodName = "Testessen",
         brand = null,
-        amountGrams = 100.0,
+        amountGrams = amountGrams,
         kcal = kcal,
         proteinG = 10.0,
         carbsG = 20.0,
         fatG = 5.0,
         sugarG = 3.0,
         fiberG = 1.5,
+        mealCategory = mealCategory,
         date = date,
         timestampMs = System.currentTimeMillis(),
     )
