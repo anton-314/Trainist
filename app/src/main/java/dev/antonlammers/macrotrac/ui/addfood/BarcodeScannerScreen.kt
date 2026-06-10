@@ -4,6 +4,7 @@ import android.Manifest
 import android.content.pm.PackageManager
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.camera.core.Camera
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ExperimentalGetImage
 import androidx.camera.core.ImageAnalysis
@@ -26,6 +27,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.FlashOff
+import androidx.compose.material.icons.filled.FlashOn
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -80,7 +83,12 @@ fun BarcodeScannerScreen(navController: NavController) {
     ) {
         if (hasPermission) {
             val detected = remember { AtomicBoolean(false) }
+            // Torch starts off; only revealed once we know the device actually has a flash unit.
+            var torchOn by remember { mutableStateOf(false) }
+            var hasFlashUnit by remember { mutableStateOf(false) }
             CameraPreview(
+                torchEnabled = torchOn,
+                onFlashUnitAvailable = { hasFlashUnit = it },
                 analyzer = BarcodeAnalyzer { barcode ->
                     if (detected.compareAndSet(false, true)) {
                         navController.previousBackStackEntry
@@ -91,6 +99,20 @@ fun BarcodeScannerScreen(navController: NavController) {
                 },
             )
             ScanOverlay()
+            if (hasFlashUnit) {
+                IconButton(
+                    onClick = { torchOn = !torchOn },
+                    modifier = Modifier
+                        .align(Alignment.TopStart)
+                        .padding(16.dp),
+                ) {
+                    Icon(
+                        imageVector = if (torchOn) Icons.Default.FlashOn else Icons.Default.FlashOff,
+                        contentDescription = if (torchOn) "Taschenlampe ausschalten" else "Taschenlampe einschalten",
+                        tint = Color.White,
+                    )
+                }
+            }
             Text(
                 text = "Barcode in den Rahmen halten",
                 style = MaterialTheme.typography.bodyMedium,
@@ -126,11 +148,21 @@ fun BarcodeScannerScreen(navController: NavController) {
 
 @ExperimentalGetImage
 @Composable
-private fun CameraPreview(analyzer: BarcodeAnalyzer) {
+private fun CameraPreview(
+    analyzer: BarcodeAnalyzer,
+    torchEnabled: Boolean,
+    onFlashUnitAvailable: (Boolean) -> Unit,
+) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
     val cameraProviderFuture = remember { ProcessCameraProvider.getInstance(context) }
     val executor = remember { ContextCompat.getMainExecutor(context) }
+    var camera by remember { mutableStateOf<Camera?>(null) }
+
+    // Apply the requested torch state whenever it changes or the camera (re)binds.
+    LaunchedEffect(camera, torchEnabled) {
+        camera?.cameraControl?.enableTorch(torchEnabled)
+    }
 
     AndroidView(
         factory = { ctx ->
@@ -144,12 +176,12 @@ private fun CameraPreview(analyzer: BarcodeAnalyzer) {
                         .build()
                         .also { it.setAnalyzer(executor, analyzer) }
                     provider.unbindAll()
-                    provider.bindToLifecycle(
+                    camera = provider.bindToLifecycle(
                         lifecycleOwner,
                         CameraSelector.DEFAULT_BACK_CAMERA,
                         preview,
                         analysis,
-                    )
+                    ).also { onFlashUnitAvailable(it.cameraInfo.hasFlashUnit()) }
                 }, executor)
             }
         },

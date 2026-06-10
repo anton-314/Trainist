@@ -120,5 +120,6 @@ All CSV parsing is name-based (column order is irrelevant on import). This gives
   - `api/v2/product/{barcode}` — barcode lookup (`status == 1` means found)
   - Text search endpoint is no longer used; search is local-only.
 - **Barcode scanner** (`BarcodeScannerScreen`) uses CameraX + ML Kit. It passes the detected barcode back via `NavBackStackEntry.savedStateHandle["barcode"]` and `AddFoodViewModel.handleBarcode()` resolves it against the API. `BarcodeAnalyzer` uses an `AtomicBoolean` to fire the callback exactly once per scan session.
+  - **Torch toggle**: the screen holds a `torchOn` state (default **off**). `CameraPreview` keeps the bound `Camera` reference and applies the state via `cameraControl.enableTorch()` in a `LaunchedEffect(camera, torchEnabled)`. The toggle `IconButton` (FlashOn/FlashOff) is rendered top-start, but only when `cameraInfo.hasFlashUnit()` reported a flash unit on bind.
 - **`@ExperimentalGetImage`** propagates from `BarcodeAnalyzer` → `BarcodeScannerScreen` → `AppNavigation` → `MainActivity`. This is expected and not a warning to suppress.
 - **DB schema**: version 5. Migrations: 1→2 adds sugar/fiber/mealCategory columns; 2→3 adds the `weight_entries` table; 3→4 adds the `custom_foods` table; 4→5 adds `saltG` to `food_entries` and `saltPer100g` to `custom_foods`.
