@@ -54,7 +54,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -62,6 +61,7 @@ import androidx.navigation.NavController
 import dev.antonlammers.macrotrac.domain.model.Food
 import dev.antonlammers.macrotrac.domain.model.FoodEntry
 import dev.antonlammers.macrotrac.domain.model.MealCategory
+import dev.antonlammers.macrotrac.ui.components.NumericTextField
 import dev.antonlammers.macrotrac.ui.navigation.Screen
 import dev.antonlammers.macrotrac.util.normalizeDecimal
 import java.time.LocalDate
@@ -562,16 +562,15 @@ private fun CustomFoodDialog(
                 modifier = Modifier.verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                val decimalKeyboard = KeyboardOptions(keyboardType = KeyboardType.Decimal)
                 OutlinedTextField(name, { name = it }, label = { Text("Name *") }, singleLine = true, modifier = Modifier.fillMaxWidth())
                 OutlinedTextField(brand, { brand = it }, label = { Text("Marke (optional)") }, singleLine = true, modifier = Modifier.fillMaxWidth())
-                OutlinedTextField(kcal, { kcal = it }, label = { Text("kcal / 100 g *") }, singleLine = true, keyboardOptions = decimalKeyboard, modifier = Modifier.fillMaxWidth())
-                OutlinedTextField(protein, { protein = it }, label = { Text("Protein g / 100 g *") }, singleLine = true, keyboardOptions = decimalKeyboard, modifier = Modifier.fillMaxWidth())
-                OutlinedTextField(carbs, { carbs = it }, label = { Text("Kohlenhydrate g / 100 g *") }, singleLine = true, keyboardOptions = decimalKeyboard, modifier = Modifier.fillMaxWidth())
-                OutlinedTextField(fat, { fat = it }, label = { Text("Fett g / 100 g *") }, singleLine = true, keyboardOptions = decimalKeyboard, modifier = Modifier.fillMaxWidth())
-                OutlinedTextField(sugar, { sugar = it }, label = { Text("Zucker g / 100 g") }, singleLine = true, keyboardOptions = decimalKeyboard, modifier = Modifier.fillMaxWidth())
-                OutlinedTextField(fiber, { fiber = it }, label = { Text("Ballaststoffe g / 100 g") }, singleLine = true, keyboardOptions = decimalKeyboard, modifier = Modifier.fillMaxWidth())
-                OutlinedTextField(salt, { salt = it }, label = { Text("Salz g / 100 g") }, singleLine = true, keyboardOptions = decimalKeyboard, modifier = Modifier.fillMaxWidth())
+                NumericTextField(kcal, { kcal = it }, label = "kcal / 100 g *", modifier = Modifier.fillMaxWidth())
+                NumericTextField(protein, { protein = it }, label = "Protein g / 100 g *", modifier = Modifier.fillMaxWidth())
+                NumericTextField(carbs, { carbs = it }, label = "Kohlenhydrate g / 100 g *", modifier = Modifier.fillMaxWidth())
+                NumericTextField(fat, { fat = it }, label = "Fett g / 100 g *", modifier = Modifier.fillMaxWidth())
+                NumericTextField(sugar, { sugar = it }, label = "Zucker g / 100 g", modifier = Modifier.fillMaxWidth())
+                NumericTextField(fiber, { fiber = it }, label = "Ballaststoffe g / 100 g", modifier = Modifier.fillMaxWidth())
+                NumericTextField(salt, { salt = it }, label = "Salz g / 100 g", modifier = Modifier.fillMaxWidth())
             }
         },
         confirmButton = {
@@ -617,12 +616,10 @@ private fun AmountDialog(
         title = { Text(food.name) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                OutlinedTextField(
+                NumericTextField(
                     value = amount,
                     onValueChange = onAmountChange,
-                    label = { Text("Menge (g)") },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                    singleLine = true,
+                    label = "Menge (g)",
                     modifier = Modifier.fillMaxWidth(),
                 )
                 Text("Mahlzeit", style = MaterialTheme.typography.labelMedium)

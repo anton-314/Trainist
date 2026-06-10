@@ -7,7 +7,7 @@ import org.junit.Test
 
 class CustomFoodCsvFormatTest {
 
-    private val headers = CustomFoodCsvFormat.parseHeaders(CustomFoodCsvFormat.HEADER)
+    private val headers = CsvFormat.parseHeaders(CustomFoodCsvFormat.HEADER)
 
     @Test
     fun `toRow and fromRow round-trip preserves all fields`() {
@@ -34,7 +34,7 @@ class CustomFoodCsvFormatTest {
 
     @Test
     fun `fromRow uses defaults for missing optional columns`() {
-        val sparseHeaders = mapOf("name" to 0)
+        val sparseHeaders = CsvFormat.parseHeaders("name")
         val food = CustomFoodCsvFormat.fromRow("Apfel", sparseHeaders)!!
         assertEquals("Apfel", food.name)
         assertEquals(0.0, food.kcalPer100g, 0.001)
@@ -44,7 +44,7 @@ class CustomFoodCsvFormatTest {
     @Test
     fun `fromRow uses 0 as default for salt when column absent (backward compat)`() {
         val oldHeader = "name,brand,kcal_per_100g,protein_per_100g,carbs_per_100g,fat_per_100g,sugar_per_100g,fiber_per_100g"
-        val oldHeaders = CustomFoodCsvFormat.parseHeaders(oldHeader)
+        val oldHeaders = CsvFormat.parseHeaders(oldHeader)
         val row = "Haferflocken,Kölln,370.0,13.0,59.0,7.0,1.0,8.0"
         val food = CustomFoodCsvFormat.fromRow(row, oldHeaders)!!
         assertEquals(0.0, food.saltPer100g, 0.001)

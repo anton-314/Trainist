@@ -44,7 +44,4 @@ object CustomFoodCsvFormat {
             saltPer100g = cols.csvDbl(headers, SALT) ?: 0.0,
         )
     }
-
-    fun parseHeaders(headerLine: String): Map<String, Int> =
-        headerLine.split(",").mapIndexed { i, h -> h.trim() to i }.toMap()
 }

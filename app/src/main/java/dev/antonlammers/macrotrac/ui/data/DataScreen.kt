@@ -130,8 +130,8 @@ fun DataScreen(
 
             Spacer(Modifier.height(8.dp))
             Text(
-                "Das Backup enthält Lebensmitteleinträge, Gewichtsverlauf und Tagesziele. " +
-                        "Alte CSV-Exporte (nur Lebensmittel) werden ebenfalls erkannt.",
+                "Das Backup enthält Lebensmitteleinträge, Gewichtsverlauf, Tagesziele und eigene Lebensmittel. " +
+                        "Einzelne CSV-Dateien werden ebenfalls erkannt.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )

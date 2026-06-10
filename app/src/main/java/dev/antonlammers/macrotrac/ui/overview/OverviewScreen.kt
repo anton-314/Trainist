@@ -22,7 +22,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
@@ -34,7 +33,6 @@ import androidx.compose.material.icons.filled.KeyboardArrowRight
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.FilterChip
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.HorizontalDivider
@@ -57,7 +55,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import kotlinx.coroutines.launch
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
@@ -75,6 +72,7 @@ import androidx.navigation.NavController
 import dev.antonlammers.macrotrac.domain.model.FoodEntry
 import dev.antonlammers.macrotrac.domain.model.MealCategory
 import dev.antonlammers.macrotrac.domain.model.WeightEntry
+import dev.antonlammers.macrotrac.ui.components.NumericTextField
 import dev.antonlammers.macrotrac.ui.navigation.Screen
 import dev.antonlammers.macrotrac.util.normalizeDecimal
 import dev.antonlammers.macrotrac.ui.theme.CalorieColor
@@ -288,13 +286,11 @@ private fun EditFoodDialog(
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.Medium,
                 )
-                OutlinedTextField(
+                NumericTextField(
                     value = amountInput,
                     onValueChange = onAmountChange,
-                    label = { Text("Menge") },
-                    suffix = { Text("g") },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                    singleLine = true,
+                    label = "Menge",
+                    suffix = "g",
                     modifier = Modifier.fillMaxWidth(),
                 )
                 Text("Mahlzeit", style = MaterialTheme.typography.labelMedium)
@@ -526,12 +522,10 @@ private fun WeightCard(weight: WeightEntry?, onSave: (Double) -> Unit) {
             onDismissRequest = { showDialog = false },
             title = { Text("Gewicht eintragen") },
             text = {
-                OutlinedTextField(
+                NumericTextField(
                     value = input,
                     onValueChange = { input = it },
-                    label = { Text("kg") },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                    singleLine = true,
+                    label = "kg",
                     modifier = Modifier.fillMaxWidth(),
                 )
             },
