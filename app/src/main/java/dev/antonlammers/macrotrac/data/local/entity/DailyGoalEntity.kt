@@ -10,4 +10,5 @@ data class DailyGoalEntity(
     val proteinG: Double,
     val carbsG: Double,
     val fatG: Double,
+    val targetWeightKg: Double? = null,
 )

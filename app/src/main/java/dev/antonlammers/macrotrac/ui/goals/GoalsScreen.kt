@@ -53,6 +53,9 @@ fun GoalsScreen(
     var protein by remember(goal) { mutableStateOf(goal.proteinG.toInt().toString()) }
     var carbs by remember(goal) { mutableStateOf(goal.carbsG.toInt().toString()) }
     var fat by remember(goal) { mutableStateOf(goal.fatG.toInt().toString()) }
+    var targetWeight by remember(goal) {
+        mutableStateOf(goal.targetWeightKg?.let { formatWeight(it) } ?: "")
+    }
 
     val bodyWeightKg = bodyWeight.normalizeDecimal().toDoubleOrNull()
     val kcalValue = kcal.normalizeDecimal().toDoubleOrNull()
@@ -207,6 +210,17 @@ fun GoalsScreen(
                 }
             }
 
+            HorizontalDivider()
+            Text("Zielgewicht", style = MaterialTheme.typography.labelLarge)
+            NumericTextField(
+                value = targetWeight,
+                onValueChange = { targetWeight = it },
+                label = "Zielgewicht (kg)",
+                suffix = "kg",
+                supportingText = "Optional — wird in der Gewichtsstatistik als Linie angezeigt",
+                modifier = Modifier.fillMaxWidth(),
+            )
+
             Spacer(Modifier.height(4.dp))
             Button(
                 onClick = {
@@ -216,6 +230,8 @@ fun GoalsScreen(
                             proteinG = protein.normalizeDecimal().toDoubleOrNull() ?: goal.proteinG,
                             carbsG = carbs.normalizeDecimal().toDoubleOrNull() ?: goal.carbsG,
                             fatG = fat.normalizeDecimal().toDoubleOrNull() ?: goal.fatG,
+                            // Blank clears the target (null).
+                            targetWeightKg = targetWeight.normalizeDecimal().toDoubleOrNull(),
                         )
                     )
                     navController.popBackStack()
@@ -227,4 +243,8 @@ fun GoalsScreen(
         }
     }
 }
+
+/** Whole numbers without a decimal point, fractional weights as-is (e.g. 72 / 72.5). */
+private fun formatWeight(kg: Double): String =
+    if (kg % 1.0 == 0.0) kg.toInt().toString() else kg.toString()
 

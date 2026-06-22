@@ -45,8 +45,15 @@ import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.nativeCanvas
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
+import java.util.Locale
+import kotlin.math.abs
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
@@ -134,7 +141,8 @@ fun StatsScreen(
             Card(modifier = Modifier.fillMaxWidth()) {
                 Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text("Gewicht", style = MaterialTheme.typography.titleSmall)
-                    if (state.weightPoints.isEmpty()) {
+                    val weight = state.weight
+                    if (!weight.hasData) {
                         Box(
                             modifier = Modifier.fillMaxWidth().height(80.dp),
                             contentAlignment = Alignment.Center,
@@ -146,9 +154,14 @@ fun StatsScreen(
                             )
                         }
                     } else {
-                        WeightLineChart(
-                            points = state.weightPoints,
-                            lineColor = ProteinColor,
+                        WeightSummary(weight)
+                        WeightChart(
+                            data = weight,
+                            range = state.timeRange,
+                            rawColor = ProteinColor,
+                            trendColor = MaterialTheme.colorScheme.tertiary,
+                            targetColor = MaterialTheme.colorScheme.primary,
+                            gridColor = MaterialTheme.colorScheme.surfaceVariant,
                             labelColor = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
@@ -255,58 +268,154 @@ private fun CalorieBarChart(
 }
 
 @Composable
-private fun WeightLineChart(
-    points: List<ChartPoint>,
-    lineColor: Color,
+private fun WeightSummary(data: WeightChartData) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(20.dp),
+    ) {
+        data.current?.let { SummaryStat("Aktuell", "${formatKg(it)} kg") }
+        data.delta?.let {
+            val sign = if (it >= 0) "+" else "-"
+            SummaryStat("Veränderung", "$sign${formatKg(abs(it))} kg")
+        }
+        data.targetKg?.let { SummaryStat("Ziel", "${formatKg(it)} kg") }
+    }
+}
+
+@Composable
+private fun SummaryStat(label: String, value: String) {
+    Column {
+        Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(value, style = MaterialTheme.typography.titleSmall)
+    }
+}
+
+/**
+ * Time-proportional weight chart: x positions come from each sample's real date within the
+ * visible range, y from a padded kg scale with gridline labels. Draws the raw weigh-ins, an
+ * optional moving-average trend overlay, and a dashed target line.
+ */
+@Composable
+private fun WeightChart(
+    data: WeightChartData,
+    range: TimeRange,
+    rawColor: Color,
+    trendColor: Color,
+    targetColor: Color,
+    gridColor: Color,
     labelColor: Color,
 ) {
-    val minValue = (points.minOf { it.value } - 1.0).toFloat().coerceAtLeast(0f)
-    val maxValue = (points.maxOf { it.value } + 1.0).toFloat()
-    val range = (maxValue - minValue).takeIf { it > 0f } ?: 1f
-    val labelStep = when {
-        points.size <= 8 -> 1
-        else -> (points.size / 5).coerceAtLeast(1)
+    val tickDates = remember(data.rangeStart, data.rangeEnd, range) {
+        weightTickDates(data.rangeStart, data.rangeEnd, range)
     }
+    val tickFmt = remember(range) { weightTickFormatter(range) }
 
-    Column {
-        Canvas(modifier = Modifier.fillMaxWidth().height(140.dp)) {
-            fun xFor(i: Int) = if (points.size > 1) i * size.width / (points.size - 1).toFloat() else size.width / 2f
-            fun yFor(v: Double) = size.height - ((v.toFloat() - minValue) / range * size.height)
+    Canvas(modifier = Modifier.fillMaxWidth().height(180.dp)) {
+        val leftGutter = 36.dp.toPx()
+        val bottomGutter = 18.dp.toPx()
+        val plotLeft = leftGutter
+        val plotTop = 6.dp.toPx()
+        val plotWidth = size.width - leftGutter
+        val plotHeight = size.height - bottomGutter - plotTop
 
-            if (points.size >= 2) {
-                val path = Path()
-                path.moveTo(xFor(0), yFor(points[0].value))
-                for (i in 1 until points.size) {
-                    path.lineTo(xFor(i), yFor(points[i].value))
-                }
-                drawPath(
-                    path,
-                    lineColor,
-                    style = Stroke(width = 2.dp.toPx(), cap = StrokeCap.Round, join = StrokeJoin.Round),
+        val startEpoch = data.rangeStart.toEpochDay()
+        val daySpan = (data.rangeEnd.toEpochDay() - startEpoch).coerceAtLeast(1L)
+        val kgSpan = (data.maxKg - data.minKg).takeIf { it > 0.0 } ?: 1.0
+
+        fun xForDate(d: LocalDate): Float =
+            plotLeft + ((d.toEpochDay() - startEpoch).toFloat() / daySpan) * plotWidth
+        fun yForKg(kg: Double): Float =
+            plotTop + (1f - ((kg - data.minKg) / kgSpan).toFloat()) * plotHeight
+
+        val labelPaint = android.graphics.Paint().apply {
+            color = labelColor.toArgb()
+            textSize = 10.sp.toPx()
+            isAntiAlias = true
+        }
+
+        // Horizontal gridlines + kg labels at min / mid / max.
+        labelPaint.textAlign = android.graphics.Paint.Align.RIGHT
+        listOf(data.minKg, (data.minKg + data.maxKg) / 2.0, data.maxKg).forEach { kg ->
+            val y = yForKg(kg)
+            drawLine(gridColor, Offset(plotLeft, y), Offset(size.width, y), strokeWidth = 1.dp.toPx())
+            drawContext.canvas.nativeCanvas.drawText(
+                formatKg(kg), plotLeft - 4.dp.toPx(), y + 3.5.dp.toPx(), labelPaint,
+            )
+        }
+
+        // Dashed target line — only when it sits within the visible kg window.
+        data.targetKg?.let { target ->
+            if (target in data.minKg..data.maxKg) {
+                val y = yForKg(target)
+                drawLine(
+                    targetColor,
+                    Offset(plotLeft, y),
+                    Offset(size.width, y),
+                    strokeWidth = 1.5.dp.toPx(),
+                    pathEffect = PathEffect.dashPathEffect(floatArrayOf(8f, 6f)),
                 )
             }
-
-            points.forEachIndexed { i, point ->
-                val cx = xFor(i)
-                val cy = yFor(point.value)
-                drawCircle(lineColor, 5.dp.toPx(), Offset(cx, cy))
-                drawCircle(Color.White, 2.5.dp.toPx(), Offset(cx, cy))
-            }
         }
 
-        Row(modifier = Modifier.fillMaxWidth()) {
-            points.forEachIndexed { i, point ->
-                Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
-                    if (i % labelStep == 0) {
-                        Text(
-                            point.label,
-                            style = MaterialTheme.typography.labelSmall,
-                            color = labelColor,
-                            maxLines = 1,
-                        )
-                    }
-                }
+        // X-axis date ticks.
+        labelPaint.textAlign = android.graphics.Paint.Align.CENTER
+        tickDates.forEach { d ->
+            drawContext.canvas.nativeCanvas.drawText(
+                d.format(tickFmt), xForDate(d).coerceIn(plotLeft, size.width), size.height, labelPaint,
+            )
+        }
+
+        // Raw weigh-ins: faint line when a trend overlay is shown, full strength otherwise.
+        val rawAlpha = if (data.trend.isNotEmpty()) 0.35f else 1f
+        if (data.samples.size >= 2) {
+            val path = Path().apply {
+                moveTo(xForDate(data.samples.first().date), yForKg(data.samples.first().kg))
+                data.samples.drop(1).forEach { lineTo(xForDate(it.date), yForKg(it.kg)) }
             }
+            drawPath(
+                path, rawColor.copy(alpha = rawAlpha),
+                style = Stroke(width = 2.dp.toPx(), cap = StrokeCap.Round, join = StrokeJoin.Round),
+            )
+        }
+        data.samples.forEach {
+            drawCircle(rawColor, 3.5.dp.toPx(), Offset(xForDate(it.date), yForKg(it.kg)))
+        }
+
+        // Moving-average trend overlay.
+        if (data.trend.size >= 2) {
+            val path = Path().apply {
+                moveTo(xForDate(data.trend.first().date), yForKg(data.trend.first().kg))
+                data.trend.drop(1).forEach { lineTo(xForDate(it.date), yForKg(it.kg)) }
+            }
+            drawPath(
+                path, trendColor,
+                style = Stroke(width = 2.5.dp.toPx(), cap = StrokeCap.Round, join = StrokeJoin.Round),
+            )
         }
     }
+}
+
+/** One decimal at most; whole numbers without a decimal point (72 / 72.5). */
+private fun formatKg(kg: Double): String {
+    val rounded = Math.round(kg * 10) / 10.0
+    return if (rounded % 1.0 == 0.0) rounded.toInt().toString() else rounded.toString()
+}
+
+private fun weightTickFormatter(range: TimeRange): DateTimeFormatter = when (range) {
+    TimeRange.WEEK -> DateTimeFormatter.ofPattern("EE", Locale("de"))
+    TimeRange.MONTH -> DateTimeFormatter.ofPattern("d.M.", Locale("de"))
+    TimeRange.YEAR -> DateTimeFormatter.ofPattern("MMM", Locale("de"))
+}
+
+/** Evenly spaced tick dates across the range; count tuned per range to avoid label overlap. */
+private fun weightTickDates(start: LocalDate, end: LocalDate, range: TimeRange): List<LocalDate> {
+    val count = when (range) {
+        TimeRange.WEEK -> 7
+        TimeRange.MONTH -> 5
+        TimeRange.YEAR -> 6
+    }
+    val span = (end.toEpochDay() - start.toEpochDay()).coerceAtLeast(1L)
+    return (0 until count)
+        .map { i -> LocalDate.ofEpochDay(start.toEpochDay() + span * i / (count - 1)) }
+        .distinct()
 }

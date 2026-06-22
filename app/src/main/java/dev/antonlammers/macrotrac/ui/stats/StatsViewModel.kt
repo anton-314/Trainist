@@ -32,7 +32,7 @@ data class ChartPoint(val label: String, val value: Double)
 data class StatsUiState(
     val timeRange: TimeRange = TimeRange.WEEK,
     val caloriePoints: List<ChartPoint> = emptyList(),
-    val weightPoints: List<ChartPoint> = emptyList(),
+    val weight: WeightChartData = WeightChartData(),
     val goalKcal: Double = 0.0,
 )
 
@@ -56,7 +56,7 @@ class StatsViewModel @Inject constructor(
                 StatsUiState(
                     timeRange = range,
                     caloriePoints = buildCaloriePoints(range, from, to, foodEntries),
-                    weightPoints = buildWeightPoints(range, weightEntries),
+                    weight = buildWeightData(range, from, to, weightEntries, goal.targetWeightKg),
                     goalKcal = goal.kcal,
                 )
             }
@@ -98,13 +98,25 @@ class StatsViewModel @Inject constructor(
         }
     }
 
-    private fun buildWeightPoints(range: TimeRange, entries: List<WeightEntry>): List<ChartPoint> {
-        val fmt = when (range) {
-            TimeRange.WEEK -> DateTimeFormatter.ofPattern("EE", Locale("de"))
-            TimeRange.MONTH -> DateTimeFormatter.ofPattern("d.M.", Locale("de"))
-            TimeRange.YEAR -> DateTimeFormatter.ofPattern("MMM", Locale("de"))
-        }
-        return entries.map { ChartPoint(it.date.format(fmt), it.weightKg) }
+    private fun buildWeightData(
+        range: TimeRange,
+        from: LocalDate,
+        to: LocalDate,
+        entries: List<WeightEntry>,
+        targetKg: Double?,
+    ): WeightChartData {
+        val samples = WeightSeries.samples(range, entries)
+        val trend = WeightSeries.movingAverage(samples, WeightSeries.trendWindowDays(range))
+        val (minKg, maxKg) = WeightSeries.bounds(samples, targetKg)
+        return WeightChartData(
+            samples = samples,
+            trend = trend,
+            rangeStart = from,
+            rangeEnd = to,
+            minKg = minKg,
+            maxKg = maxKg,
+            targetKg = targetKg,
+        )
     }
 }
 

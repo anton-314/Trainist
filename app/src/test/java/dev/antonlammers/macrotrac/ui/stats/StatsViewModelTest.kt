@@ -1,8 +1,10 @@
 package dev.antonlammers.macrotrac.ui.stats
 
 import app.cash.turbine.test
+import dev.antonlammers.macrotrac.domain.model.DailyGoal
 import dev.antonlammers.macrotrac.domain.model.FoodEntry
 import dev.antonlammers.macrotrac.domain.model.MealCategory
+import dev.antonlammers.macrotrac.domain.model.WeightEntry
 import dev.antonlammers.macrotrac.fake.FakeFoodEntryRepository
 import dev.antonlammers.macrotrac.fake.FakeGoalRepository
 import dev.antonlammers.macrotrac.fake.FakeWeightRepository
@@ -96,6 +98,56 @@ class StatsViewModelTest {
             val state = awaitItem() // populated — 7 points, all 0
             assertEquals(7, state.caloriePoints.size)
             assertTrue(state.caloriePoints.all { it.value == 0.0 })
+        }
+    }
+
+    @Test
+    fun `weight entries appear as date-sorted samples with current and delta`() = runTest {
+        val today = LocalDate.now()
+        weightRepo.save(WeightEntry(weightKg = 80.0, date = today.minusDays(1), timestampMs = 1))
+        weightRepo.save(WeightEntry(weightKg = 79.5, date = today, timestampMs = 2))
+
+        viewModel.uiState.test {
+            var state = awaitItem()
+            while (state.weight.samples.size < 2) state = awaitItem()
+
+            assertEquals(listOf(80.0, 79.5), state.weight.samples.map { it.kg })
+            assertEquals(79.5, state.weight.current!!, 0.001)
+            assertEquals(-0.5, state.weight.delta!!, 0.001)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `target weight from goal flows into weight chart data`() = runTest {
+        goalRepo.save(DailyGoal(targetWeightKg = 70.0))
+
+        viewModel.uiState.test {
+            var state = awaitItem()
+            while (state.weight.targetKg != 70.0) state = awaitItem()
+            assertEquals(70.0, state.weight.targetKg!!, 0.001)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `YEAR view aggregates weigh-ins per calendar month`() = runTest {
+        val today = LocalDate.now()
+        // Two weigh-ins in the previous month (→ averaged) plus one in the current month.
+        val prevMonthStart = today.minusMonths(1).withDayOfMonth(1)
+        weightRepo.save(WeightEntry(weightKg = 80.0, date = prevMonthStart, timestampMs = 1))
+        weightRepo.save(WeightEntry(weightKg = 82.0, date = prevMonthStart.plusDays(1), timestampMs = 2))
+        weightRepo.save(WeightEntry(weightKg = 79.0, date = today, timestampMs = 3))
+        viewModel.setTimeRange(TimeRange.YEAR)
+
+        viewModel.uiState.test {
+            var state = awaitItem()
+            while (!(state.timeRange == TimeRange.YEAR && state.weight.samples.size >= 2)) state = awaitItem()
+
+            assertEquals(2, state.weight.samples.size)
+            assertEquals(81.0, state.weight.samples.first().kg, 0.001) // (80 + 82) / 2
+            assertEquals(79.0, state.weight.samples.last().kg, 0.001)
+            cancelAndIgnoreRemainingEvents()
         }
     }
 

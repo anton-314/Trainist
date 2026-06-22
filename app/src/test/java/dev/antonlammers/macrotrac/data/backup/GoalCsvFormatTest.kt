@@ -43,6 +43,26 @@ class GoalCsvFormatTest {
     }
 
     @Test
+    fun `toRow and fromRow round-trip preserves target weight`() {
+        val goal = DailyGoal(targetWeightKg = 72.5)
+        val parsed = GoalCsvFormat.fromRow(GoalCsvFormat.toRow(goal), headers)!!
+        assertEquals(72.5, parsed.targetWeightKg!!, 0.001)
+    }
+
+    @Test
+    fun `fromRow leaves target null when column absent (old export)`() {
+        val legacyHeaders = CsvFormat.parseHeaders("kcal,protein_g,carbs_g,fat_g")
+        val parsed = GoalCsvFormat.fromRow("2000.0,150.0,250.0,70.0", legacyHeaders)!!
+        assertNull(parsed.targetWeightKg)
+    }
+
+    @Test
+    fun `fromRow leaves target null when value is blank`() {
+        val parsed = GoalCsvFormat.fromRow("2000.0,150.0,250.0,70.0,", headers)!!
+        assertNull(parsed.targetWeightKg)
+    }
+
+    @Test
     fun `fromRow handles default DailyGoal values`() {
         val goal = DailyGoal()
         val row = GoalCsvFormat.toRow(goal)

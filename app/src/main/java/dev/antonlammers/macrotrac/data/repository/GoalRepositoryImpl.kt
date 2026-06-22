@@ -23,6 +23,7 @@ class GoalRepositoryImpl @Inject constructor(
         proteinG = proteinG,
         carbsG = carbsG,
         fatG = fatG,
+        targetWeightKg = targetWeightKg,
     )
 
     private fun DailyGoal.toEntity() = DailyGoalEntity(
@@ -30,5 +31,6 @@ class GoalRepositoryImpl @Inject constructor(
         proteinG = proteinG,
         carbsG = carbsG,
         fatG = fatG,
+        targetWeightKg = targetWeightKg,
     )
 }
