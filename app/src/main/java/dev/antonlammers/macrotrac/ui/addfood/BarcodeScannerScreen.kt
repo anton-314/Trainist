@@ -21,18 +21,27 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.FlashOff
 import androidx.compose.material.icons.filled.FlashOn
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import dev.antonlammers.macrotrac.ui.components.NumericTextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -83,20 +92,26 @@ fun BarcodeScannerScreen(navController: NavController) {
     ) {
         if (hasPermission) {
             val detected = remember { AtomicBoolean(false) }
+            // A scanned or manually entered barcode is returned the same way: set it on the
+            // previous entry and pop. The AtomicBoolean guards against firing more than once.
+            val submitBarcode: (String) -> Unit = remember(navController) {
+                { barcode ->
+                    val trimmed = barcode.trim()
+                    if (trimmed.isNotEmpty() && detected.compareAndSet(false, true)) {
+                        navController.previousBackStackEntry
+                            ?.savedStateHandle
+                            ?.set("barcode", trimmed)
+                        navController.popBackStack()
+                    }
+                }
+            }
             // Torch starts off; only revealed once we know the device actually has a flash unit.
             var torchOn by remember { mutableStateOf(false) }
             var hasFlashUnit by remember { mutableStateOf(false) }
             CameraPreview(
                 torchEnabled = torchOn,
                 onFlashUnitAvailable = { hasFlashUnit = it },
-                analyzer = BarcodeAnalyzer { barcode ->
-                    if (detected.compareAndSet(false, true)) {
-                        navController.previousBackStackEntry
-                            ?.savedStateHandle
-                            ?.set("barcode", barcode)
-                        navController.popBackStack()
-                    }
-                },
+                analyzer = BarcodeAnalyzer { barcode -> submitBarcode(barcode) },
             )
             ScanOverlay()
             if (hasFlashUnit) {
@@ -113,15 +128,49 @@ fun BarcodeScannerScreen(navController: NavController) {
                     )
                 }
             }
-            Text(
-                text = "Barcode in den Rahmen halten",
-                style = MaterialTheme.typography.bodyMedium,
-                color = Color.White,
-                textAlign = TextAlign.Center,
+            var manualBarcode by remember { mutableStateOf("") }
+            Surface(
+                color = MaterialTheme.colorScheme.surface,
+                shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp),
+                tonalElevation = 3.dp,
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
-                    .padding(bottom = 80.dp),
-            )
+                    .fillMaxWidth()
+                    .imePadding(),
+            ) {
+                Column(
+                    modifier = Modifier
+                        .navigationBarsPadding()
+                        .padding(16.dp),
+                ) {
+                    Text(
+                        text = "Barcode in den Rahmen halten oder Nummer manuell eingeben",
+                        style = MaterialTheme.typography.bodyMedium,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    Spacer(Modifier.height(12.dp))
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        NumericTextField(
+                            value = manualBarcode,
+                            onValueChange = { manualBarcode = it },
+                            label = "Barcode-Nummer",
+                            decimal = false,
+                            modifier = Modifier.weight(1f),
+                        )
+                        Spacer(Modifier.width(8.dp))
+                        IconButton(
+                            onClick = { submitBarcode(manualBarcode) },
+                            enabled = manualBarcode.isNotBlank(),
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Search,
+                                contentDescription = "Barcode suchen",
+                            )
+                        }
+                    }
+                }
+            }
         } else {
             Column(
                 modifier = Modifier.align(Alignment.Center),
