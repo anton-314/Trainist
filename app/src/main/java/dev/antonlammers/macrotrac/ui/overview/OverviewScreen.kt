@@ -429,12 +429,16 @@ private fun CalorieRing(state: OverviewUiState) {
         animationSpec = tween(durationMillis = 900),
         label = "calorie_ring",
     )
+    // Two distinct greys so the eaten-but-untagged portion stays visually separate from the
+    // still-open remainder: the open track is the light surfaceVariant, consumed-untagged kcal
+    // use the darker `outline`.
     val trackColor = MaterialTheme.colorScheme.surfaceVariant
+    val untaggedConsumedColor = MaterialTheme.colorScheme.outline
 
     // Consumed kcal split by tag, in ring order (green → orange → red → grey/untagged).
     // Only tags that actually contributed kcal draw a segment.
     val segments = listOf(FoodTag.HEALTHY, FoodTag.NEUTRAL, FoodTag.UNHEALTHY, FoodTag.NONE)
-        .map { it.color() to state.kcalForTag(it) }
+        .map { tag -> (if (tag == FoodTag.NONE) untaggedConsumedColor else tag.color()) to state.kcalForTag(tag) }
         .filter { it.second > 0 }
 
     Box(contentAlignment = Alignment.Center, modifier = Modifier.size(160.dp)) {
