@@ -7,6 +7,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import dev.antonlammers.macrotrac.domain.model.BarcodeException
 import dev.antonlammers.macrotrac.domain.model.Food
 import dev.antonlammers.macrotrac.domain.model.FoodEntry
+import dev.antonlammers.macrotrac.domain.model.FoodTag
 import dev.antonlammers.macrotrac.domain.model.MealCategory
 import dev.antonlammers.macrotrac.domain.repository.CustomFoodRepository
 import dev.antonlammers.macrotrac.domain.repository.FoodEntryRepository
@@ -80,7 +81,9 @@ class AddFoodViewModel @Inject constructor(
 
     fun onQueryChange(query: String) = _uiState.update { it.copy(query = query) }
 
-    fun selectFood(food: Food) = _uiState.update { it.copy(selectedFood = food, amountGrams = "100", mealCategory = defaultMealCategory()) }
+    fun selectFood(food: Food) = _uiState.update {
+        it.copy(selectedFood = food, amountGrams = "100", mealCategory = defaultMealCategory(), tag = food.tag)
+    }
 
     fun selectRecentFood(entry: FoodEntry) {
         val factor = if (entry.amountGrams > 0) 100.0 / entry.amountGrams else 1.0
@@ -95,10 +98,11 @@ class AddFoodViewModel @Inject constructor(
             sugarPer100g = entry.sugarG * factor,
             fiberPer100g = entry.fiberG * factor,
             saltPer100g = entry.saltG * factor,
+            tag = entry.tag,
         )
         val prevAmount = if (entry.amountGrams % 1.0 == 0.0) entry.amountGrams.toInt().toString()
                          else entry.amountGrams.toString()
-        _uiState.update { it.copy(selectedFood = food, amountGrams = prevAmount, mealCategory = defaultMealCategory()) }
+        _uiState.update { it.copy(selectedFood = food, amountGrams = prevAmount, mealCategory = defaultMealCategory(), tag = entry.tag) }
     }
 
     fun saveCustomFood(food: Food) {
@@ -148,6 +152,8 @@ class AddFoodViewModel @Inject constructor(
 
     fun onMealCategoryChange(category: MealCategory) = _uiState.update { it.copy(mealCategory = category) }
 
+    fun onTagChange(tag: FoodTag) = _uiState.update { it.copy(tag = tag) }
+
     fun confirmAdd() {
         val state = _uiState.value
         val food = state.selectedFood ?: return
@@ -167,11 +173,12 @@ class AddFoodViewModel @Inject constructor(
                     fiberG = food.fiberPer100g * factor,
                     saltG = food.saltPer100g * factor,
                     mealCategory = state.mealCategory,
+                    tag = state.tag,
                     date = targetDate,
                     timestampMs = System.currentTimeMillis(),
                 )
             )
-            _uiState.update { it.copy(selectedFood = null, amountGrams = "100", mealCategory = defaultMealCategory(), entryAdded = true) }
+            _uiState.update { it.copy(selectedFood = null, amountGrams = "100", mealCategory = defaultMealCategory(), tag = FoodTag.NONE, entryAdded = true) }
         }
     }
 
@@ -181,7 +188,7 @@ class AddFoodViewModel @Inject constructor(
             foodSearchRepository.getByBarcode(barcode)
                 .onSuccess { food ->
                     if (food != null) {
-                        _uiState.update { it.copy(isLoading = false, selectedFood = food, amountGrams = "100") }
+                        _uiState.update { it.copy(isLoading = false, selectedFood = food, amountGrams = "100", tag = food.tag) }
                     } else {
                         _uiState.update { it.copy(isLoading = false, error = "Produkt nicht gefunden") }
                     }
@@ -216,6 +223,7 @@ data class AddFoodUiState(
     val selectedFood: Food? = null,
     val amountGrams: String = "100",
     val mealCategory: MealCategory = MealCategory.SNACK,
+    val tag: FoodTag = FoodTag.NONE,
     val entryAdded: Boolean = false,
 )
 

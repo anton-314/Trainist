@@ -32,6 +32,10 @@ data class ChartPoint(val label: String, val value: Double)
 data class StatsUiState(
     val timeRange: TimeRange = TimeRange.WEEK,
     val caloriePoints: List<ChartPoint> = emptyList(),
+    /** Share of clean (healthy) kcal per bucket, in percent (0–100). */
+    val cleanPoints: List<ChartPoint> = emptyList(),
+    /** Clean share over the whole range (total healthy kcal / total kcal), or `null` if no entries. */
+    val overallCleanPercent: Int? = null,
     val weight: WeightChartData = WeightChartData(),
     val goalKcal: Double = 0.0,
 )
@@ -55,7 +59,9 @@ class StatsViewModel @Inject constructor(
             ) { foodEntries, weightEntries, goal ->
                 StatsUiState(
                     timeRange = range,
-                    caloriePoints = buildCaloriePoints(range, from, to, foodEntries),
+                    caloriePoints = bucketedPoints(range, from, to, foodEntries) { it.sumOf { e -> e.kcal } },
+                    cleanPoints = bucketedPoints(range, from, to, foodEntries) { cleanPercent(it) },
+                    overallCleanPercent = cleanPercent(foodEntries).takeIf { foodEntries.isNotEmpty() }?.let { Math.round(it).toInt() },
                     weight = buildWeightData(range, from, to, weightEntries, goal.targetWeightKg),
                     goalKcal = goal.kcal,
                 )
@@ -69,11 +75,17 @@ class StatsViewModel @Inject constructor(
 
     fun setTimeRange(range: TimeRange) = _timeRange.update { range }
 
-    private fun buildCaloriePoints(
+    /**
+     * Buckets [entries] over [range] (per day for WEEK/MONTH, per month for YEAR) and maps each
+     * bucket's entries to a value via [valueOf]. Empty buckets yield 0.0. Shared by the calorie and
+     * clean-eating charts so both stay aligned on the same time axis.
+     */
+    private fun bucketedPoints(
         range: TimeRange,
         from: LocalDate,
         to: LocalDate,
         entries: List<FoodEntry>,
+        valueOf: (List<FoodEntry>) -> Double,
     ): List<ChartPoint> {
         return when (range) {
             TimeRange.WEEK, TimeRange.MONTH -> {
@@ -83,7 +95,7 @@ class StatsViewModel @Inject constructor(
                     DateTimeFormatter.ofPattern("d", Locale("de"))
                 val byDate = entries.groupBy { it.date }
                 generateSequence(from) { d -> if (d < to) d.plusDays(1) else null }
-                    .map { date -> ChartPoint(date.format(fmt), byDate[date]?.sumOf { it.kcal } ?: 0.0) }
+                    .map { date -> ChartPoint(date.format(fmt), valueOf(byDate[date].orEmpty())) }
                     .toList()
             }
             TimeRange.YEAR -> {
@@ -92,10 +104,18 @@ class StatsViewModel @Inject constructor(
                 val fromMonth = YearMonth.from(from)
                 val toMonth = YearMonth.from(to)
                 generateSequence(fromMonth) { m -> if (m < toMonth) m.plusMonths(1) else null }
-                    .map { month -> ChartPoint(month.format(fmt), byMonth[month]?.sumOf { it.kcal } ?: 0.0) }
+                    .map { month -> ChartPoint(month.format(fmt), valueOf(byMonth[month].orEmpty())) }
                     .toList()
             }
         }
+    }
+
+    /** Clean share of a set of entries in percent (0–100): healthy kcal / total kcal; 0 if empty. */
+    private fun cleanPercent(entries: List<FoodEntry>): Double {
+        val total = entries.sumOf { it.kcal }
+        if (total <= 0.0) return 0.0
+        val clean = entries.filter { it.tag.isClean }.sumOf { it.kcal }
+        return clean / total * 100.0
     }
 
     private fun buildWeightData(

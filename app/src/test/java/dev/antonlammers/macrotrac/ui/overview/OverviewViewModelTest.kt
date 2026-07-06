@@ -3,6 +3,7 @@ package dev.antonlammers.macrotrac.ui.overview
 import app.cash.turbine.test
 import dev.antonlammers.macrotrac.domain.model.DailyGoal
 import dev.antonlammers.macrotrac.domain.model.FoodEntry
+import dev.antonlammers.macrotrac.domain.model.FoodTag
 import dev.antonlammers.macrotrac.domain.model.MealCategory
 import dev.antonlammers.macrotrac.fake.FakeFoodEntryRepository
 import dev.antonlammers.macrotrac.fake.FakeGoalRepository
@@ -60,6 +61,33 @@ class OverviewViewModelTest {
 
             assertEquals(1, state.entries.size)
             assertEquals(300.0, state.totalKcal, 0.001)
+        }
+    }
+
+    @Test
+    fun `kcalForTag and cleanPercent aggregate by tag`() = runTest {
+        val today = LocalDate.now()
+        foodEntryRepo.add(buildEntry(kcal = 300.0, date = today, tag = FoodTag.HEALTHY))
+        foodEntryRepo.add(buildEntry(kcal = 100.0, date = today, tag = FoodTag.UNHEALTHY))
+        foodEntryRepo.add(buildEntry(kcal = 100.0, date = today, tag = FoodTag.NONE))
+
+        viewModel.uiState.test {
+            var state = awaitItem()
+            while (state.entries.size < 3) state = awaitItem()
+
+            assertEquals(300.0, state.kcalForTag(FoodTag.HEALTHY), 0.001)
+            assertEquals(100.0, state.kcalForTag(FoodTag.UNHEALTHY), 0.001)
+            assertEquals(100.0, state.kcalForTag(FoodTag.NONE), 0.001)
+            assertEquals(300.0, state.cleanKcal, 0.001)
+            // 300 clean of 500 total = 60%.
+            assertEquals(60, state.cleanPercent)
+        }
+    }
+
+    @Test
+    fun `cleanPercent is null when nothing is logged`() = runTest {
+        viewModel.uiState.test {
+            assertEquals(null, awaitItem().cleanPercent)
         }
     }
 
@@ -309,6 +337,7 @@ class OverviewViewModelTest {
         date: LocalDate,
         mealCategory: MealCategory = MealCategory.SNACK,
         amountGrams: Double = 100.0,
+        tag: FoodTag = FoodTag.NONE,
     ) = FoodEntry(
         foodName = "Testessen",
         brand = null,
@@ -320,6 +349,7 @@ class OverviewViewModelTest {
         sugarG = 3.0,
         fiberG = 1.5,
         mealCategory = mealCategory,
+        tag = tag,
         date = date,
         timestampMs = System.currentTimeMillis(),
     )

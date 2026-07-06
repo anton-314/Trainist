@@ -14,3 +14,9 @@ val CalorieColor = Color(0xFFFFAB76)
 val ProteinColor = Color(0xFF82C8F5)
 val CarbsColor   = Color(0xFF82D48A)
 val FatColor     = Color(0xFFE8A4D4)
+
+// Clean-eating food tags: green (healthy) / amber (neutral) / red (unhealthy).
+// Untagged foods use the theme's surfaceVariant (grey), so no color is needed here.
+val TagHealthyColor   = Color(0xFF66BB6A)
+val TagNeutralColor   = Color(0xFFF2A65A)
+val TagUnhealthyColor = Color(0xFFE5736E)

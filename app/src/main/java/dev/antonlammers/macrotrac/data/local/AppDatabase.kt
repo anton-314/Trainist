@@ -15,7 +15,7 @@ import dev.antonlammers.macrotrac.data.local.entity.WeightEntryEntity
 
 @Database(
     entities = [FoodEntryEntity::class, DailyGoalEntity::class, WeightEntryEntity::class, CustomFoodEntity::class],
-    version = 6,
+    version = 7,
     exportSchema = false,
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -80,6 +80,14 @@ abstract class AppDatabase : RoomDatabase() {
             override fun migrate(db: SupportSQLiteDatabase) {
                 // Nullable: no default — absence means "no target weight set".
                 db.execSQL("ALTER TABLE daily_goal ADD COLUMN targetWeightKg REAL")
+            }
+        }
+
+        val MIGRATION_6_7 = object : Migration(6, 7) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                // Clean-eating tag, stored as the FoodTag enum name; 'NONE' = untagged (default).
+                db.execSQL("ALTER TABLE food_entries ADD COLUMN tag TEXT NOT NULL DEFAULT 'NONE'")
+                db.execSQL("ALTER TABLE custom_foods ADD COLUMN tag TEXT NOT NULL DEFAULT 'NONE'")
             }
         }
     }

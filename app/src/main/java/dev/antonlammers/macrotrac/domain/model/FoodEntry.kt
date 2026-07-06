@@ -15,6 +15,7 @@ data class FoodEntry(
     val fiberG: Double = 0.0,
     val saltG: Double = 0.0,
     val mealCategory: MealCategory = MealCategory.SNACK,
+    val tag: FoodTag = FoodTag.NONE,
     val date: LocalDate,
     val timestampMs: Long,
 )

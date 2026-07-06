@@ -74,12 +74,16 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import dev.antonlammers.macrotrac.domain.model.FoodEntry
+import dev.antonlammers.macrotrac.domain.model.FoodTag
 import dev.antonlammers.macrotrac.domain.model.MealCategory
 import dev.antonlammers.macrotrac.domain.model.WeightEntry
 import dev.antonlammers.macrotrac.ui.components.NumericTextField
+import dev.antonlammers.macrotrac.ui.components.TagDot
+import dev.antonlammers.macrotrac.ui.components.TagSelector
+import dev.antonlammers.macrotrac.ui.components.color
+import dev.antonlammers.macrotrac.ui.components.displayName
 import dev.antonlammers.macrotrac.ui.navigation.Screen
 import dev.antonlammers.macrotrac.util.normalizeDecimal
-import dev.antonlammers.macrotrac.ui.theme.CalorieColor
 import dev.antonlammers.macrotrac.ui.theme.CarbsColor
 import dev.antonlammers.macrotrac.ui.theme.FatColor
 import dev.antonlammers.macrotrac.ui.theme.ProteinColor
@@ -181,6 +185,7 @@ fun OverviewScreen(
                         var showEditDialog by remember { mutableStateOf(false) }
                         var amountInput by remember { mutableStateOf("") }
                         var selectedCategory by remember { mutableStateOf(entry.mealCategory) }
+                        var selectedTag by remember { mutableStateOf(entry.tag) }
 
                         val dismissState = rememberSwipeToDismissBoxState(
                             confirmValueChange = { value ->
@@ -203,6 +208,7 @@ fun OverviewScreen(
                                     SwipeToDismissBoxValue.StartToEnd -> {
                                         amountInput = entry.amountGrams.toInt().toString()
                                         selectedCategory = entry.mealCategory
+                                        selectedTag = entry.tag
                                         showEditDialog = true
                                         false
                                     }
@@ -218,6 +224,8 @@ fun OverviewScreen(
                                 onAmountChange = { amountInput = it },
                                 selectedCategory = selectedCategory,
                                 onCategoryChange = { selectedCategory = it },
+                                selectedTag = selectedTag,
+                                onTagChange = { selectedTag = it },
                                 onDismiss = { showEditDialog = false },
                                 onConfirm = { updated ->
                                     viewModel.update(updated)
@@ -279,6 +287,8 @@ private fun EditFoodDialog(
     onAmountChange: (String) -> Unit,
     selectedCategory: MealCategory,
     onCategoryChange: (MealCategory) -> Unit,
+    selectedTag: FoodTag,
+    onTagChange: (FoodTag) -> Unit,
     onDismiss: () -> Unit,
     onConfirm: (FoodEntry) -> Unit,
 ) {
@@ -320,6 +330,7 @@ private fun EditFoodDialog(
                         )
                     }
                 }
+                TagSelector(selected = selectedTag, onSelected = onTagChange)
                 if (newAmount > 0) {
                     Box(
                         modifier = Modifier
@@ -356,7 +367,9 @@ private fun EditFoodDialog(
                                 fatG = entry.fatG * f,
                                 sugarG = entry.sugarG * f,
                                 fiberG = entry.fiberG * f,
+                                saltG = entry.saltG * f,
                                 mealCategory = selectedCategory,
+                                tag = selectedTag,
                             )
                         )
                     }
@@ -377,7 +390,11 @@ private fun MacroSummaryCard(state: OverviewUiState) {
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(20.dp),
         ) {
-            CalorieRing(current = state.totalKcal, goal = state.goal.kcal)
+            CalorieRing(state = state)
+
+            if (FoodTag.selectable.any { state.kcalForTag(it) > 0 }) {
+                CleanEatingSummary(cleanPercent = state.cleanPercent)
+            }
 
             Column(
                 modifier = Modifier.fillMaxWidth(),
@@ -403,7 +420,9 @@ private fun MacroSummaryCard(state: OverviewUiState) {
 }
 
 @Composable
-private fun CalorieRing(current: Double, goal: Double) {
+private fun CalorieRing(state: OverviewUiState) {
+    val current = state.totalKcal
+    val goal = state.goal.kcal
     val progress = if (goal > 0) (current / goal).toFloat().coerceIn(0f, 1f) else 0f
     val animatedProgress by animateFloatAsState(
         targetValue = progress,
@@ -411,6 +430,12 @@ private fun CalorieRing(current: Double, goal: Double) {
         label = "calorie_ring",
     )
     val trackColor = MaterialTheme.colorScheme.surfaceVariant
+
+    // Consumed kcal split by tag, in ring order (green → orange → red → grey/untagged).
+    // Only tags that actually contributed kcal draw a segment.
+    val segments = listOf(FoodTag.HEALTHY, FoodTag.NEUTRAL, FoodTag.UNHEALTHY, FoodTag.NONE)
+        .map { it.color() to state.kcalForTag(it) }
+        .filter { it.second > 0 }
 
     Box(contentAlignment = Alignment.Center, modifier = Modifier.size(160.dp)) {
         Canvas(modifier = Modifier.fillMaxSize()) {
@@ -428,16 +453,23 @@ private fun CalorieRing(current: Double, goal: Double) {
                 size = arcSize,
                 style = Stroke(width = strokeWidth, cap = StrokeCap.Round),
             )
-            if (animatedProgress > 0f) {
-                drawArc(
-                    color = CalorieColor,
-                    startAngle = -90f,
-                    sweepAngle = 360f * animatedProgress,
-                    useCenter = false,
-                    topLeft = topLeft,
-                    size = arcSize,
-                    style = Stroke(width = strokeWidth, cap = StrokeCap.Round),
-                )
+            if (current > 0 && animatedProgress > 0f) {
+                // Butt caps so adjacent tag segments abut cleanly instead of overlapping.
+                val totalSweep = 360f * animatedProgress
+                var startAngle = -90f
+                segments.forEach { (color, kcal) ->
+                    val sweep = (kcal / current).toFloat() * totalSweep
+                    drawArc(
+                        color = color,
+                        startAngle = startAngle,
+                        sweepAngle = sweep,
+                        useCenter = false,
+                        topLeft = topLeft,
+                        size = arcSize,
+                        style = Stroke(width = strokeWidth, cap = StrokeCap.Butt),
+                    )
+                    startAngle += sweep
+                }
             }
         }
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -470,6 +502,42 @@ private fun CalorieRing(current: Double, goal: Double) {
         }
     }
 }
+
+@Composable
+private fun CleanEatingSummary(cleanPercent: Int?) {
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        if (cleanPercent != null) {
+            val onTarget = cleanPercent >= CLEAN_TARGET_PERCENT
+            Text(
+                "$cleanPercent % clean · Ziel $CLEAN_TARGET_PERCENT %",
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.Medium,
+                color = if (onTarget) FoodTag.HEALTHY.color() else MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        Row(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+            FoodTag.selectable.forEach { tag ->
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                ) {
+                    TagDot(tag)
+                    Text(
+                        tag.displayName(),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+        }
+    }
+}
+
+private const val CLEAN_TARGET_PERCENT = 80
 
 @Composable
 private fun MacroBar(label: String, current: Double, goal: Double, unit: String, color: Color) {
@@ -646,14 +714,17 @@ private fun FoodEntryRow(entry: FoodEntry) {
             .background(MaterialTheme.colorScheme.surface)
             .padding(horizontal = 16.dp, vertical = 8.dp),
     ) {
-        Text(
-            buildString {
-                append(entry.foodName)
-                entry.brand?.let { append(" ($it)") }
-                append(" · ${entry.amountGrams.toInt()} g")
-            },
-            style = MaterialTheme.typography.bodyMedium,
-        )
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            TagDot(entry.tag)
+            Text(
+                buildString {
+                    append(entry.foodName)
+                    entry.brand?.let { append(" ($it)") }
+                    append(" · ${entry.amountGrams.toInt()} g")
+                },
+                style = MaterialTheme.typography.bodyMedium,
+            )
+        }
         Text(
             "${entry.kcal.toInt()} kcal · ${entry.proteinG.toInt()}g P · ${entry.carbsG.toInt()}g K · ${entry.fatG.toInt()}g F",
             style = MaterialTheme.typography.bodySmall,

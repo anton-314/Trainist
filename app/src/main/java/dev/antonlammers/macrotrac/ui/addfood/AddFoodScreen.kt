@@ -60,8 +60,11 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import dev.antonlammers.macrotrac.domain.model.Food
 import dev.antonlammers.macrotrac.domain.model.FoodEntry
+import dev.antonlammers.macrotrac.domain.model.FoodTag
 import dev.antonlammers.macrotrac.domain.model.MealCategory
 import dev.antonlammers.macrotrac.ui.components.NumericTextField
+import dev.antonlammers.macrotrac.ui.components.TagDot
+import dev.antonlammers.macrotrac.ui.components.TagSelector
 import dev.antonlammers.macrotrac.ui.navigation.Screen
 import dev.antonlammers.macrotrac.util.normalizeDecimal
 import java.time.LocalDate
@@ -140,8 +143,10 @@ fun AddFoodScreen(
             food = food,
             amount = state.amountGrams,
             mealCategory = state.mealCategory,
+            tag = state.tag,
             onAmountChange = viewModel::onAmountChange,
             onMealCategoryChange = viewModel::onMealCategoryChange,
+            onTagChange = viewModel::onTagChange,
             onConfirm = viewModel::confirmAdd,
             onDismiss = viewModel::dismissSelection,
         )
@@ -488,13 +493,16 @@ private fun CustomFoodRow(food: Food, onClick: () -> Unit) {
             .clickable(onClick = onClick)
             .padding(horizontal = 16.dp, vertical = 12.dp),
     ) {
-        Text(
-            buildString {
-                append(food.name)
-                food.brand?.let { append(" ($it)") }
-            },
-            style = MaterialTheme.typography.bodyMedium,
-        )
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            TagDot(food.tag)
+            Text(
+                buildString {
+                    append(food.name)
+                    food.brand?.let { append(" ($it)") }
+                },
+                style = MaterialTheme.typography.bodyMedium,
+            )
+        }
         Text(
             "${food.kcalPer100g.toInt()} kcal · ${food.proteinPer100g.toInt()}g P · ${food.carbsPer100g.toInt()}g K · ${food.fatPer100g.toInt()}g F (pro 100 g)",
             style = MaterialTheme.typography.bodySmall,
@@ -512,13 +520,16 @@ private fun RecentFoodRow(entry: FoodEntry, onClick: () -> Unit) {
             .clickable(onClick = onClick)
             .padding(horizontal = 16.dp, vertical = 12.dp),
     ) {
-        Text(
-            buildString {
-                append(entry.foodName)
-                entry.brand?.let { append(" ($it)") }
-            },
-            style = MaterialTheme.typography.bodyMedium,
-        )
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            TagDot(entry.tag)
+            Text(
+                buildString {
+                    append(entry.foodName)
+                    entry.brand?.let { append(" ($it)") }
+                },
+                style = MaterialTheme.typography.bodyMedium,
+            )
+        }
         Text(
             buildString {
                 append("${entry.kcal.toInt()} kcal")
@@ -548,6 +559,7 @@ private fun CustomFoodDialog(
     var sugar by remember { mutableStateOf(initial?.sugarPer100g?.takeIf { it > 0 }?.toString() ?: "") }
     var fiber by remember { mutableStateOf(initial?.fiberPer100g?.takeIf { it > 0 }?.toString() ?: "") }
     var salt by remember { mutableStateOf(initial?.saltPer100g?.takeIf { it > 0 }?.toString() ?: "") }
+    var tag by remember { mutableStateOf(initial?.tag ?: FoodTag.NONE) }
 
     val isValid = name.isNotBlank()
         && kcal.normalizeDecimal().toDoubleOrNull() != null
@@ -572,6 +584,7 @@ private fun CustomFoodDialog(
                 NumericTextField(sugar, { sugar = it }, label = "Zucker g / 100 g", modifier = Modifier.fillMaxWidth())
                 NumericTextField(fiber, { fiber = it }, label = "Ballaststoffe g / 100 g", modifier = Modifier.fillMaxWidth())
                 NumericTextField(salt, { salt = it }, label = "Salz g / 100 g", modifier = Modifier.fillMaxWidth())
+                TagSelector(selected = tag, onSelected = { tag = it })
             }
         },
         confirmButton = {
@@ -589,6 +602,7 @@ private fun CustomFoodDialog(
                             sugarPer100g = sugar.normalizeDecimal().toDoubleOrNull() ?: 0.0,
                             fiberPer100g = fiber.normalizeDecimal().toDoubleOrNull() ?: 0.0,
                             saltPer100g = salt.normalizeDecimal().toDoubleOrNull() ?: 0.0,
+                            tag = tag,
                         )
                     )
                 },
@@ -607,8 +621,10 @@ private fun AmountDialog(
     food: Food,
     amount: String,
     mealCategory: MealCategory,
+    tag: FoodTag,
     onAmountChange: (String) -> Unit,
     onMealCategoryChange: (MealCategory) -> Unit,
+    onTagChange: (FoodTag) -> Unit,
     onConfirm: () -> Unit,
     onDismiss: () -> Unit,
 ) {
@@ -633,6 +649,7 @@ private fun AmountDialog(
                         )
                     }
                 }
+                TagSelector(selected = tag, onSelected = onTagChange)
             }
         },
         confirmButton = {

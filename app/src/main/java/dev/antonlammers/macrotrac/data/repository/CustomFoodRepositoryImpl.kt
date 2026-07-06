@@ -3,6 +3,7 @@ package dev.antonlammers.macrotrac.data.repository
 import dev.antonlammers.macrotrac.data.local.dao.CustomFoodDao
 import dev.antonlammers.macrotrac.data.local.entity.CustomFoodEntity
 import dev.antonlammers.macrotrac.domain.model.Food
+import dev.antonlammers.macrotrac.domain.model.FoodTag
 import dev.antonlammers.macrotrac.domain.repository.CustomFoodRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -38,6 +39,7 @@ class CustomFoodRepositoryImpl @Inject constructor(
         sugarPer100g = sugarPer100g,
         fiberPer100g = fiberPer100g,
         saltPer100g = saltPer100g,
+        tag = FoodTag.parse(tag),
     )
 
     private fun Food.toEntity() = CustomFoodEntity(
@@ -50,5 +52,6 @@ class CustomFoodRepositoryImpl @Inject constructor(
         sugarPer100g = sugarPer100g,
         fiberPer100g = fiberPer100g,
         saltPer100g = saltPer100g,
+        tag = tag.name,
     )
 }

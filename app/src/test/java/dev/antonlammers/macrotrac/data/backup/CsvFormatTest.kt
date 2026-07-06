@@ -1,6 +1,7 @@
 package dev.antonlammers.macrotrac.data.backup
 
 import dev.antonlammers.macrotrac.domain.model.FoodEntry
+import dev.antonlammers.macrotrac.domain.model.FoodTag
 import dev.antonlammers.macrotrac.domain.model.MealCategory
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
@@ -118,6 +119,34 @@ class CsvFormatTest {
         assertEquals(entry.mealCategory, parsed.mealCategory)
     }
 
+    @Test
+    fun `toRow and fromRow round-trip preserves tag`() {
+        val entry = buildEntry(tag = FoodTag.HEALTHY)
+        val parsed = CsvFormat.fromRow(CsvFormat.toRow(entry), headers)!!
+        assertEquals(FoodTag.HEALTHY, parsed.tag)
+    }
+
+    @Test
+    fun `fromRow defaults tag to NONE when column is absent (backward compat)`() {
+        // An old export without the tag column must still import, untagged.
+        val oldHeader = listOf(
+            CsvColumns.DATE, CsvColumns.FOOD_NAME, CsvColumns.BRAND, CsvColumns.AMOUNT_GRAMS,
+            CsvColumns.KCAL, CsvColumns.PROTEIN_G, CsvColumns.CARBS_G, CsvColumns.FAT_G,
+            CsvColumns.SUGAR_G, CsvColumns.FIBER_G, CsvColumns.SALT_G, CsvColumns.MEAL_CATEGORY,
+            CsvColumns.TIMESTAMP_MS,
+        ).joinToString(",")
+        val oldHeaders = CsvFormat.parseHeaders(oldHeader)
+        val row = "2026-05-28,Apfel,,150.0,78.0,0.5,21.0,0.3,2.0,1.5,0.0,SNACK,1748000000000"
+        val entry = CsvFormat.fromRow(row, oldHeaders)!!
+        assertEquals(FoodTag.NONE, entry.tag)
+    }
+
+    @Test
+    fun `fromRow maps unknown tag value to NONE`() {
+        val row = CsvFormat.toRow(buildEntry(tag = FoodTag.HEALTHY)).replace("HEALTHY", "BOGUS")
+        assertEquals(FoodTag.NONE, CsvFormat.fromRow(row, headers)!!.tag)
+    }
+
     private fun buildEntry(
         foodName: String = "Test",
         brand: String? = "TestBrand",
@@ -126,6 +155,7 @@ class CsvFormatTest {
         fiberG: Double = 0.0,
         saltG: Double = 0.0,
         mealCategory: MealCategory = MealCategory.SNACK,
+        tag: FoodTag = FoodTag.NONE,
     ) = FoodEntry(
         foodName = foodName,
         brand = brand,
@@ -138,6 +168,7 @@ class CsvFormatTest {
         fiberG = fiberG,
         saltG = saltG,
         mealCategory = mealCategory,
+        tag = tag,
         date = LocalDate.of(2026, 5, 28),
         timestampMs = 1748000000000L,
     )

@@ -1,6 +1,7 @@
 package dev.antonlammers.macrotrac.data.backup
 
 import dev.antonlammers.macrotrac.domain.model.Food
+import dev.antonlammers.macrotrac.domain.model.FoodTag
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
@@ -49,6 +50,15 @@ class CustomFoodCsvFormatTest {
         val food = CustomFoodCsvFormat.fromRow(row, oldHeaders)!!
         assertEquals(0.0, food.saltPer100g, 0.001)
         assertEquals(1.0, food.sugarPer100g, 0.001)
+        // A pre-tag export imports as untagged.
+        assertEquals(FoodTag.NONE, food.tag)
+    }
+
+    @Test
+    fun `toRow and fromRow round-trip preserves tag`() {
+        val food = buildFood().copy(tag = FoodTag.UNHEALTHY)
+        val parsed = CustomFoodCsvFormat.fromRow(CustomFoodCsvFormat.toRow(food), headers)!!
+        assertEquals(FoodTag.UNHEALTHY, parsed.tag)
     }
 
     @Test

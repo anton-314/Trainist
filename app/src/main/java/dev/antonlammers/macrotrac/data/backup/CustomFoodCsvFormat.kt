@@ -1,6 +1,7 @@
 package dev.antonlammers.macrotrac.data.backup
 
 import dev.antonlammers.macrotrac.domain.model.Food
+import dev.antonlammers.macrotrac.domain.model.FoodTag
 
 object CustomFoodCsvFormat {
 
@@ -13,8 +14,9 @@ object CustomFoodCsvFormat {
     private const val SUGAR = "sugar_per_100g"
     private const val FIBER = "fiber_per_100g"
     private const val SALT = "salt_per_100g"
+    private const val TAG = "tag"
 
-    val HEADER: String = listOf(NAME, BRAND, KCAL, PROTEIN, CARBS, FAT, SUGAR, FIBER, SALT).joinToString(",")
+    val HEADER: String = listOf(NAME, BRAND, KCAL, PROTEIN, CARBS, FAT, SUGAR, FIBER, SALT, TAG).joinToString(",")
 
     fun toRow(food: Food): String = listOf(
         food.name.escapeCsv(),
@@ -26,6 +28,7 @@ object CustomFoodCsvFormat {
         food.sugarPer100g,
         food.fiberPer100g,
         food.saltPer100g,
+        food.tag.name,
     ).joinToString(",")
 
     fun fromRow(row: String, headers: Map<String, Int>): Food? {
@@ -42,6 +45,7 @@ object CustomFoodCsvFormat {
             sugarPer100g = cols.csvDbl(headers, SUGAR) ?: 0.0,
             fiberPer100g = cols.csvDbl(headers, FIBER) ?: 0.0,
             saltPer100g = cols.csvDbl(headers, SALT) ?: 0.0,
+            tag = FoodTag.parse(cols.csvStr(headers, TAG)),
         )
     }
 }

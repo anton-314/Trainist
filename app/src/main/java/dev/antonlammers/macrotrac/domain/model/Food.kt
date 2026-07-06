@@ -11,4 +11,5 @@ data class Food(
     val sugarPer100g: Double = 0.0,
     val fiberPer100g: Double = 0.0,
     val saltPer100g: Double = 0.0,
+    val tag: FoodTag = FoodTag.NONE,
 )

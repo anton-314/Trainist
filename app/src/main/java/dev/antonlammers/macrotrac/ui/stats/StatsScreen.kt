@@ -60,6 +60,7 @@ import androidx.navigation.NavController
 import dev.antonlammers.macrotrac.ui.data.DataViewModel
 import dev.antonlammers.macrotrac.ui.theme.CalorieColor
 import dev.antonlammers.macrotrac.ui.theme.ProteinColor
+import dev.antonlammers.macrotrac.ui.theme.TagHealthyColor
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -131,6 +132,48 @@ fun StatsScreen(
                             barColor = CalorieColor,
                             trackColor = MaterialTheme.colorScheme.surfaceVariant,
                             goalColor = MaterialTheme.colorScheme.primary,
+                            labelColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+            }
+
+            // Clean-eating chart
+            Card(modifier = Modifier.fillMaxWidth()) {
+                Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text("Clean-Ernährung", style = MaterialTheme.typography.titleSmall)
+                        state.overallCleanPercent?.let { pct ->
+                            Text(
+                                "Ø $pct % · Ziel $CLEAN_TARGET_PERCENT %",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = if (pct >= CLEAN_TARGET_PERCENT) TagHealthyColor
+                                        else MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    }
+                    if (state.overallCleanPercent == null) {
+                        Box(
+                            modifier = Modifier.fillMaxWidth().height(80.dp),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Text(
+                                "Noch keine getaggten Einträge",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    } else {
+                        CleanBarChart(
+                            points = state.cleanPoints,
+                            targetPercent = CLEAN_TARGET_PERCENT.toDouble(),
+                            barColor = TagHealthyColor,
+                            trackColor = MaterialTheme.colorScheme.surfaceVariant,
+                            targetColor = MaterialTheme.colorScheme.primary,
                             labelColor = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
@@ -266,6 +309,67 @@ private fun CalorieBarChart(
         }
     }
 }
+
+/** Fixed 0–100 % bar chart for the clean-eating share, with a dashed target line. */
+@Composable
+private fun CleanBarChart(
+    points: List<ChartPoint>,
+    targetPercent: Double,
+    barColor: Color,
+    trackColor: Color,
+    targetColor: Color,
+    labelColor: Color,
+) {
+    val labelStep = when {
+        points.size <= 8 -> 1
+        points.size <= 16 -> 2
+        else -> (points.size / 6).coerceAtLeast(1)
+    }
+
+    Column {
+        Canvas(modifier = Modifier.fillMaxWidth().height(160.dp)) {
+            val barWidth = size.width / points.size
+            val pad = (barWidth * 0.12f).coerceAtLeast(1.5.dp.toPx())
+
+            points.forEachIndexed { i, point ->
+                val fillFraction = (point.value.toFloat() / 100f).coerceIn(0f, 1f)
+                val fillHeight = fillFraction * size.height
+                val x = i * barWidth
+
+                drawRect(trackColor, Offset(x + pad, 0f), Size(barWidth - pad * 2, size.height))
+                if (fillHeight > 0f) {
+                    drawRect(barColor, Offset(x + pad, size.height - fillHeight), Size(barWidth - pad * 2, fillHeight))
+                }
+            }
+
+            val targetY = size.height - (targetPercent.toFloat() / 100f * size.height).coerceIn(0f, size.height)
+            drawLine(
+                targetColor,
+                Offset(0f, targetY),
+                Offset(size.width, targetY),
+                strokeWidth = 1.5.dp.toPx(),
+                pathEffect = PathEffect.dashPathEffect(floatArrayOf(6f, 4f)),
+            )
+        }
+
+        Row(modifier = Modifier.fillMaxWidth()) {
+            points.forEachIndexed { i, point ->
+                Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
+                    if (i % labelStep == 0) {
+                        Text(
+                            point.label,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = labelColor,
+                            maxLines = 1,
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+private const val CLEAN_TARGET_PERCENT = 80
 
 @Composable
 private fun WeightSummary(data: WeightChartData) {

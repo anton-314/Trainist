@@ -3,6 +3,7 @@ package dev.antonlammers.macrotrac.ui.stats
 import app.cash.turbine.test
 import dev.antonlammers.macrotrac.domain.model.DailyGoal
 import dev.antonlammers.macrotrac.domain.model.FoodEntry
+import dev.antonlammers.macrotrac.domain.model.FoodTag
 import dev.antonlammers.macrotrac.domain.model.MealCategory
 import dev.antonlammers.macrotrac.domain.model.WeightEntry
 import dev.antonlammers.macrotrac.fake.FakeFoodEntryRepository
@@ -151,7 +152,32 @@ class StatsViewModelTest {
         }
     }
 
-    private fun buildEntry(kcal: Double, date: LocalDate) = FoodEntry(
+    @Test
+    fun `clean points and overall percent reflect healthy share`() = runTest {
+        val today = LocalDate.now()
+        foodRepo.add(buildEntry(kcal = 300.0, date = today, tag = FoodTag.HEALTHY))
+        foodRepo.add(buildEntry(kcal = 100.0, date = today, tag = FoodTag.UNHEALTHY))
+
+        viewModel.uiState.test {
+            var state = awaitItem()
+            while (state.overallCleanPercent == null) state = awaitItem()
+
+            // 300 clean of 400 total = 75%.
+            assertEquals(75, state.overallCleanPercent)
+            assertEquals(75.0, state.cleanPoints.last().value, 0.001)
+            assertEquals(7, state.cleanPoints.size)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `overall clean percent is null without entries`() = runTest {
+        viewModel.uiState.test {
+            assertEquals(null, awaitItem().overallCleanPercent)
+        }
+    }
+
+    private fun buildEntry(kcal: Double, date: LocalDate, tag: FoodTag = FoodTag.NONE) = FoodEntry(
         foodName = "Test",
         brand = null,
         amountGrams = 100.0,
@@ -162,5 +188,6 @@ class StatsViewModelTest {
         date = date,
         timestampMs = System.currentTimeMillis(),
         mealCategory = MealCategory.SNACK,
+        tag = tag,
     )
 }

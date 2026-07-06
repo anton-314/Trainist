@@ -5,6 +5,7 @@ import app.cash.turbine.test
 import dev.antonlammers.macrotrac.domain.model.BarcodeException
 import dev.antonlammers.macrotrac.domain.model.Food
 import dev.antonlammers.macrotrac.domain.model.FoodEntry
+import dev.antonlammers.macrotrac.domain.model.FoodTag
 import dev.antonlammers.macrotrac.domain.model.MealCategory
 import dev.antonlammers.macrotrac.fake.FakeCustomFoodRepository
 import dev.antonlammers.macrotrac.fake.FakeFoodEntryRepository
@@ -208,6 +209,39 @@ class AddFoodViewModelTest {
             val entries = awaitItem()
             assertEquals(104.0, entries.first().kcal, 0.001)
         }
+    }
+
+    // --- tags ---
+
+    @Test
+    fun `selectFood prefills the food's tag`() = runTest {
+        viewModel = viewModel()
+        viewModel.selectFood(apple().copy(tag = FoodTag.HEALTHY))
+        assertEquals(FoodTag.HEALTHY, viewModel.uiState.value.tag)
+    }
+
+    @Test
+    fun `confirmAdd persists the selected tag`() = runTest {
+        viewModel = viewModel()
+        viewModel.selectFood(apple())
+        viewModel.onAmountChange("100")
+        viewModel.onTagChange(FoodTag.UNHEALTHY)
+        viewModel.uiState.test {
+            awaitItem()
+            viewModel.confirmAdd()
+            awaitItem()
+        }
+        entryRepo.entriesForDate(LocalDate.now()).test {
+            assertEquals(FoodTag.UNHEALTHY, awaitItem().first().tag)
+        }
+    }
+
+    @Test
+    fun `selectRecentFood carries the entry's tag`() = runTest {
+        viewModel = viewModel()
+        viewModel.selectRecentFood(entry("Banane", 200.0, tag = FoodTag.NEUTRAL))
+        assertEquals(FoodTag.NEUTRAL, viewModel.uiState.value.tag)
+        assertEquals(FoodTag.NEUTRAL, viewModel.uiState.value.selectedFood?.tag)
     }
 
     // --- barcode ---
@@ -513,6 +547,7 @@ class AddFoodViewModelTest {
         name: String,
         amount: Double,
         timestampMs: Long = System.currentTimeMillis(),
+        tag: FoodTag = FoodTag.NONE,
     ) = FoodEntry(
         foodName = name,
         brand = null,
@@ -522,6 +557,7 @@ class AddFoodViewModelTest {
         carbsG = 14.0 * amount / 100.0,
         fatG = 0.2 * amount / 100.0,
         mealCategory = MealCategory.SNACK,
+        tag = tag,
         date = LocalDate.now(),
         timestampMs = timestampMs,
     )
