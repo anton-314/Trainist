@@ -1,9 +1,17 @@
 package dev.antonlammers.macrotrac.ui.overview
 
-import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.Easing
+import androidx.compose.animation.core.EaseOutCubic
+import androidx.compose.animation.core.EaseOutExpo
+import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -19,25 +27,24 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.horizontalScroll
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.ContentCopy
 import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.Edit
-import androidx.compose.material3.SwipeToDismissBox
-import androidx.compose.material3.SwipeToDismissBoxValue
-import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.material.icons.rounded.KeyboardArrowLeft
 import androidx.compose.material.icons.rounded.KeyboardArrowRight
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
-import androidx.compose.material3.FilterChip
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.FloatingActionButtonDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -48,27 +55,32 @@ import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
+import androidx.compose.material3.SwipeToDismissBox
+import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
-import kotlinx.coroutines.launch
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -78,18 +90,34 @@ import dev.antonlammers.macrotrac.domain.model.FoodTag
 import dev.antonlammers.macrotrac.domain.model.MealCategory
 import dev.antonlammers.macrotrac.domain.model.WeightEntry
 import dev.antonlammers.macrotrac.ui.components.NumericTextField
-import dev.antonlammers.macrotrac.ui.components.TagDot
 import dev.antonlammers.macrotrac.ui.components.TagSelector
 import dev.antonlammers.macrotrac.ui.components.color
 import dev.antonlammers.macrotrac.ui.components.displayName
 import dev.antonlammers.macrotrac.ui.navigation.Screen
-import dev.antonlammers.macrotrac.util.normalizeDecimal
 import dev.antonlammers.macrotrac.ui.theme.CarbsColor
 import dev.antonlammers.macrotrac.ui.theme.FatColor
 import dev.antonlammers.macrotrac.ui.theme.ProteinColor
+import dev.antonlammers.macrotrac.util.normalizeDecimal
+import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.util.Locale
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Entrance/replay motion. A single master "clock" (seconds) is restarted from 0
+// whenever the screen opens, the day changes, or the summary card is tapped
+// (see `replayTrigger`). Every animated element derives its own eased progress
+// from a fixed window on this clock, matching the timelines in the design handoff
+// (Calorie Ring Motion.dc.html / Macro Bars Motion.dc.html).
+// ─────────────────────────────────────────────────────────────────────────────
+private const val AnimTotalSeconds = 3.2f
+
+/** Eased 0..1 progress of the timeline window [startS, endS] at the given clock time. */
+private fun windowProgress(timeS: Float, startS: Float, endS: Float, easing: Easing): Float {
+    if (endS <= startS) return if (timeS >= endS) 1f else 0f
+    val raw = ((timeS - startS) / (endS - startS)).coerceIn(0f, 1f)
+    return easing.transform(raw)
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -100,6 +128,10 @@ fun OverviewScreen(
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbar = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
+
+    // UI-local replay trigger — bumped on a tap of the summary card. Day changes are
+    // already captured via `state.date`. Both key the animation clock in MacroSummaryCard.
+    var replayTrigger by remember { mutableIntStateOf(0) }
 
     Scaffold(
         topBar = {
@@ -116,7 +148,7 @@ fun OverviewScreen(
                             state.date.format(DateTimeFormatter.ofPattern("EEE, d. MMM", Locale("de"))),
                             modifier = Modifier.weight(1f),
                             textAlign = TextAlign.Center,
-                            style = MaterialTheme.typography.titleMedium,
+                            style = MaterialTheme.typography.titleLarge,
                         )
                         IconButton(onClick = viewModel::nextDay) {
                             Icon(Icons.Rounded.KeyboardArrowRight, contentDescription = "Nächster Tag")
@@ -131,7 +163,13 @@ fun OverviewScreen(
             )
         },
         floatingActionButton = {
-            FloatingActionButton(onClick = { navController.navigate(Screen.AddFood.withDate(state.date)) }) {
+            FloatingActionButton(
+                onClick = { navController.navigate(Screen.AddFood.withDate(state.date)) },
+                shape = RoundedCornerShape(20.dp),
+                containerColor = MaterialTheme.colorScheme.primary,
+                contentColor = MaterialTheme.colorScheme.onPrimary,
+                elevation = FloatingActionButtonDefaults.elevation(0.dp, 0.dp, 0.dp, 0.dp),
+            ) {
                 Icon(Icons.Rounded.Add, contentDescription = "Mahlzeit hinzufügen")
             }
         },
@@ -144,7 +182,13 @@ fun OverviewScreen(
             contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 88.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            item { MacroSummaryCard(state = state) }
+            item {
+                MacroSummaryCard(
+                    state = state,
+                    replayTrigger = replayTrigger,
+                    onReplay = { replayTrigger++ },
+                )
+            }
             item { WeightCard(weight = state.todayWeight, onSave = viewModel::saveWeight) }
             if (state.entries.isEmpty() && state.copyableMeals.isEmpty()) {
                 item {
@@ -271,7 +315,7 @@ fun OverviewScreen(
                         ) {
                             FoodEntryRow(entry = entry)
                         }
-                        HorizontalDivider()
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                     }
                 }
             }
@@ -383,26 +427,53 @@ private fun EditFoodDialog(
 }
 
 @Composable
-private fun MacroSummaryCard(state: OverviewUiState) {
-    Card(modifier = Modifier.fillMaxWidth()) {
+private fun MacroSummaryCard(
+    state: OverviewUiState,
+    replayTrigger: Int,
+    onReplay: () -> Unit,
+) {
+    val clock = remember { Animatable(0f) }
+    // Restart the entrance animation on screen open, day change, or a tap on the card.
+    LaunchedEffect(state.date, replayTrigger) {
+        clock.snapTo(0f)
+        clock.animateTo(
+            targetValue = AnimTotalSeconds,
+            animationSpec = tween(
+                durationMillis = (AnimTotalSeconds * 1000).toInt(),
+                easing = LinearEasing,
+            ),
+        )
+    }
+    val time = clock.value
+    val interaction = remember { MutableInteractionSource() }
+
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(interactionSource = interaction, indication = null, onClick = onReplay),
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+    ) {
         Column(
             modifier = Modifier.padding(20.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(20.dp),
         ) {
-            CalorieRing(state = state)
+            CalorieRing(state = state, time = time)
 
             if (FoodTag.selectable.any { state.kcalForTag(it) > 0 }) {
-                CleanEatingSummary(cleanPercent = state.cleanPercent)
+                CleanEatingSummary(cleanPercent = state.cleanPercent, time = time)
             }
 
             Column(
                 modifier = Modifier.fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                MacroBar("Protein", state.totalProtein, state.goal.proteinG, "g", ProteinColor)
-                MacroBar("Kohlenhydrate", state.totalCarbs, state.goal.carbsG, "g", CarbsColor)
-                MacroBar("Fett", state.totalFat, state.goal.fatG, "g", FatColor)
+                MacroBar("Protein", state.totalProtein, state.goal.proteinG, "g", ProteinColor, time, 0.4f, 1.3f)
+                MacroBar("Kohlenhydrate", state.totalCarbs, state.goal.carbsG, "g", CarbsColor, time, 0.55f, 1.45f)
+                MacroBar("Fett", state.totalFat, state.goal.fatG, "g", FatColor, time, 0.7f, 1.6f)
             }
 
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
@@ -420,30 +491,25 @@ private fun MacroSummaryCard(state: OverviewUiState) {
 }
 
 @Composable
-private fun CalorieRing(state: OverviewUiState) {
+private fun CalorieRing(state: OverviewUiState, time: Float) {
     val current = state.totalKcal
     val goal = state.goal.kcal
     val progress = if (goal > 0) (current / goal).toFloat().coerceIn(0f, 1f) else 0f
-    val animatedProgress by animateFloatAsState(
-        targetValue = progress,
-        animationSpec = tween(durationMillis = 900),
-        label = "calorie_ring",
-    )
-    // Two distinct greys so the eaten-but-untagged portion stays visually separate from the
-    // still-open remainder: the open track is the light surfaceVariant, consumed-untagged kcal
-    // use the darker `outline`.
+    val totalSweep = 360f * progress
+
+    // Open track uses surface-2; consumed-but-untagged kcal use the darker `outline` so
+    // the eaten-untagged portion stays visually separate from the still-open remainder.
     val trackColor = MaterialTheme.colorScheme.surfaceVariant
     val untaggedConsumedColor = MaterialTheme.colorScheme.outline
 
     // Consumed kcal split by tag, in ring order (green → orange → red → grey/untagged).
-    // Only tags that actually contributed kcal draw a segment.
     val segments = listOf(FoodTag.HEALTHY, FoodTag.NEUTRAL, FoodTag.UNHEALTHY, FoodTag.NONE)
         .map { tag -> (if (tag == FoodTag.NONE) untaggedConsumedColor else tag.color()) to state.kcalForTag(tag) }
         .filter { it.second > 0 }
 
-    Box(contentAlignment = Alignment.Center, modifier = Modifier.size(160.dp)) {
+    Box(contentAlignment = Alignment.Center, modifier = Modifier.size(176.dp)) {
         Canvas(modifier = Modifier.fillMaxSize()) {
-            val strokeWidth = 18.dp.toPx()
+            val strokeWidth = 15.5.dp.toPx()
             val diameter = size.minDimension - strokeWidth
             val topLeft = Offset((size.width - diameter) / 2f, (size.height - diameter) / 2f)
             val arcSize = Size(diameter, diameter)
@@ -457,68 +523,81 @@ private fun CalorieRing(state: OverviewUiState) {
                 size = arcSize,
                 style = Stroke(width = strokeWidth, cap = StrokeCap.Round),
             )
-            if (current > 0 && animatedProgress > 0f) {
-                // Butt caps so adjacent tag segments abut cleanly instead of overlapping.
-                val totalSweep = 360f * animatedProgress
-                var startAngle = -90f
+            if (current > 0) {
+                // Segments draw sequentially in kcal order; each grows into its fixed final
+                // position (butt caps so segments abut). The per-segment window is proportional
+                // to its kcal share across the 0.5–2.05s draw phase, so the fill stays in sync
+                // with the centre count-up regardless of which tags are present.
+                var cumKcal = 0.0
+                var cumSweep = 0f
                 segments.forEach { (color, kcal) ->
-                    val sweep = (kcal / current).toFloat() * totalSweep
-                    drawArc(
-                        color = color,
-                        startAngle = startAngle,
-                        sweepAngle = sweep,
-                        useCenter = false,
-                        topLeft = topLeft,
-                        size = arcSize,
-                        style = Stroke(width = strokeWidth, cap = StrokeCap.Butt),
-                    )
-                    startAngle += sweep
+                    val segStart = 0.5f + (cumKcal / current).toFloat() * 1.55f
+                    val segEnd = 0.5f + ((cumKcal + kcal) / current).toFloat() * 1.55f
+                    val segAnim = windowProgress(time, segStart, segEnd, EaseOutCubic)
+                    val finalSweep = (kcal / current).toFloat() * totalSweep
+                    if (segAnim > 0f) {
+                        drawArc(
+                            color = color,
+                            startAngle = -90f + cumSweep,
+                            sweepAngle = finalSweep * segAnim,
+                            useCenter = false,
+                            topLeft = topLeft,
+                            size = arcSize,
+                            style = Stroke(width = strokeWidth, cap = StrokeCap.Butt),
+                        )
+                    }
+                    cumKcal += kcal
+                    cumSweep += finalSweep
                 }
             }
         }
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            val shownKcal = (current * windowProgress(time, 0.4f, 2.0f, EaseOutExpo)).toInt()
             Text(
-                "${current.toInt()}",
-                style = MaterialTheme.typography.headlineMedium,
-                fontWeight = FontWeight.Bold,
+                "$shownKcal",
+                style = MaterialTheme.typography.displayLarge,
             )
-            Text("kcal", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(
+                "KCAL",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.outline,
+            )
+            val subAlpha = windowProgress(time, 2.1f, 2.6f, EaseOutCubic)
             val remaining = goal - current
-            if (remaining > 0) {
-                Text(
-                    "noch ${remaining.toInt()}",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            } else if (remaining < 0) {
-                Text(
-                    "+${(-remaining).toInt()} zuviel",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.error,
-                )
-            } else {
-                Text(
-                    "Ziel erreicht",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.primary,
-                )
+            val (caption, captionColor) = when {
+                remaining > 0 -> "noch ${remaining.toInt()}" to MaterialTheme.colorScheme.onSurfaceVariant
+                remaining < 0 -> "+${(-remaining).toInt()} zuviel" to MaterialTheme.colorScheme.error
+                else -> "Ziel erreicht" to MaterialTheme.colorScheme.primary
             }
+            Text(
+                caption,
+                style = MaterialTheme.typography.bodyMedium,
+                color = captionColor,
+                modifier = Modifier
+                    .padding(top = 2.dp)
+                    .alpha(subAlpha),
+            )
         }
     }
 }
 
 @Composable
-private fun CleanEatingSummary(cleanPercent: Int?) {
+private fun CleanEatingSummary(cleanPercent: Int?, time: Float) {
+    val reveal = windowProgress(time, 2.6f, 3.2f, EaseOutCubic)
     Column(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .graphicsLayer {
+                alpha = reveal
+                translationY = (1f - reveal) * 16.dp.toPx()
+            },
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         if (cleanPercent != null) {
             Text(
-                "$cleanPercent % clean",
-                style = MaterialTheme.typography.labelLarge,
-                fontWeight = FontWeight.Medium,
+                "$cleanPercent % CLEAN",
+                style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
@@ -528,7 +607,7 @@ private fun CleanEatingSummary(cleanPercent: Int?) {
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(4.dp),
                 ) {
-                    TagDot(tag)
+                    Box(Modifier.size(7.dp).clip(CircleShape).background(tag.color()))
                     Text(
                         tag.displayName(),
                         style = MaterialTheme.typography.labelSmall,
@@ -541,23 +620,31 @@ private fun CleanEatingSummary(cleanPercent: Int?) {
 }
 
 @Composable
-private fun MacroBar(label: String, current: Double, goal: Double, unit: String, color: Color) {
-    val progress = if (goal > 0) (current / goal).toFloat().coerceIn(0f, 1f) else 0f
-    val animatedProgress by animateFloatAsState(
-        targetValue = progress,
-        animationSpec = tween(durationMillis = 900),
-        label = "${label}_bar",
-    )
+private fun MacroBar(
+    label: String,
+    current: Double,
+    goal: Double,
+    unit: String,
+    color: Color,
+    time: Float,
+    startS: Float,
+    endS: Float,
+) {
+    val eased = windowProgress(time, startS, endS, EaseOutCubic)
+    val target = if (goal > 0) (current / goal).toFloat().coerceIn(0f, 1f) else 0f
+    val animatedProgress = target * eased
+    val shownValue = (current * eased).toInt()
 
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.Bottom,
         ) {
-            Text(label, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Medium)
+            Text(label, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
             Text(
-                "${current.toInt()} / ${goal.toInt()} $unit",
-                style = MaterialTheme.typography.bodySmall,
+                "$shownValue / ${goal.toInt()} $unit",
+                style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
@@ -584,12 +671,22 @@ private fun MacroBar(label: String, current: Double, goal: Double, unit: String,
 @Composable
 private fun SecondaryMacro(label: String, value: Double, unit: String) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Row(verticalAlignment = Alignment.Bottom) {
+            Text(
+                "${value.toInt()}",
+                style = MaterialTheme.typography.titleMedium,
+            )
+            Text(
+                " $unit",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
         Text(
-            "${value.toInt()} $unit",
-            style = MaterialTheme.typography.bodyMedium,
-            fontWeight = FontWeight.Medium,
+            label,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.outline,
         )
-        Text(label, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
 
@@ -631,6 +728,10 @@ private fun WeightCard(weight: WeightEntry?, onSave: (Double) -> Unit) {
                 } ?: ""
                 showDialog = true
             },
+        shape = RoundedCornerShape(18.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
     ) {
         Row(
             modifier = Modifier
@@ -646,14 +747,13 @@ private fun WeightCard(weight: WeightEntry?, onSave: (Double) -> Unit) {
             ) {
                 Text(
                     weight?.let { "${it.weightKg} kg" } ?: "– kg",
-                    style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = FontWeight.Medium,
+                    style = MaterialTheme.typography.titleMedium,
                 )
                 Icon(
                     Icons.Rounded.Edit,
                     contentDescription = "Bearbeiten",
                     modifier = Modifier.size(16.dp),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    tint = MaterialTheme.colorScheme.outline,
                 )
             }
         }
@@ -674,16 +774,16 @@ private fun MealSectionHeader(name: String, kcal: Int) {
             .fillMaxWidth()
             .padding(top = 8.dp, bottom = 2.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically,
+        verticalAlignment = Alignment.Bottom,
     ) {
         Text(
             name,
-            style = MaterialTheme.typography.labelLarge,
+            style = MaterialTheme.typography.titleMedium,
             color = MaterialTheme.colorScheme.primary,
         )
         Text(
             "$kcal kcal",
-            style = MaterialTheme.typography.labelLarge,
+            style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
     }
@@ -696,6 +796,9 @@ private fun CopyMealButton(label: String, onClick: () -> Unit) {
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = 4.dp),
+        shape = CircleShape,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+        colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.primary),
     ) {
         Icon(
             Icons.Rounded.ContentCopy,
@@ -703,7 +806,7 @@ private fun CopyMealButton(label: String, onClick: () -> Unit) {
             modifier = Modifier.size(18.dp),
         )
         Spacer(Modifier.width(8.dp))
-        Text(label)
+        Text(label, style = MaterialTheme.typography.labelLarge)
     }
 }
 
@@ -716,7 +819,13 @@ private fun FoodEntryRow(entry: FoodEntry) {
             .padding(horizontal = 16.dp, vertical = 8.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            TagDot(entry.tag)
+            // Fixed-width leading slot keeps the name (and the macro line below) aligned
+            // whether or not the entry carries a tag dot.
+            Box(Modifier.size(7.dp)) {
+                if (entry.tag != FoodTag.NONE) {
+                    Box(Modifier.fillMaxSize().clip(CircleShape).background(entry.tag.color()))
+                }
+            }
             Text(
                 buildString {
                     append(entry.foodName)
@@ -728,8 +837,9 @@ private fun FoodEntryRow(entry: FoodEntry) {
         }
         Text(
             "${entry.kcal.toInt()} kcal · ${entry.proteinG.toInt()}g P · ${entry.carbsG.toInt()}g K · ${entry.fatG.toInt()}g F",
-            style = MaterialTheme.typography.bodySmall,
+            style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(start = 13.dp),
         )
     }
 }
