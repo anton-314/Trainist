@@ -149,10 +149,9 @@ fun StatsScreen(
                         Text("Clean-Ernährung", style = MaterialTheme.typography.titleSmall)
                         state.overallCleanPercent?.let { pct ->
                             Text(
-                                "Ø $pct % · Ziel $CLEAN_TARGET_PERCENT %",
+                                "Ø $pct %",
                                 style = MaterialTheme.typography.labelMedium,
-                                color = if (pct >= CLEAN_TARGET_PERCENT) TagHealthyColor
-                                        else MaterialTheme.colorScheme.onSurfaceVariant,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                         }
                     }
@@ -170,10 +169,8 @@ fun StatsScreen(
                     } else {
                         CleanBarChart(
                             points = state.cleanPoints,
-                            targetPercent = CLEAN_TARGET_PERCENT.toDouble(),
                             barColor = TagHealthyColor,
                             trackColor = MaterialTheme.colorScheme.surfaceVariant,
-                            targetColor = MaterialTheme.colorScheme.primary,
                             labelColor = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
@@ -314,10 +311,8 @@ private fun CalorieBarChart(
 @Composable
 private fun CleanBarChart(
     points: List<ChartPoint>,
-    targetPercent: Double,
     barColor: Color,
     trackColor: Color,
-    targetColor: Color,
     labelColor: Color,
 ) {
     val labelStep = when {
@@ -341,15 +336,6 @@ private fun CleanBarChart(
                     drawRect(barColor, Offset(x + pad, size.height - fillHeight), Size(barWidth - pad * 2, fillHeight))
                 }
             }
-
-            val targetY = size.height - (targetPercent.toFloat() / 100f * size.height).coerceIn(0f, size.height)
-            drawLine(
-                targetColor,
-                Offset(0f, targetY),
-                Offset(size.width, targetY),
-                strokeWidth = 1.5.dp.toPx(),
-                pathEffect = PathEffect.dashPathEffect(floatArrayOf(6f, 4f)),
-            )
         }
 
         Row(modifier = Modifier.fillMaxWidth()) {
@@ -368,8 +354,6 @@ private fun CleanBarChart(
         }
     }
 }
-
-private const val CLEAN_TARGET_PERCENT = 80
 
 @Composable
 private fun WeightSummary(data: WeightChartData) {

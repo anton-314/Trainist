@@ -515,12 +515,11 @@ private fun CleanEatingSummary(cleanPercent: Int?) {
         verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         if (cleanPercent != null) {
-            val onTarget = cleanPercent >= CLEAN_TARGET_PERCENT
             Text(
-                "$cleanPercent % clean · Ziel $CLEAN_TARGET_PERCENT %",
+                "$cleanPercent % clean",
                 style = MaterialTheme.typography.labelLarge,
                 fontWeight = FontWeight.Medium,
-                color = if (onTarget) FoodTag.HEALTHY.color() else MaterialTheme.colorScheme.onSurfaceVariant,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
         Row(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
@@ -540,8 +539,6 @@ private fun CleanEatingSummary(cleanPercent: Int?) {
         }
     }
 }
-
-private const val CLEAN_TARGET_PERCENT = 80
 
 @Composable
 private fun MacroBar(label: String, current: Double, goal: Double, unit: String, color: Color) {
