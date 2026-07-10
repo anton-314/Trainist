@@ -1,28 +1,36 @@
 package dev.antonlammers.macrotrac.ui.addfood
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.Edit
 import androidx.compose.material.icons.rounded.QrCodeScanner
+import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
@@ -30,7 +38,9 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
@@ -38,11 +48,10 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.SwipeToDismissBox
 import androidx.compose.material3.SwipeToDismissBoxValue
-import androidx.compose.material3.Tab
-import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -53,7 +62,9 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -139,7 +150,7 @@ fun AddFoodScreen(
     }
 
     state.selectedFood?.let { food ->
-        AmountDialog(
+        AmountSheet(
             food = food,
             amount = state.amountGrams,
             mealCategory = state.mealCategory,
@@ -165,7 +176,7 @@ fun AddFoodScreen(
                 },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Zurück")
+                        Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Zurück")
                     }
                 },
                 actions = {
@@ -182,34 +193,16 @@ fun AddFoodScreen(
                 .fillMaxSize()
                 .padding(padding),
         ) {
-            OutlinedTextField(
-                value = state.query,
-                onValueChange = viewModel::onQueryChange,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 8.dp),
-                placeholder = { Text("Lebensmittel suchen…") },
-                singleLine = true,
-                trailingIcon = {
-                    IconButton(onClick = { navController.navigate(Screen.BarcodeScanner.route) }) {
-                        Icon(Icons.Rounded.QrCodeScanner, contentDescription = "Barcode scannen")
-                    }
-                },
-                keyboardOptions = KeyboardOptions.Default,
+            SearchBar(
+                query = state.query,
+                onQueryChange = viewModel::onQueryChange,
+                onScanClick = { navController.navigate(Screen.BarcodeScanner.route) },
             )
 
             if (state.query.isEmpty() && !state.isLoading) {
-                TabRow(selectedTabIndex = selectedTab) {
-                    Tab(
-                        selected = selectedTab == 0,
-                        onClick = { selectedTab = 0 },
-                        text = { Text("Verlauf") },
-                    )
-                    Tab(
-                        selected = selectedTab == 1,
-                        onClick = { selectedTab = 1 },
-                        text = { Text("Meine Lebensmittel") },
-                    )
+                Row(modifier = Modifier.fillMaxWidth()) {
+                    MonoTab("Verlauf", selectedTab == 0) { selectedTab = 0 }
+                    MonoTab("Meine Lebensmittel", selectedTab == 1) { selectedTab = 1 }
                 }
             }
 
@@ -220,17 +213,7 @@ fun AddFoodScreen(
                     if (selectedTab == 1) {
                         if (customFoods.isEmpty()) {
                             item {
-                                Box(
-                                    modifier = Modifier.fillMaxWidth().padding(32.dp),
-                                    contentAlignment = Alignment.Center,
-                                ) {
-                                    Text(
-                                        "Noch keine eigenen Lebensmittel.\nTippe auf + um eines anzulegen.",
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-                                    )
-                                }
+                                EmptyHint("Noch keine eigenen Lebensmittel.\nTippe auf + um eines anzulegen.")
                             }
                         } else {
                             items(customFoods, key = { "custom_${it.id}" }) { food ->
@@ -253,23 +236,12 @@ fun AddFoodScreen(
                                         }
                                     },
                                 )
-                                HorizontalDivider()
+                                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                             }
                         }
                     } else {
                         if (recentEntries.isEmpty()) {
-                            item {
-                                Box(
-                                    modifier = Modifier.fillMaxWidth().padding(32.dp),
-                                    contentAlignment = Alignment.Center,
-                                ) {
-                                    Text(
-                                        "Noch keine Einträge im Verlauf.",
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    )
-                                }
-                            }
+                            item { EmptyHint("Noch keine Einträge im Verlauf.") }
                         } else {
                             val grouped = recentEntries
                                 .groupBy { it.date }
@@ -277,12 +249,7 @@ fun AddFoodScreen(
                                 .sortedByDescending { it.key }
                             grouped.forEach { (date, entries) ->
                                 item(key = "header_$date") {
-                                    Text(
-                                        date.formatRelative(),
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 2.dp),
-                                    )
+                                    DateGroupHeader(date.formatRelative())
                                 }
                                 items(entries, key = { "history_${it.id}" }) { entry ->
                                     SwipeableHistoryRow(
@@ -303,7 +270,7 @@ fun AddFoodScreen(
                                             }
                                         },
                                     )
-                                    HorizontalDivider()
+                                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                                 }
                             }
                         }
@@ -323,18 +290,7 @@ fun AddFoodScreen(
                 // Search results: flat list of matching custom foods + deduplicated history
                 if (state.query.isNotBlank() && !state.isLoading) {
                     if (localSearchResults.isEmpty()) {
-                        item {
-                            Box(
-                                modifier = Modifier.fillMaxWidth().padding(32.dp),
-                                contentAlignment = Alignment.Center,
-                            ) {
-                                Text(
-                                    "Keine Ergebnisse",
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                )
-                            }
-                        }
+                        item { EmptyHint("Keine Ergebnisse") }
                     } else {
                         items(
                             localSearchResults,
@@ -384,12 +340,125 @@ fun AddFoodScreen(
                                     },
                                 )
                             }
-                            HorizontalDivider()
+                            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                         }
                     }
                 }
             }
         }
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Top: rounded search field (surface fill, hairline border) + a separate square
+// barcode-scan tile matching the field height.
+// ─────────────────────────────────────────────────────────────────────────────
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun SearchBar(
+    query: String,
+    onQueryChange: (String) -> Unit,
+    onScanClick: () -> Unit,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        OutlinedTextField(
+            value = query,
+            onValueChange = onQueryChange,
+            modifier = Modifier.weight(1f),
+            placeholder = { Text("Lebensmittel suchen") },
+            leadingIcon = {
+                Icon(
+                    Icons.Rounded.Search,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.outline,
+                )
+            },
+            singleLine = true,
+            shape = RoundedCornerShape(14.dp),
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedContainerColor = MaterialTheme.colorScheme.surface,
+                unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+                focusedBorderColor = MaterialTheme.colorScheme.primary,
+                unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
+            ),
+        )
+        Box(
+            modifier = Modifier
+                .size(56.dp)
+                .clip(RoundedCornerShape(14.dp))
+                .background(MaterialTheme.colorScheme.surface)
+                .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(14.dp))
+                .clickable(onClick = onScanClick),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                Icons.Rounded.QrCodeScanner,
+                contentDescription = "Barcode scannen",
+                tint = MaterialTheme.colorScheme.onSurface,
+            )
+        }
+    }
+}
+
+/** Mono-uppercase tab label with a 2dp accent underline on the active tab. */
+@Composable
+private fun RowScope.MonoTab(
+    label: String,
+    selected: Boolean,
+    onClick: () -> Unit,
+) {
+    Column(
+        modifier = Modifier
+            .weight(1f)
+            .clickable(onClick = onClick)
+            .padding(top = 10.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Text(
+            label.uppercase(Locale("de")),
+            style = MaterialTheme.typography.labelSmall,
+            color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline,
+            textAlign = TextAlign.Center,
+            maxLines = 1,
+            modifier = Modifier.padding(bottom = 8.dp, start = 4.dp, end = 4.dp),
+        )
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(2.dp)
+                .background(if (selected) MaterialTheme.colorScheme.primary else Color.Transparent),
+        )
+    }
+}
+
+@Composable
+private fun DateGroupHeader(label: String) {
+    Text(
+        label.uppercase(Locale("de")),
+        style = MaterialTheme.typography.labelMedium,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 14.dp, bottom = 4.dp),
+    )
+}
+
+@Composable
+private fun EmptyHint(text: String) {
+    Box(
+        modifier = Modifier.fillMaxWidth().padding(32.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            text,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center,
+        )
     }
 }
 
@@ -413,39 +482,18 @@ private fun SwipeableCustomFoodRow(
     SwipeToDismissBox(
         state = dismissState,
         enableDismissFromStartToEnd = true,
-        backgroundContent = {
-            val bgColor = when (dismissState.targetValue) {
-                SwipeToDismissBoxValue.EndToStart -> MaterialTheme.colorScheme.errorContainer
-                SwipeToDismissBoxValue.StartToEnd -> MaterialTheme.colorScheme.primaryContainer
-                else -> Color.Transparent
-            }
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(bgColor)
-                    .padding(horizontal = 16.dp),
-                contentAlignment = when (dismissState.targetValue) {
-                    SwipeToDismissBoxValue.StartToEnd -> Alignment.CenterStart
-                    else -> Alignment.CenterEnd
-                },
-            ) {
-                when (dismissState.targetValue) {
-                    SwipeToDismissBoxValue.EndToStart -> Icon(
-                        Icons.Rounded.Delete,
-                        contentDescription = "Löschen",
-                        tint = MaterialTheme.colorScheme.onErrorContainer,
-                    )
-                    SwipeToDismissBoxValue.StartToEnd -> Icon(
-                        Icons.Rounded.Edit,
-                        contentDescription = "Bearbeiten",
-                        tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                    )
-                    else -> {}
-                }
-            }
-        },
+        backgroundContent = { SwipeBackground(dismissState.targetValue) },
     ) {
-        CustomFoodRow(food = food, onClick = onClick)
+        FoodRowContent(
+            tag = food.tag,
+            title = buildString {
+                append(food.name)
+                food.brand?.let { append(" ($it)") }
+            },
+            detail = "${food.kcalPer100g.toInt()} kcal · ${food.proteinPer100g.toInt()}g P · " +
+                "${food.carbsPer100g.toInt()}g K · ${food.fatPer100g.toInt()}g F · pro 100 g",
+            onClick = onClick,
+        )
     }
 }
 
@@ -464,55 +512,64 @@ private fun SwipeableHistoryRow(
     SwipeToDismissBox(
         state = dismissState,
         enableDismissFromStartToEnd = false,
-        backgroundContent = {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(MaterialTheme.colorScheme.errorContainer)
-                    .padding(horizontal = 16.dp),
-                contentAlignment = Alignment.CenterEnd,
-            ) {
-                Icon(
-                    Icons.Rounded.Delete,
-                    contentDescription = "Löschen",
-                    tint = MaterialTheme.colorScheme.onErrorContainer,
-                )
-            }
-        },
+        backgroundContent = { SwipeBackground(dismissState.targetValue) },
     ) {
-        RecentFoodRow(entry = entry, onClick = onClick)
-    }
-}
-
-@Composable
-private fun CustomFoodRow(food: Food, onClick: () -> Unit) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(MaterialTheme.colorScheme.surface)
-            .clickable(onClick = onClick)
-            .padding(horizontal = 16.dp, vertical = 12.dp),
-    ) {
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            TagDot(food.tag)
-            Text(
-                buildString {
-                    append(food.name)
-                    food.brand?.let { append(" ($it)") }
-                },
-                style = MaterialTheme.typography.bodyMedium,
-            )
-        }
-        Text(
-            "${food.kcalPer100g.toInt()} kcal · ${food.proteinPer100g.toInt()}g P · ${food.carbsPer100g.toInt()}g K · ${food.fatPer100g.toInt()}g F (pro 100 g)",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        FoodRowContent(
+            tag = entry.tag,
+            title = buildString {
+                append(entry.foodName)
+                entry.brand?.let { append(" ($it)") }
+                append(" · ${entry.amountGrams.toInt()} g")
+            },
+            detail = "${entry.kcal.toInt()} kcal · ${entry.proteinG.toInt()}g P · " +
+                "${entry.carbsG.toInt()}g K · ${entry.fatG.toInt()}g F",
+            onClick = onClick,
         )
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun RecentFoodRow(entry: FoodEntry, onClick: () -> Unit) {
+private fun SwipeBackground(target: SwipeToDismissBoxValue) {
+    val bgColor = when (target) {
+        SwipeToDismissBoxValue.EndToStart -> MaterialTheme.colorScheme.errorContainer
+        SwipeToDismissBoxValue.StartToEnd -> MaterialTheme.colorScheme.primaryContainer
+        else -> Color.Transparent
+    }
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(bgColor)
+            .padding(horizontal = 16.dp),
+        contentAlignment = when (target) {
+            SwipeToDismissBoxValue.StartToEnd -> Alignment.CenterStart
+            else -> Alignment.CenterEnd
+        },
+    ) {
+        when (target) {
+            SwipeToDismissBoxValue.EndToStart -> Icon(
+                Icons.Rounded.Delete,
+                contentDescription = "Löschen",
+                tint = MaterialTheme.colorScheme.onErrorContainer,
+            )
+            SwipeToDismissBoxValue.StartToEnd -> Icon(
+                Icons.Rounded.Edit,
+                contentDescription = "Bearbeiten",
+                tint = MaterialTheme.colorScheme.onPrimaryContainer,
+            )
+            else -> {}
+        }
+    }
+}
+
+/** A food/history list row: tag dot + name (sans) with a mono detail line beneath. */
+@Composable
+private fun FoodRowContent(
+    tag: FoodTag,
+    title: String,
+    detail: String,
+    onClick: () -> Unit,
+) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -520,26 +577,16 @@ private fun RecentFoodRow(entry: FoodEntry, onClick: () -> Unit) {
             .clickable(onClick = onClick)
             .padding(horizontal = 16.dp, vertical = 12.dp),
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            TagDot(entry.tag)
-            Text(
-                buildString {
-                    append(entry.foodName)
-                    entry.brand?.let { append(" ($it)") }
-                },
-                style = MaterialTheme.typography.bodyMedium,
-            )
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            // Fixed-width leading slot keeps titles aligned whether or not a tag dot is shown.
+            Box(Modifier.size(7.dp)) { TagDot(tag, size = 7.dp) }
+            Text(title, style = MaterialTheme.typography.bodyLarge)
         }
         Text(
-            buildString {
-                append("${entry.kcal.toInt()} kcal")
-                append(" · ${entry.amountGrams.toInt()} g")
-                append(" · ${entry.proteinG.toInt()}g P")
-                append(" · ${entry.carbsG.toInt()}g K")
-                append(" · ${entry.fatG.toInt()}g F")
-            },
-            style = MaterialTheme.typography.bodySmall,
+            detail,
+            style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(start = 15.dp, top = 4.dp),
         )
     }
 }
@@ -615,9 +662,13 @@ private fun CustomFoodDialog(
     )
 }
 
-@OptIn(ExperimentalLayoutApi::class)
+// ─────────────────────────────────────────────────────────────────────────────
+// Amount entry — a bottom sheet (28dp top radius, scrim) with the same fields and
+// flow as before: amount, meal chips, tag selector, macro preview, confirm button.
+// ─────────────────────────────────────────────────────────────────────────────
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
-private fun AmountDialog(
+private fun AmountSheet(
     food: Food,
     amount: String,
     mealCategory: MealCategory,
@@ -628,37 +679,83 @@ private fun AmountDialog(
     onConfirm: () -> Unit,
     onDismiss: () -> Unit,
 ) {
-    AlertDialog(
+    val sheetState = rememberModalBottomSheetState()
+    val amt = amount.normalizeDecimal().toDoubleOrNull() ?: 0.0
+    val factor = amt / 100.0
+
+    ModalBottomSheet(
         onDismissRequest = onDismiss,
-        title = { Text(food.name) },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                NumericTextField(
-                    value = amount,
-                    onValueChange = onAmountChange,
-                    label = "Menge (g)",
-                    modifier = Modifier.fillMaxWidth(),
-                )
+        sheetState = sheetState,
+        shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
+        containerColor = MaterialTheme.colorScheme.surface,
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp)
+                .navigationBarsPadding()
+                .imePadding()
+                .padding(bottom = 20.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+        ) {
+            Text(food.name, style = MaterialTheme.typography.titleLarge)
+
+            NumericTextField(
+                value = amount,
+                onValueChange = onAmountChange,
+                label = "Menge",
+                suffix = "g",
+                modifier = Modifier.fillMaxWidth(),
+            )
+
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Text("Mahlzeit", style = MaterialTheme.typography.labelMedium)
-                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Row(
+                    modifier = Modifier.horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
                     MealCategory.entries.forEach { cat ->
                         FilterChip(
                             selected = cat == mealCategory,
                             onClick = { onMealCategoryChange(cat) },
-                            label = { Text(cat.displayName()) },
+                            label = { Text(cat.displayName(), style = MaterialTheme.typography.labelSmall) },
                         )
                     }
                 }
-                TagSelector(selected = tag, onSelected = onTagChange)
             }
-        },
-        confirmButton = {
-            TextButton(onClick = onConfirm) { Text("Hinzufügen") }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Abbrechen") }
-        },
-    )
+
+            TagSelector(selected = tag, onSelected = onTagChange)
+
+            if (amt > 0) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(50))
+                        .background(MaterialTheme.colorScheme.surfaceVariant)
+                        .padding(horizontal = 16.dp, vertical = 10.dp),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        "${(food.kcalPer100g * factor).toInt()} kcal · " +
+                            "${(food.proteinPer100g * factor).toInt()}g P · " +
+                            "${(food.carbsPer100g * factor).toInt()}g K · " +
+                            "${(food.fatPer100g * factor).toInt()}g F",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+
+            Button(
+                onClick = onConfirm,
+                enabled = amt > 0,
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(14.dp),
+            ) {
+                Text("Hinzufügen", style = MaterialTheme.typography.labelLarge)
+            }
+        }
+    }
 }
 
 private fun LocalDate.formatRelative(): String {
