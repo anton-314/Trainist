@@ -19,7 +19,10 @@ import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -29,13 +32,15 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.FlashOff
 import androidx.compose.material.icons.rounded.FlashOn
 import androidx.compose.material.icons.rounded.Search
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -57,8 +62,8 @@ import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -119,54 +124,68 @@ fun BarcodeScannerScreen(navController: NavController) {
                     onClick = { torchOn = !torchOn },
                     modifier = Modifier
                         .align(Alignment.TopStart)
-                        .padding(16.dp),
+                        .padding(16.dp)
+                        .clip(CircleShape)
+                        .background(TranslucentControl),
                 ) {
                     Icon(
                         imageVector = if (torchOn) Icons.Rounded.FlashOn else Icons.Rounded.FlashOff,
                         contentDescription = if (torchOn) "Taschenlampe ausschalten" else "Taschenlampe einschalten",
-                        tint = Color.White,
+                        tint = if (torchOn) MaterialTheme.colorScheme.primary else Color.White,
                     )
                 }
             }
             var manualBarcode by remember { mutableStateOf("") }
+            val canSubmit = manualBarcode.isNotBlank()
             Surface(
                 color = MaterialTheme.colorScheme.surface,
-                shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp),
-                tonalElevation = 3.dp,
+                shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp),
+                tonalElevation = 0.dp,
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .fillMaxWidth()
                     .imePadding(),
             ) {
-                Column(
-                    modifier = Modifier
-                        .navigationBarsPadding()
-                        .padding(16.dp),
-                ) {
-                    Text(
-                        text = "Barcode in den Rahmen halten oder Nummer manuell eingeben",
-                        style = MaterialTheme.typography.bodyMedium,
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                    Spacer(Modifier.height(12.dp))
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        NumericTextField(
-                            value = manualBarcode,
-                            onValueChange = { manualBarcode = it },
-                            label = "Barcode-Nummer",
-                            decimal = false,
-                            modifier = Modifier.weight(1f),
+                Column(modifier = Modifier.navigationBarsPadding()) {
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Text(
+                            text = "Oder Barcode-Nummer manuell eingeben".uppercase(),
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.fillMaxWidth(),
                         )
-                        Spacer(Modifier.width(8.dp))
-                        IconButton(
-                            onClick = { submitBarcode(manualBarcode) },
-                            enabled = manualBarcode.isNotBlank(),
+                        Spacer(Modifier.height(12.dp))
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
                         ) {
-                            Icon(
-                                imageVector = Icons.Rounded.Search,
-                                contentDescription = "Barcode suchen",
+                            NumericTextField(
+                                value = manualBarcode,
+                                onValueChange = { manualBarcode = it },
+                                label = "Barcode-Nummer",
+                                decimal = false,
+                                modifier = Modifier.weight(1f),
                             )
+                            Box(
+                                modifier = Modifier
+                                    .size(56.dp)
+                                    .clip(RoundedCornerShape(14.dp))
+                                    .background(
+                                        if (canSubmit) MaterialTheme.colorScheme.primary
+                                        else MaterialTheme.colorScheme.surfaceVariant
+                                    )
+                                    .clickable(enabled = canSubmit) { submitBarcode(manualBarcode) },
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Rounded.Search,
+                                    contentDescription = "Barcode suchen",
+                                    tint = if (canSubmit) MaterialTheme.colorScheme.onPrimary
+                                    else MaterialTheme.colorScheme.outline,
+                                )
+                            }
                         }
                     }
                 }
@@ -188,12 +207,17 @@ fun BarcodeScannerScreen(navController: NavController) {
             onClick = { navController.popBackStack() },
             modifier = Modifier
                 .align(Alignment.TopEnd)
-                .padding(16.dp),
+                .padding(16.dp)
+                .clip(CircleShape)
+                .background(TranslucentControl),
         ) {
             Icon(Icons.Rounded.Close, contentDescription = "Schließen", tint = Color.White)
         }
     }
 }
+
+/** Translucent scrim behind the round camera-overlay controls (torch, close). */
+private val TranslucentControl = Color(0x55000000)
 
 @ExperimentalGetImage
 @Composable
@@ -252,53 +276,67 @@ private fun ScanOverlay() {
         label = "scanLine",
     )
 
-    Canvas(
-        modifier = Modifier
-            .fillMaxSize()
-            .graphicsLayer { compositingStrategy = CompositingStrategy.Offscreen },
-    ) {
-        // Semi-transparent overlay
-        drawRect(color = Color(0xBB000000))
+    BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+        Canvas(
+            modifier = Modifier
+                .fillMaxSize()
+                .graphicsLayer { compositingStrategy = CompositingStrategy.Offscreen },
+        ) {
+            // Semi-transparent overlay
+            drawRect(color = Color(0xBB000000))
 
-        val frameW = size.width * 0.72f
-        val frameH = frameW * 0.55f
-        val left = (size.width - frameW) / 2f
-        val top = (size.height - frameH) / 2f
-        val right = left + frameW
-        val bottom = top + frameH
+            val frameW = size.width * 0.72f
+            val frameH = frameW * 0.55f
+            val left = (size.width - frameW) / 2f
+            val top = (size.height - frameH) / 2f
+            val right = left + frameW
+            val bottom = top + frameH
 
-        // Transparent cutout (rounded)
-        drawRoundRect(
-            color = Color.Transparent,
-            topLeft = Offset(left, top),
-            size = Size(frameW, frameH),
-            cornerRadius = CornerRadius(8.dp.toPx()),
-            blendMode = BlendMode.Clear,
-        )
+            // Transparent cutout (rounded)
+            drawRoundRect(
+                color = Color.Transparent,
+                topLeft = Offset(left, top),
+                size = Size(frameW, frameH),
+                cornerRadius = CornerRadius(8.dp.toPx()),
+                blendMode = BlendMode.Clear,
+            )
 
-        // Corner brackets
-        val cLen = 36.dp.toPx()
-        val cStroke = Stroke(width = 3.dp.toPx(), cap = StrokeCap.Round)
-        // Top-left
-        drawLine(primary, Offset(left, top + cLen), Offset(left, top), cStroke.width, StrokeCap.Round)
-        drawLine(primary, Offset(left, top), Offset(left + cLen, top), cStroke.width, StrokeCap.Round)
-        // Top-right
-        drawLine(primary, Offset(right - cLen, top), Offset(right, top), cStroke.width, StrokeCap.Round)
-        drawLine(primary, Offset(right, top), Offset(right, top + cLen), cStroke.width, StrokeCap.Round)
-        // Bottom-left
-        drawLine(primary, Offset(left, bottom - cLen), Offset(left, bottom), cStroke.width, StrokeCap.Round)
-        drawLine(primary, Offset(left, bottom), Offset(left + cLen, bottom), cStroke.width, StrokeCap.Round)
-        // Bottom-right
-        drawLine(primary, Offset(right - cLen, bottom), Offset(right, bottom), cStroke.width, StrokeCap.Round)
-        drawLine(primary, Offset(right, bottom), Offset(right, bottom - cLen), cStroke.width, StrokeCap.Round)
+            // Four accent corner brackets (no full outline).
+            val cLen = 36.dp.toPx()
+            val cStroke = 3.dp.toPx()
+            // Top-left
+            drawLine(primary, Offset(left, top + cLen), Offset(left, top), cStroke, StrokeCap.Round)
+            drawLine(primary, Offset(left, top), Offset(left + cLen, top), cStroke, StrokeCap.Round)
+            // Top-right
+            drawLine(primary, Offset(right - cLen, top), Offset(right, top), cStroke, StrokeCap.Round)
+            drawLine(primary, Offset(right, top), Offset(right, top + cLen), cStroke, StrokeCap.Round)
+            // Bottom-left
+            drawLine(primary, Offset(left, bottom - cLen), Offset(left, bottom), cStroke, StrokeCap.Round)
+            drawLine(primary, Offset(left, bottom), Offset(left + cLen, bottom), cStroke, StrokeCap.Round)
+            // Bottom-right
+            drawLine(primary, Offset(right - cLen, bottom), Offset(right, bottom), cStroke, StrokeCap.Round)
+            drawLine(primary, Offset(right, bottom), Offset(right, bottom - cLen), cStroke, StrokeCap.Round)
 
-        // Animated scan line
-        val lineY = top + frameH * scanProgress
-        drawLine(
-            color = primary.copy(alpha = 0.7f),
-            start = Offset(left + 4.dp.toPx(), lineY),
-            end = Offset(right - 4.dp.toPx(), lineY),
-            strokeWidth = 2.dp.toPx(),
+            // Animated scan line
+            val lineY = top + frameH * scanProgress
+            drawLine(
+                color = primary.copy(alpha = 0.7f),
+                start = Offset(left + 4.dp.toPx(), lineY),
+                end = Offset(right - 4.dp.toPx(), lineY),
+                strokeWidth = 2.dp.toPx(),
+            )
+        }
+
+        // Mono caption below the reticle (frame bottom = screen centre + half the frame height).
+        val frameH = maxWidth * 0.72f * 0.55f
+        Text(
+            text = "Barcode in den Rahmen halten".uppercase(),
+            style = MaterialTheme.typography.labelMedium,
+            color = Color.White,
+            textAlign = TextAlign.Center,
+            modifier = Modifier
+                .align(Alignment.TopCenter)
+                .padding(top = maxHeight / 2f + frameH / 2f + 24.dp, start = 32.dp, end = 32.dp),
         )
     }
 }
