@@ -56,6 +56,7 @@ import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -98,7 +99,7 @@ fun AddFoodScreen(
 
     var showCreateDialog by remember { mutableStateOf(false) }
     var foodToEdit by remember { mutableStateOf<Food?>(null) }
-    var selectedTab by remember { mutableStateOf(0) }
+    var selectedTab by remember { mutableIntStateOf(0) }
 
     LaunchedEffect(state.entryAdded) {
         if (state.entryAdded) {
@@ -700,16 +701,28 @@ private fun AmountSheet(
         ) {
             Text(food.name, style = MaterialTheme.typography.titleLarge)
 
-            NumericTextField(
-                value = amount,
-                onValueChange = onAmountChange,
-                label = "Menge",
-                suffix = "g",
-                modifier = Modifier.fillMaxWidth(),
-            )
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Text(
+                    "MENGE",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                NumericTextField(
+                    value = amount,
+                    onValueChange = onAmountChange,
+                    label = null,
+                    suffix = "g",
+                    textStyle = MaterialTheme.typography.titleMedium,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
 
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                Text("Mahlzeit", style = MaterialTheme.typography.labelMedium)
+                Text(
+                    "MAHLZEIT",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
                 Row(
                     modifier = Modifier.horizontalScroll(rememberScrollState()),
                     horizontalArrangement = Arrangement.spacedBy(8.dp),

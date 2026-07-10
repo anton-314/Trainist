@@ -57,7 +57,11 @@ fun TagSelector(
     modifier: Modifier = Modifier,
 ) {
     Column(modifier, verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        Text("Tag", style = MaterialTheme.typography.labelMedium)
+        Text(
+            "TAG",
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
         FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             FoodTag.selectable.forEach { tag ->
                 val isSelected = tag == selected

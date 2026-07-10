@@ -359,7 +359,11 @@ private fun EditFoodDialog(
                     suffix = "g",
                     modifier = Modifier.fillMaxWidth(),
                 )
-                Text("Mahlzeit", style = MaterialTheme.typography.labelMedium)
+                Text(
+                    "MAHLZEIT",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
                 Row(
                     modifier = Modifier.horizontalScroll(rememberScrollState()),
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
