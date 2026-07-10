@@ -1,0 +1,49 @@
+name: Preview APK (Feature-Branch)
+
+on:
+  push:
+    branches:
+      - 'feature/**'
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: gradle
+
+      - name: Build debug APK
+        run: ./gradlew assembleDebug
+
+      - name: Publish to "preview" release
+        uses: ncipollo/release-action@v1
+        with:
+          tag: preview
+          name: "Preview-Build (Feature-Branch)"
+          prerelease: true
+          allowUpdates: true
+          removeArtifacts: true
+          artifacts: "app/build/outputs/apk/debug/app-debug.apk"
+          body: |
+            Automatischer Debug-Build vom Branch `${{ github.ref_name }}`
+            (Commit `${{ github.sha }}`).
+
+            ⚠️ **Work-in-Progress-Vorschau** — nicht der stabile `main`-Build (siehe Release
+            „Aktuellster Build").
+
+            ### Installation
+            1. `app-debug.apk` herunterladen
+            2. Datei auf dem Android-Gerät öffnen
+            3. *"Aus unbekannter Quelle installieren"* erlauben
+
+            > Mindestanforderung: Android 7.0 (API 24)
