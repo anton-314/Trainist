@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!--
+      Dark window background for night mode. Without this the app inherits the light
+      base theme's window background, which shows through as a pale ("paper"-colored)
+      hairline at the seam between the content Scaffold and the bottom navigation bar.
+    -->
+    <style name="Theme.MacroTrac" parent="android:Theme.Material.NoActionBar" />
+</resources>

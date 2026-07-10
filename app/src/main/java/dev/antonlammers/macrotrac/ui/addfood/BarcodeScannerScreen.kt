@@ -19,7 +19,6 @@ import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -32,20 +31,22 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Close
+import androidx.compose.material.icons.rounded.Dialpad
 import androidx.compose.material.icons.rounded.FlashOff
 import androidx.compose.material.icons.rounded.FlashOn
-import androidx.compose.material.icons.rounded.Search
-import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Button
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.rememberModalBottomSheetState
 import dev.antonlammers.macrotrac.ui.components.NumericTextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -73,6 +74,7 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.navigation.NavController
 import java.util.concurrent.atomic.AtomicBoolean
 
+@OptIn(ExperimentalMaterial3Api::class)
 @ExperimentalGetImage
 @Composable
 fun BarcodeScannerScreen(navController: NavController) {
@@ -136,56 +138,69 @@ fun BarcodeScannerScreen(navController: NavController) {
                 }
             }
             var manualBarcode by remember { mutableStateOf("") }
-            val canSubmit = manualBarcode.isNotBlank()
+            var showManualSheet by remember { mutableStateOf(false) }
+
+            // Bottom pill that opens the manual number-entry sheet (same submit flow as a scan).
             Surface(
-                color = MaterialTheme.colorScheme.surface,
-                shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp),
-                tonalElevation = 0.dp,
+                onClick = { showManualSheet = true },
+                shape = CircleShape,
+                color = TranslucentControl,
+                contentColor = Color.White,
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
-                    .fillMaxWidth()
-                    .imePadding(),
+                    .navigationBarsPadding()
+                    .padding(bottom = 28.dp),
             ) {
-                Column(modifier = Modifier.navigationBarsPadding()) {
-                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-                    Column(modifier = Modifier.padding(16.dp)) {
-                        Text(
-                            text = "Oder Barcode-Nummer manuell eingeben".uppercase(),
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            textAlign = TextAlign.Center,
-                            modifier = Modifier.fillMaxWidth(),
-                        )
-                        Spacer(Modifier.height(12.dp))
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Icon(Icons.Rounded.Dialpad, contentDescription = null)
+                    Text("Barcode-Nummer eingeben", style = MaterialTheme.typography.labelLarge)
+                }
+            }
+
+            if (showManualSheet) {
+                val sheetState = rememberModalBottomSheetState()
+                ModalBottomSheet(
+                    onDismissRequest = { showManualSheet = false },
+                    sheetState = sheetState,
+                    shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
+                    containerColor = MaterialTheme.colorScheme.surface,
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 20.dp)
+                            .navigationBarsPadding()
+                            .imePadding()
+                            .padding(bottom = 20.dp),
+                        verticalArrangement = Arrangement.spacedBy(16.dp),
+                    ) {
+                        Text("Barcode-Nummer eingeben", style = MaterialTheme.typography.titleLarge)
+                        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Text(
+                                "BARCODE-NUMMER",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
                             NumericTextField(
                                 value = manualBarcode,
                                 onValueChange = { manualBarcode = it },
-                                label = "Barcode-Nummer",
+                                label = null,
                                 decimal = false,
-                                modifier = Modifier.weight(1f),
+                                textStyle = MaterialTheme.typography.titleMedium,
+                                modifier = Modifier.fillMaxWidth(),
                             )
-                            Box(
-                                modifier = Modifier
-                                    .size(56.dp)
-                                    .clip(RoundedCornerShape(14.dp))
-                                    .background(
-                                        if (canSubmit) MaterialTheme.colorScheme.primary
-                                        else MaterialTheme.colorScheme.surfaceVariant
-                                    )
-                                    .clickable(enabled = canSubmit) { submitBarcode(manualBarcode) },
-                                contentAlignment = Alignment.Center,
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Rounded.Search,
-                                    contentDescription = "Barcode suchen",
-                                    tint = if (canSubmit) MaterialTheme.colorScheme.onPrimary
-                                    else MaterialTheme.colorScheme.outline,
-                                )
-                            }
+                        }
+                        Button(
+                            onClick = { submitBarcode(manualBarcode) },
+                            enabled = manualBarcode.isNotBlank(),
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(14.dp),
+                        ) {
+                            Text("Suchen", style = MaterialTheme.typography.labelLarge)
                         }
                     }
                 }
@@ -197,7 +212,7 @@ fun BarcodeScannerScreen(navController: NavController) {
             ) {
                 Text("Kamerazugriff wird benötigt", color = Color.White)
                 Spacer(Modifier.height(16.dp))
-                androidx.compose.material3.Button(onClick = { launcher.launch(Manifest.permission.CAMERA) }) {
+                Button(onClick = { launcher.launch(Manifest.permission.CAMERA) }) {
                     Text("Erlauben")
                 }
             }

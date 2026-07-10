@@ -22,6 +22,8 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -38,6 +40,7 @@ import androidx.compose.material.icons.rounded.Edit
 import androidx.compose.material.icons.rounded.KeyboardArrowLeft
 import androidx.compose.material.icons.rounded.KeyboardArrowRight
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -49,6 +52,7 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarDuration
@@ -60,6 +64,7 @@ import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -338,27 +343,48 @@ private fun EditFoodDialog(
 ) {
     val newAmount = amountInput.normalizeDecimal().toDoubleOrNull() ?: 0.0
     val factor = if (entry.amountGrams > 0 && newAmount > 0) newAmount / entry.amountGrams else 1.0
+    val sheetState = rememberModalBottomSheetState()
 
-    AlertDialog(
+    ModalBottomSheet(
         onDismissRequest = onDismiss,
-        title = { Text("Eintrag bearbeiten") },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        sheetState = sheetState,
+        shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
+        containerColor = MaterialTheme.colorScheme.surface,
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp)
+                .navigationBarsPadding()
+                .imePadding()
+                .padding(bottom = 20.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+        ) {
+            Text(
+                buildString {
+                    append(entry.foodName)
+                    entry.brand?.let { append(" ($it)") }
+                },
+                style = MaterialTheme.typography.titleLarge,
+            )
+
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Text(
-                    buildString {
-                        append(entry.foodName)
-                        entry.brand?.let { append(" ($it)") }
-                    },
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.Medium,
+                    "MENGE",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 NumericTextField(
                     value = amountInput,
                     onValueChange = onAmountChange,
-                    label = "Menge",
+                    label = null,
                     suffix = "g",
+                    textStyle = MaterialTheme.typography.titleMedium,
                     modifier = Modifier.fillMaxWidth(),
                 )
+            }
+
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Text(
                     "MAHLZEIT",
                     style = MaterialTheme.typography.labelMedium,
@@ -366,7 +392,7 @@ private fun EditFoodDialog(
                 )
                 Row(
                     modifier = Modifier.horizontalScroll(rememberScrollState()),
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     MealCategory.entries.forEach { cat ->
                         FilterChip(
@@ -378,37 +404,38 @@ private fun EditFoodDialog(
                         )
                     }
                 }
-                TagSelector(selected = selectedTag, onSelected = onTagChange)
-                if (newAmount > 0) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(8.dp))
-                            .background(MaterialTheme.colorScheme.surfaceVariant)
-                            .padding(horizontal = 12.dp, vertical = 8.dp),
-                    ) {
-                        Text(
-                            "${(entry.kcal * factor).toInt()} kcal · " +
-                                "${(entry.proteinG * factor).toInt()}g P · " +
-                                "${(entry.carbsG * factor).toInt()}g K · " +
-                                "${(entry.fatG * factor).toInt()}g F",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
+            }
+
+            TagSelector(selected = selectedTag, onSelected = onTagChange)
+
+            if (newAmount > 0) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(50))
+                        .background(MaterialTheme.colorScheme.surfaceVariant)
+                        .padding(horizontal = 16.dp, vertical = 10.dp),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        "${(entry.kcal * factor).toInt()} kcal · " +
+                            "${(entry.proteinG * factor).toInt()}g P · " +
+                            "${(entry.carbsG * factor).toInt()}g K · " +
+                            "${(entry.fatG * factor).toInt()}g F",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
                 }
             }
-        },
-        confirmButton = {
-            TextButton(
-                enabled = amountInput.normalizeDecimal().toDoubleOrNull()?.let { it > 0 } == true,
+
+            Button(
+                enabled = newAmount > 0,
                 onClick = {
-                    val newAmt = amountInput.normalizeDecimal().toDoubleOrNull() ?: return@TextButton
-                    if (newAmt > 0) {
-                        val f = newAmt / entry.amountGrams
+                    if (newAmount > 0) {
+                        val f = newAmount / entry.amountGrams
                         onConfirm(
                             entry.copy(
-                                amountGrams = newAmt,
+                                amountGrams = newAmount,
                                 kcal = entry.kcal * f,
                                 proteinG = entry.proteinG * f,
                                 carbsG = entry.carbsG * f,
@@ -422,12 +449,13 @@ private fun EditFoodDialog(
                         )
                     }
                 },
-            ) { Text("Speichern") }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Abbrechen") }
-        },
-    )
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(14.dp),
+            ) {
+                Text("Speichern", style = MaterialTheme.typography.labelLarge)
+            }
+        }
+    }
 }
 
 @Composable

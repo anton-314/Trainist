@@ -592,6 +592,7 @@ private fun FoodRowContent(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun CustomFoodDialog(
     initial: Food? = null,
@@ -615,28 +616,38 @@ private fun CustomFoodDialog(
         && carbs.normalizeDecimal().toDoubleOrNull() != null
         && fat.normalizeDecimal().toDoubleOrNull() != null
 
-    AlertDialog(
+    val sheetState = rememberModalBottomSheetState()
+    ModalBottomSheet(
         onDismissRequest = onDismiss,
-        title = { Text(if (initial == null) "Neues Lebensmittel" else "Lebensmittel bearbeiten") },
-        text = {
-            Column(
-                modifier = Modifier.verticalScroll(rememberScrollState()),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                OutlinedTextField(name, { name = it }, label = { Text("Name *") }, singleLine = true, modifier = Modifier.fillMaxWidth())
-                OutlinedTextField(brand, { brand = it }, label = { Text("Marke (optional)") }, singleLine = true, modifier = Modifier.fillMaxWidth())
-                NumericTextField(kcal, { kcal = it }, label = "kcal / 100 g *", modifier = Modifier.fillMaxWidth())
-                NumericTextField(protein, { protein = it }, label = "Protein g / 100 g *", modifier = Modifier.fillMaxWidth())
-                NumericTextField(carbs, { carbs = it }, label = "Kohlenhydrate g / 100 g *", modifier = Modifier.fillMaxWidth())
-                NumericTextField(fat, { fat = it }, label = "Fett g / 100 g *", modifier = Modifier.fillMaxWidth())
-                NumericTextField(sugar, { sugar = it }, label = "Zucker g / 100 g", modifier = Modifier.fillMaxWidth())
-                NumericTextField(fiber, { fiber = it }, label = "Ballaststoffe g / 100 g", modifier = Modifier.fillMaxWidth())
-                NumericTextField(salt, { salt = it }, label = "Salz g / 100 g", modifier = Modifier.fillMaxWidth())
-                TagSelector(selected = tag, onSelected = { tag = it })
-            }
-        },
-        confirmButton = {
-            TextButton(
+        sheetState = sheetState,
+        shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
+        containerColor = MaterialTheme.colorScheme.surface,
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp)
+                .navigationBarsPadding()
+                .imePadding()
+                .verticalScroll(rememberScrollState())
+                .padding(bottom = 20.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            Text(
+                if (initial == null) "Neues Lebensmittel" else "Lebensmittel bearbeiten",
+                style = MaterialTheme.typography.titleLarge,
+            )
+            OutlinedTextField(name, { name = it }, label = { Text("Name *") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+            OutlinedTextField(brand, { brand = it }, label = { Text("Marke (optional)") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+            NumericTextField(kcal, { kcal = it }, label = "kcal / 100 g *", modifier = Modifier.fillMaxWidth())
+            NumericTextField(protein, { protein = it }, label = "Protein g / 100 g *", modifier = Modifier.fillMaxWidth())
+            NumericTextField(carbs, { carbs = it }, label = "Kohlenhydrate g / 100 g *", modifier = Modifier.fillMaxWidth())
+            NumericTextField(fat, { fat = it }, label = "Fett g / 100 g *", modifier = Modifier.fillMaxWidth())
+            NumericTextField(sugar, { sugar = it }, label = "Zucker g / 100 g", modifier = Modifier.fillMaxWidth())
+            NumericTextField(fiber, { fiber = it }, label = "Ballaststoffe g / 100 g", modifier = Modifier.fillMaxWidth())
+            NumericTextField(salt, { salt = it }, label = "Salz g / 100 g", modifier = Modifier.fillMaxWidth())
+            TagSelector(selected = tag, onSelected = { tag = it })
+            Button(
                 onClick = {
                     onSave(
                         Food(
@@ -655,12 +666,11 @@ private fun CustomFoodDialog(
                     )
                 },
                 enabled = isValid,
-            ) { Text("Speichern") }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Abbrechen") }
-        },
-    )
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(14.dp),
+            ) { Text("Speichern", style = MaterialTheme.typography.labelLarge) }
+        }
+    }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
