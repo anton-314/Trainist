@@ -12,6 +12,10 @@ import dev.antonlammers.macrotrac.data.repository.GoalRepositoryImpl
 import dev.antonlammers.macrotrac.data.repository.RoomTransactionRunner
 import dev.antonlammers.macrotrac.data.repository.SettingsRepositoryImpl
 import dev.antonlammers.macrotrac.data.repository.TransactionRunner
+import dev.antonlammers.macrotrac.data.seed.AssetExerciseSnapshotSource
+import dev.antonlammers.macrotrac.data.seed.ExerciseSnapshotSource
+import dev.antonlammers.macrotrac.data.seed.SeedVersionStore
+import dev.antonlammers.macrotrac.data.seed.SharedPrefsSeedVersionStore
 import dev.antonlammers.macrotrac.data.repository.WeightRepositoryImpl
 import dev.antonlammers.macrotrac.data.repository.WorkoutSessionRepositoryImpl
 import dev.antonlammers.macrotrac.data.repository.WorkoutTemplateRepositoryImpl
@@ -59,4 +63,10 @@ abstract class RepositoryModule {
 
     @Binds @Singleton
     abstract fun bindTransactionRunner(impl: RoomTransactionRunner): TransactionRunner
+
+    @Binds @Singleton
+    abstract fun bindSeedVersionStore(impl: SharedPrefsSeedVersionStore): SeedVersionStore
+
+    @Binds @Singleton
+    abstract fun bindExerciseSnapshotSource(impl: AssetExerciseSnapshotSource): ExerciseSnapshotSource
 }
