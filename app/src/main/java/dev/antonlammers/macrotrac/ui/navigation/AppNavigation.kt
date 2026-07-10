@@ -5,11 +5,13 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.BarChart
-import androidx.compose.material.icons.outlined.Flag
+import androidx.compose.material.icons.outlined.FitnessCenter
 import androidx.compose.material.icons.outlined.Home
+import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.rounded.BarChart
-import androidx.compose.material.icons.rounded.Flag
+import androidx.compose.material.icons.rounded.FitnessCenter
 import androidx.compose.material.icons.rounded.Home
+import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -32,9 +34,10 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import dev.antonlammers.macrotrac.ui.addfood.AddFoodScreen
 import dev.antonlammers.macrotrac.ui.addfood.BarcodeScannerScreen
-import dev.antonlammers.macrotrac.ui.goals.GoalsScreen
 import dev.antonlammers.macrotrac.ui.overview.OverviewScreen
+import dev.antonlammers.macrotrac.ui.settings.SettingsScreen
 import dev.antonlammers.macrotrac.ui.stats.StatsScreen
+import dev.antonlammers.macrotrac.ui.workout.WorkoutScreen
 import java.time.LocalDate
 
 sealed class Screen(val route: String) {
@@ -42,9 +45,10 @@ sealed class Screen(val route: String) {
     object AddFood : Screen("add_food/{date}") {
         fun withDate(date: LocalDate) = "add_food/$date"
     }
-    object Goals : Screen("goals")
+    object Workout : Screen("workout")
     object BarcodeScanner : Screen("barcode_scanner")
     object Stats : Screen("stats")
+    object Settings : Screen("settings")
 }
 
 private data class BottomNavItem(
@@ -56,9 +60,10 @@ private data class BottomNavItem(
 
 // Active tab uses the filled (Rounded) icon variant, inactive the outline variant.
 private val bottomNavItems = listOf(
-    BottomNavItem(Screen.Overview, "Übersicht", Icons.Rounded.Home, Icons.Outlined.Home),
-    BottomNavItem(Screen.Goals, "Ziele", Icons.Rounded.Flag, Icons.Outlined.Flag),
+    BottomNavItem(Screen.Overview, "Ernährung", Icons.Rounded.Home, Icons.Outlined.Home),
+    BottomNavItem(Screen.Workout, "Training", Icons.Rounded.FitnessCenter, Icons.Outlined.FitnessCenter),
     BottomNavItem(Screen.Stats, "Statistik", Icons.Rounded.BarChart, Icons.Outlined.BarChart),
+    BottomNavItem(Screen.Settings, "Einstellungen", Icons.Rounded.Settings, Icons.Outlined.Settings),
 )
 
 @ExperimentalGetImage
@@ -79,9 +84,10 @@ fun AppNavigation(navController: NavHostController = rememberNavController()) {
                 route = Screen.AddFood.route,
                 arguments = listOf(navArgument("date") { type = NavType.StringType }),
             ) { AddFoodScreen(navController) }
-            composable(Screen.Goals.route) { GoalsScreen(navController) }
+            composable(Screen.Workout.route) { WorkoutScreen(navController) }
             composable(Screen.BarcodeScanner.route) { BarcodeScannerScreen(navController) }
             composable(Screen.Stats.route) { StatsScreen(navController) }
+            composable(Screen.Settings.route) { SettingsScreen(navController) }
         }
         if (showBottomNav) {
             // Flat nav bar: hairline top border replaces Material's tonal elevation.
