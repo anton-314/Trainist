@@ -2,13 +2,20 @@ package dev.antonlammers.macrotrac.ui.stats
 
 import app.cash.turbine.test
 import dev.antonlammers.macrotrac.domain.model.DailyGoal
+import dev.antonlammers.macrotrac.domain.model.Exercise
+import dev.antonlammers.macrotrac.domain.model.ExerciseType
 import dev.antonlammers.macrotrac.domain.model.FoodEntry
 import dev.antonlammers.macrotrac.domain.model.FoodTag
 import dev.antonlammers.macrotrac.domain.model.MealCategory
+import dev.antonlammers.macrotrac.domain.model.SessionExercise
+import dev.antonlammers.macrotrac.domain.model.SetEntry
 import dev.antonlammers.macrotrac.domain.model.WeightEntry
+import dev.antonlammers.macrotrac.domain.model.WorkoutSession
+import dev.antonlammers.macrotrac.fake.FakeExerciseCatalogRepository
 import dev.antonlammers.macrotrac.fake.FakeFoodEntryRepository
 import dev.antonlammers.macrotrac.fake.FakeGoalRepository
 import dev.antonlammers.macrotrac.fake.FakeWeightRepository
+import dev.antonlammers.macrotrac.fake.FakeWorkoutSessionRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.StandardTestDispatcher
@@ -29,6 +36,8 @@ class StatsViewModelTest {
     private lateinit var foodRepo: FakeFoodEntryRepository
     private lateinit var weightRepo: FakeWeightRepository
     private lateinit var goalRepo: FakeGoalRepository
+    private lateinit var sessionRepo: FakeWorkoutSessionRepository
+    private lateinit var catalogRepo: FakeExerciseCatalogRepository
     private lateinit var viewModel: StatsViewModel
 
     @Before
@@ -37,7 +46,9 @@ class StatsViewModelTest {
         foodRepo = FakeFoodEntryRepository()
         weightRepo = FakeWeightRepository()
         goalRepo = FakeGoalRepository()
-        viewModel = StatsViewModel(foodRepo, weightRepo, goalRepo)
+        sessionRepo = FakeWorkoutSessionRepository()
+        catalogRepo = FakeExerciseCatalogRepository()
+        viewModel = StatsViewModel(foodRepo, weightRepo, goalRepo, sessionRepo, catalogRepo)
     }
 
     @After
@@ -176,6 +187,90 @@ class StatsViewModelTest {
             assertEquals(null, awaitItem().overallCleanPercent)
         }
     }
+
+    // --- training charts ---
+
+    @Test
+    fun `frequency counts completed sessions per bucket and ignores active sessions`() = runTest {
+        val today = LocalDate.now()
+        sessionRepo.save(completedSession("s1", today))
+        sessionRepo.save(completedSession("s2", today))
+        sessionRepo.save(activeSession("s3", today))
+
+        viewModel.uiState.test {
+            var state = awaitItem()
+            while (state.frequencyPoints.sumOf { it.value } < 2.0) state = awaitItem()
+
+            assertEquals(7, state.frequencyPoints.size) // WEEK → 7 daily buckets
+            assertEquals(2.0, state.frequencyPoints.last().value, 0.001) // two completed today
+            assertEquals(2.0, state.frequencyPoints.sumOf { it.value }, 0.001) // active session excluded
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `strength chart surfaces the selected exercise's estimated 1RM over time`() = runTest {
+        val today = LocalDate.now()
+        catalogRepo.upsertAll(listOf(Exercise("bench", "Bench Press", ExerciseType.WEIGHT_REPS, isCustom = false)))
+        sessionRepo.save(
+            completedSession("s1", today, "bench", listOf(SetEntry(position = 0, weightKg = 100.0, reps = 5))),
+        )
+
+        viewModel.uiState.test {
+            var state = awaitItem()
+            while (state.strength.samples.isEmpty()) state = awaitItem()
+
+            assertEquals(listOf("Bench Press"), state.strengthExercises.map { it.name })
+            assertEquals("bench", state.selectedExerciseId) // first option auto-selected
+            assertEquals(116.667, state.strength.samples.last().estimatedOneRepMaxKg, 0.01) // 100×(1+5/30)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `selecting another exercise switches the strength chart`() = runTest {
+        val today = LocalDate.now()
+        catalogRepo.upsertAll(
+            listOf(
+                Exercise("bench", "Bench Press", ExerciseType.WEIGHT_REPS, isCustom = false),
+                Exercise("squat", "Squat", ExerciseType.WEIGHT_REPS, isCustom = false),
+            ),
+        )
+        sessionRepo.save(completedSession("s1", today, "bench", listOf(SetEntry(position = 0, weightKg = 100.0, reps = 5))))
+        sessionRepo.save(completedSession("s2", today, "squat", listOf(SetEntry(position = 0, weightKg = 140.0, reps = 5))))
+
+        viewModel.uiState.test {
+            var state = awaitItem()
+            while (state.selectedExerciseId == null) state = awaitItem()
+            assertEquals("bench", state.selectedExerciseId) // alphabetical first
+
+            viewModel.setSelectedExercise("squat")
+            while (state.selectedExerciseId != "squat") state = awaitItem()
+            assertEquals(163.333, state.strength.samples.last().estimatedOneRepMaxKg, 0.01) // 140×(1+5/30)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    private fun completedSession(
+        stableId: String,
+        date: LocalDate,
+        exerciseStableId: String = "bench",
+        sets: List<SetEntry> = listOf(SetEntry(position = 0, weightKg = 80.0, reps = 5)),
+    ) = WorkoutSession(
+        stableId = stableId,
+        date = date,
+        isActive = false,
+        startedAtMs = 1L,
+        endedAtMs = 2L,
+        exercises = listOf(SessionExercise(exerciseStableId = exerciseStableId, position = 0, sets = sets)),
+    )
+
+    private fun activeSession(stableId: String, date: LocalDate) = WorkoutSession(
+        stableId = stableId,
+        date = date,
+        isActive = true,
+        startedAtMs = 1L,
+    )
 
     private fun buildEntry(kcal: Double, date: LocalDate, tag: FoodTag = FoodTag.NONE) = FoodEntry(
         foodName = "Test",

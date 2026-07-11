@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -116,9 +117,9 @@ fun StatsScreen(
                             )
                         }
                     } else {
-                        CalorieBarChart(
+                        BarChart(
                             points = state.caloriePoints,
-                            goalKcal = state.goalKcal,
+                            goalValue = state.goalKcal,
                             barColor = CalorieColor,
                             trackColor = MaterialTheme.colorScheme.surfaceVariant,
                             goalColor = MaterialTheme.colorScheme.primary,
@@ -210,22 +211,67 @@ fun StatsScreen(
                 }
             }
 
+            // Training frequency
+            ChartCard("Trainingsfrequenz") {
+                if (state.frequencyPoints.isEmpty() || state.frequencyPoints.all { it.value == 0.0 }) {
+                    ChartEmptyHint("Noch keine Einheiten")
+                } else {
+                    BarChart(
+                        points = state.frequencyPoints,
+                        goalValue = 0.0,
+                        barColor = MaterialTheme.colorScheme.primary,
+                        trackColor = MaterialTheme.colorScheme.surfaceVariant,
+                        goalColor = MaterialTheme.colorScheme.primary,
+                        labelColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+
+            // Strength progression (per exercise)
+            ChartCard("Kraftverlauf") {
+                if (state.strengthExercises.isEmpty()) {
+                    ChartEmptyHint("Noch keine Trainingsdaten")
+                } else {
+                    ExerciseSelector(
+                        exercises = state.strengthExercises,
+                        selectedId = state.selectedExerciseId,
+                        onSelect = statsViewModel::setSelectedExercise,
+                    )
+                    if (!state.strength.hasData) {
+                        ChartEmptyHint("Für diese Übung keine Daten im Zeitraum")
+                    } else {
+                        StrengthChart(
+                            data = state.strength,
+                            range = state.timeRange,
+                            lineColor = MaterialTheme.colorScheme.primary,
+                            gridColor = MaterialTheme.colorScheme.surfaceVariant,
+                            labelColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+            }
+
             // Extra bottom breathing room so the last card clears the navigation bar.
             Spacer(Modifier.height(24.dp))
         }
     }
 }
 
+/**
+ * Dynamic-scale bar chart with rounded tops (the Canvas clips the bottom corners). An optional dashed
+ * goal line is drawn when [goalValue] > 0 — shared by the calorie chart (goal = kcal target) and the
+ * training-frequency chart (no goal line).
+ */
 @Composable
-private fun CalorieBarChart(
+private fun BarChart(
     points: List<ChartPoint>,
-    goalKcal: Double,
+    goalValue: Double,
     barColor: Color,
     trackColor: Color,
     goalColor: Color,
     labelColor: Color,
 ) {
-    val maxValue = maxOf(points.maxOf { it.value }, goalKcal, 1.0).toFloat()
+    val maxValue = maxOf(points.maxOf { it.value }, goalValue, 1.0).toFloat()
     val labelStep = when {
         points.size <= 8 -> 1
         points.size <= 16 -> 2
@@ -255,8 +301,8 @@ private fun CalorieBarChart(
                 }
             }
 
-            if (goalKcal > 0f) {
-                val goalY = size.height - (goalKcal.toFloat() / maxValue * size.height).coerceIn(0f, size.height)
+            if (goalValue > 0f) {
+                val goalY = size.height - (goalValue.toFloat() / maxValue * size.height).coerceIn(0f, size.height)
                 drawLine(
                     goalColor,
                     Offset(0f, goalY),
@@ -460,6 +506,128 @@ private fun WeightChart(
                 path, trendColor,
                 style = Stroke(width = 2.5.dp.toPx(), cap = StrokeCap.Round, join = StrokeJoin.Round),
             )
+        }
+    }
+}
+
+/** Flat hairline chart card matching the existing stats cards; hosts a titled chart or empty hint. */
+@Composable
+private fun ChartCard(title: String, content: @Composable () -> Unit) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+    ) {
+        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text(title, style = MaterialTheme.typography.titleSmall)
+            content()
+        }
+    }
+}
+
+@Composable
+private fun ChartEmptyHint(text: String) {
+    Box(modifier = Modifier.fillMaxWidth().height(80.dp), contentAlignment = Alignment.Center) {
+        Text(text, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    }
+}
+
+/** Horizontally-scrollable pill chips picking the exercise the strength chart shows. */
+@Composable
+private fun ExerciseSelector(
+    exercises: List<ExerciseOption>,
+    selectedId: String?,
+    onSelect: (String) -> Unit,
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        exercises.forEach { option ->
+            FilterChip(
+                selected = option.stableId == selectedId,
+                onClick = { onSelect(option.stableId) },
+                label = { Text(option.name, style = MaterialTheme.typography.labelMedium, maxLines = 1) },
+                shape = RoundedCornerShape(50),
+                colors = FilterChipDefaults.filterChipColors(
+                    selectedContainerColor = MaterialTheme.colorScheme.primary,
+                    selectedLabelColor = MaterialTheme.colorScheme.onPrimary,
+                ),
+            )
+        }
+    }
+}
+
+/**
+ * Time-proportional strength (estimated-1RM) line chart, mirroring the weight chart: x from each
+ * sample's real date within the range, y from a padded kg scale with min/mid/max gridline labels.
+ */
+@Composable
+private fun StrengthChart(
+    data: StrengthChartData,
+    range: TimeRange,
+    lineColor: Color,
+    gridColor: Color,
+    labelColor: Color,
+) {
+    val tickDates = remember(data.rangeStart, data.rangeEnd, range) {
+        weightTickDates(data.rangeStart, data.rangeEnd, range)
+    }
+    val tickFmt = remember(range) { weightTickFormatter(range) }
+
+    Canvas(modifier = Modifier.fillMaxWidth().height(180.dp)) {
+        val leftGutter = 36.dp.toPx()
+        val bottomGutter = 18.dp.toPx()
+        val plotLeft = leftGutter
+        val plotTop = 6.dp.toPx()
+        val plotWidth = size.width - leftGutter
+        val plotHeight = size.height - bottomGutter - plotTop
+
+        val startEpoch = data.rangeStart.toEpochDay()
+        val daySpan = (data.rangeEnd.toEpochDay() - startEpoch).coerceAtLeast(1L)
+        val kgSpan = (data.maxKg - data.minKg).takeIf { it > 0.0 } ?: 1.0
+
+        fun xForDate(d: LocalDate): Float =
+            plotLeft + ((d.toEpochDay() - startEpoch).toFloat() / daySpan) * plotWidth
+        fun yForKg(kg: Double): Float =
+            plotTop + (1f - ((kg - data.minKg) / kgSpan).toFloat()) * plotHeight
+
+        val labelPaint = android.graphics.Paint().apply {
+            color = labelColor.toArgb()
+            textSize = 10.sp.toPx()
+            isAntiAlias = true
+        }
+
+        labelPaint.textAlign = android.graphics.Paint.Align.RIGHT
+        listOf(data.minKg, (data.minKg + data.maxKg) / 2.0, data.maxKg).forEach { kg ->
+            val y = yForKg(kg)
+            drawLine(gridColor, Offset(plotLeft, y), Offset(size.width, y), strokeWidth = 1.dp.toPx())
+            drawContext.canvas.nativeCanvas.drawText(
+                formatKg(kg), plotLeft - 4.dp.toPx(), y + 3.5.dp.toPx(), labelPaint,
+            )
+        }
+
+        labelPaint.textAlign = android.graphics.Paint.Align.CENTER
+        tickDates.forEach { d ->
+            drawContext.canvas.nativeCanvas.drawText(
+                d.format(tickFmt), xForDate(d).coerceIn(plotLeft, size.width), size.height, labelPaint,
+            )
+        }
+
+        if (data.samples.size >= 2) {
+            val path = Path().apply {
+                moveTo(xForDate(data.samples.first().date), yForKg(data.samples.first().estimatedOneRepMaxKg))
+                data.samples.drop(1).forEach { lineTo(xForDate(it.date), yForKg(it.estimatedOneRepMaxKg)) }
+            }
+            drawPath(
+                path, lineColor,
+                style = Stroke(width = 2.5.dp.toPx(), cap = StrokeCap.Round, join = StrokeJoin.Round),
+            )
+        }
+        data.samples.forEach {
+            drawCircle(lineColor, 3.5.dp.toPx(), Offset(xForDate(it.date), yForKg(it.estimatedOneRepMaxKg)))
         }
     }
 }
