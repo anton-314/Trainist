@@ -449,6 +449,9 @@ class WorkoutSessionViewModelTest {
         advanceUntilIdle()
         vm.addExercise(exercise("bench", "Bench Press"))
         advanceUntilIdle()
+        vm.setWeight(0, 0, 80.0)
+        vm.setReps(0, 0, 5)
+        advanceUntilIdle()
 
         vm.finish()
         advanceUntilIdle()
@@ -459,6 +462,36 @@ class WorkoutSessionViewModelTest {
         assertEquals(1, all.size)
         assertFalse(all[0].isActive)
         assertEquals(FIXED_CLOCK, all[0].endedAtMs)
+    }
+
+    @Test
+    fun `finish deletes a session with zero volume instead of keeping it in history`() = runTest {
+        val vm = viewModel()
+        subscribe(vm.uiState)
+        subscribe(vm.finished)
+        advanceUntilIdle()
+        vm.addExercise(exercise("bench", "Bench Press"))
+        advanceUntilIdle() // set added with default weight 0.0 / reps 0 — never logged
+
+        vm.finish()
+        advanceUntilIdle()
+
+        assertTrue(vm.finished.value)
+        assertTrue(sessions.sessions().first().isEmpty())
+    }
+
+    @Test
+    fun `finish deletes an empty session with no exercises`() = runTest {
+        val vm = viewModel()
+        subscribe(vm.uiState)
+        subscribe(vm.finished)
+        advanceUntilIdle()
+
+        vm.finish()
+        advanceUntilIdle()
+
+        assertTrue(vm.finished.value)
+        assertTrue(sessions.sessions().first().isEmpty())
     }
 
     @Test
