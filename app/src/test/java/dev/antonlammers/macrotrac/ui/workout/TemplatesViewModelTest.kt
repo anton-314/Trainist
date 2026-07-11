@@ -2,6 +2,7 @@ package dev.antonlammers.macrotrac.ui.workout
 
 import dev.antonlammers.macrotrac.domain.model.TemplateExercise
 import dev.antonlammers.macrotrac.domain.model.WorkoutTemplate
+import dev.antonlammers.macrotrac.fake.FakeWorkoutSessionRepository
 import dev.antonlammers.macrotrac.fake.FakeWorkoutTemplateRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -25,12 +26,14 @@ class TemplatesViewModelTest {
 
     private val testDispatcher = StandardTestDispatcher()
     private lateinit var repo: FakeWorkoutTemplateRepository
+    private lateinit var sessions: FakeWorkoutSessionRepository
     private lateinit var viewModel: TemplatesViewModel
 
     @Before
     fun setup() {
         Dispatchers.setMain(testDispatcher)
         repo = FakeWorkoutTemplateRepository()
+        sessions = FakeWorkoutSessionRepository()
     }
 
     @After
@@ -52,7 +55,7 @@ class TemplatesViewModelTest {
     fun `templates are exposed sorted by name`() = runTest {
         seed("Pull Day")
         seed("Push Day")
-        viewModel = TemplatesViewModel(repo)
+        viewModel = TemplatesViewModel(repo, sessions)
         subscribe(viewModel.templates)
         advanceUntilIdle()
         assertEquals(listOf("Pull Day", "Push Day"), viewModel.templates.value.map { it.name })
@@ -61,7 +64,7 @@ class TemplatesViewModelTest {
     @Test
     fun `deferred delete hides then removes the template`() = runTest {
         val id = seed("Push Day")
-        viewModel = TemplatesViewModel(repo)
+        viewModel = TemplatesViewModel(repo, sessions)
         subscribe(viewModel.templates)
         advanceUntilIdle()
         val template = viewModel.templates.value.first { it.id == id }
@@ -80,7 +83,7 @@ class TemplatesViewModelTest {
     @Test
     fun `undo delete restores the template`() = runTest {
         val id = seed("Push Day")
-        viewModel = TemplatesViewModel(repo)
+        viewModel = TemplatesViewModel(repo, sessions)
         subscribe(viewModel.templates)
         advanceUntilIdle()
         val template = viewModel.templates.value.first { it.id == id }

@@ -39,6 +39,7 @@ import dev.antonlammers.macrotrac.ui.stats.StatsScreen
 import dev.antonlammers.macrotrac.ui.workout.ExerciseCatalogScreen
 import dev.antonlammers.macrotrac.ui.workout.TemplateEditorScreen
 import dev.antonlammers.macrotrac.ui.workout.TemplatesScreen
+import dev.antonlammers.macrotrac.ui.workout.WorkoutSessionScreen
 import java.time.LocalDate
 
 sealed class Screen(val route: String) {
@@ -51,6 +52,10 @@ sealed class Screen(val route: String) {
     object TemplateEditor : Screen("template_editor/{templateId}") {
         /** id 0 opens the editor for a brand-new template. */
         fun forTemplate(templateId: Long) = "template_editor/$templateId"
+    }
+    object WorkoutSession : Screen("workout_session?templateId={templateId}") {
+        /** templateId 0 starts an empty session; a running session is always resumed regardless. */
+        fun start(templateId: Long = 0L) = "workout_session?templateId=$templateId"
     }
     object BarcodeScanner : Screen("barcode_scanner")
     object Stats : Screen("stats")
@@ -96,6 +101,12 @@ fun AppNavigation(navController: NavHostController = rememberNavController()) {
                 route = Screen.TemplateEditor.route,
                 arguments = listOf(navArgument("templateId") { type = NavType.LongType }),
             ) { TemplateEditorScreen(navController) }
+            composable(
+                route = Screen.WorkoutSession.route,
+                arguments = listOf(
+                    navArgument("templateId") { type = NavType.LongType; defaultValue = 0L },
+                ),
+            ) { WorkoutSessionScreen(navController) }
             composable(Screen.BarcodeScanner.route) { BarcodeScannerScreen(navController) }
             composable(Screen.Stats.route) { StatsScreen(navController) }
             composable(Screen.Settings.route) { SettingsScreen(navController) }
