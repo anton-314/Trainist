@@ -61,6 +61,9 @@ class DataViewModel @Inject constructor(
                         if (result.weightImported > 0) add("${result.weightImported} Gewichtseinträge")
                         if (result.goalRestored) add("Ziele wiederhergestellt")
                         if (result.customFoodsImported > 0) add("${result.customFoodsImported} eigene Lebensmittel")
+                        if (result.exercisesImported > 0) add("${result.exercisesImported} eigene Übungen")
+                        if (result.templatesImported > 0) add("${result.templatesImported} Vorlagen")
+                        if (result.sessionsImported > 0) add("${result.sessionsImported} Einheiten")
                     }
                     val msg = if (parts.isEmpty()) "Nichts importiert" else parts.joinToString(", ")
                     _uiState.update { it.copy(isLoading = false, message = msg) }

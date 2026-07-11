@@ -100,3 +100,12 @@ internal fun List<String>.csvStr(headers: Map<String, Int>, col: String): String
 
 internal fun List<String>.csvDbl(headers: Map<String, Int>, col: String): Double? =
     csvStr(headers, col)?.toDoubleOrNull()
+
+internal fun List<String>.csvInt(headers: Map<String, Int>, col: String): Int? =
+    csvStr(headers, col)?.takeIf { it.isNotBlank() }?.toDoubleOrNull()?.toInt()
+
+internal fun List<String>.csvLong(headers: Map<String, Int>, col: String): Long? =
+    csvStr(headers, col)?.takeIf { it.isNotBlank() }?.toDoubleOrNull()?.toLong()
+
+internal fun List<String>.csvBool(headers: Map<String, Int>, col: String): Boolean? =
+    csvStr(headers, col)?.takeIf { it.isNotBlank() }?.let { it.equals("true", ignoreCase = true) || it == "1" }
