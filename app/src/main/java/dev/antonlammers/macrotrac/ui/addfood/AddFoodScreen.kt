@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
@@ -619,6 +620,7 @@ private fun CustomFoodDialog(
     val sheetState = rememberModalBottomSheetState()
     ModalBottomSheet(
         onDismissRequest = onDismiss,
+        modifier = Modifier.statusBarsPadding(),
         sheetState = sheetState,
         shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
         containerColor = MaterialTheme.colorScheme.surface,
@@ -696,6 +698,7 @@ private fun AmountSheet(
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
+        modifier = Modifier.statusBarsPadding(),
         sheetState = sheetState,
         shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
         containerColor = MaterialTheme.colorScheme.surface,

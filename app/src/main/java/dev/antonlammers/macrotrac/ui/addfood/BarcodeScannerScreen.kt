@@ -31,6 +31,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -165,6 +166,7 @@ fun BarcodeScannerScreen(navController: NavController) {
                 val sheetState = rememberModalBottomSheetState()
                 ModalBottomSheet(
                     onDismissRequest = { showManualSheet = false },
+                    modifier = Modifier.statusBarsPadding(),
                     sheetState = sheetState,
                     shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
                     containerColor = MaterialTheme.colorScheme.surface,
