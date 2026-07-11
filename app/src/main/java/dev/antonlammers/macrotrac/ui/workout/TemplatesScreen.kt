@@ -17,6 +17,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
+import androidx.compose.material.icons.rounded.CalendarMonth
 import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.Edit
 import androidx.compose.material.icons.rounded.FitnessCenter
@@ -77,6 +78,9 @@ fun TemplatesScreen(
             TopAppBar(
                 title = { Text("Training") },
                 actions = {
+                    IconButton(onClick = { navController.navigate(Screen.WorkoutHistory.route) }) {
+                        Icon(Icons.Rounded.CalendarMonth, contentDescription = "Verlauf")
+                    }
                     IconButton(onClick = { navController.navigate(Screen.TemplateEditor.forTemplate(0)) }) {
                         Icon(Icons.Rounded.Add, contentDescription = "Neue Vorlage")
                     }

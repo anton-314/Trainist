@@ -39,6 +39,7 @@ import dev.antonlammers.macrotrac.ui.stats.StatsScreen
 import dev.antonlammers.macrotrac.ui.workout.ExerciseCatalogScreen
 import dev.antonlammers.macrotrac.ui.workout.TemplateEditorScreen
 import dev.antonlammers.macrotrac.ui.workout.TemplatesScreen
+import dev.antonlammers.macrotrac.ui.workout.WorkoutHistoryScreen
 import dev.antonlammers.macrotrac.ui.workout.WorkoutSessionScreen
 import java.time.LocalDate
 
@@ -48,6 +49,7 @@ sealed class Screen(val route: String) {
         fun withDate(date: LocalDate) = "add_food/$date"
     }
     object Workout : Screen("workout")
+    object WorkoutHistory : Screen("workout_history")
     object ExerciseCatalog : Screen("exercise_catalog")
     object TemplateEditor : Screen("template_editor/{templateId}") {
         /** id 0 opens the editor for a brand-new template. */
@@ -96,6 +98,7 @@ fun AppNavigation(navController: NavHostController = rememberNavController()) {
                 arguments = listOf(navArgument("date") { type = NavType.StringType }),
             ) { AddFoodScreen(navController) }
             composable(Screen.Workout.route) { TemplatesScreen(navController) }
+            composable(Screen.WorkoutHistory.route) { WorkoutHistoryScreen(navController) }
             composable(Screen.ExerciseCatalog.route) { ExerciseCatalogScreen(navController) }
             composable(
                 route = Screen.TemplateEditor.route,

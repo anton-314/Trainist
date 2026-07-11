@@ -1,9 +1,11 @@
 package dev.antonlammers.macrotrac.domain
 
 import dev.antonlammers.macrotrac.domain.model.ExerciseType
+import dev.antonlammers.macrotrac.domain.model.SessionExercise
 import dev.antonlammers.macrotrac.domain.model.SetEntry
 import dev.antonlammers.macrotrac.domain.model.SetType
 import dev.antonlammers.macrotrac.domain.model.WeightEntry
+import dev.antonlammers.macrotrac.domain.model.WorkoutSession
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
@@ -150,6 +152,86 @@ class WorkoutMetricsTest {
     fun `no performed set is never a personal record`() {
         assertFalse(WorkoutMetrics.isNewPersonalRecord(null, 100.0))
         assertFalse(WorkoutMetrics.isNewPersonalRecord(null, null))
+    }
+
+    // --- PR sweep across sessions ---
+
+    private fun session(
+        stableId: String,
+        date: LocalDate,
+        exerciseStableId: String,
+        sets: List<SetEntry>,
+        startedAtMs: Long = 0L,
+    ) = WorkoutSession(
+        stableId = stableId,
+        date = date,
+        isActive = false,
+        startedAtMs = startedAtMs,
+        endedAtMs = startedAtMs + 1,
+        exercises = listOf(SessionExercise(exerciseStableId = exerciseStableId, position = 0, sets = sets)),
+    )
+
+    @Test
+    fun `personal records marks each new max weight and ignores ties and regressions`() {
+        val history = listOf(
+            session("s1", LocalDate.of(2026, 7, 1), "bench", listOf(set(100.0, 5))), // first → PR
+            session("s2", LocalDate.of(2026, 7, 3), "bench", listOf(set(100.0, 8))), // heavier reps, same weight → tie, no PR
+            session("s3", LocalDate.of(2026, 7, 5), "bench", listOf(set(102.5, 3))), // heavier → PR
+            session("s4", LocalDate.of(2026, 7, 8), "bench", listOf(set(97.5, 10))), // lighter → no PR
+        )
+        val prs = WorkoutMetrics.personalRecords(
+            history,
+            typeOf = { ExerciseType.WEIGHT_REPS },
+            bodyWeightForDate = { null },
+        )
+        assertEquals(setOf("s1" to "bench", "s3" to "bench"), prs)
+    }
+
+    @Test
+    fun `personal records are tracked independently per exercise`() {
+        val history = listOf(
+            session("s1", LocalDate.of(2026, 7, 1), "bench", listOf(set(100.0, 5))),
+            session("s2", LocalDate.of(2026, 7, 2), "squat", listOf(set(140.0, 5))),
+        )
+        val prs = WorkoutMetrics.personalRecords(
+            history,
+            typeOf = { ExerciseType.WEIGHT_REPS },
+            bodyWeightForDate = { null },
+        )
+        assertEquals(setOf("s1" to "bench", "s2" to "squat"), prs)
+    }
+
+    @Test
+    fun `personal records use the body weight of each session for bodyweight exercises`() {
+        val history = listOf(
+            // 80 kg body weight + 0 added = 80 effective → first PR
+            session("s1", LocalDate.of(2026, 7, 1), "pullup", listOf(set(0.0, 8))),
+            // 82 kg body weight later + 0 added = 82 effective → new PR from body-weight gain alone
+            session("s2", LocalDate.of(2026, 7, 8), "pullup", listOf(set(0.0, 6))),
+        )
+        val bodyWeights = mapOf(
+            LocalDate.of(2026, 7, 1) to 80.0,
+            LocalDate.of(2026, 7, 8) to 82.0,
+        )
+        val prs = WorkoutMetrics.personalRecords(
+            history,
+            typeOf = { ExerciseType.BODYWEIGHT },
+            bodyWeightForDate = { bodyWeights[it] },
+        )
+        assertEquals(setOf("s1" to "pullup", "s2" to "pullup"), prs)
+    }
+
+    @Test
+    fun `an exercise with only warm-ups never sets a record`() {
+        val history = listOf(
+            session("s1", LocalDate.of(2026, 7, 1), "bench", listOf(set(120.0, 5, type = SetType.WARMUP))),
+        )
+        val prs = WorkoutMetrics.personalRecords(
+            history,
+            typeOf = { ExerciseType.WEIGHT_REPS },
+            bodyWeightForDate = { null },
+        )
+        assertTrue(prs.isEmpty())
     }
 
     // --- body weight resolution ---

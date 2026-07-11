@@ -4,6 +4,7 @@ import dev.antonlammers.macrotrac.domain.model.ExerciseType
 import dev.antonlammers.macrotrac.domain.model.SetEntry
 import dev.antonlammers.macrotrac.domain.model.SetType
 import dev.antonlammers.macrotrac.domain.model.WeightEntry
+import dev.antonlammers.macrotrac.domain.model.WorkoutSession
 import java.time.LocalDate
 
 /**
@@ -71,6 +72,40 @@ object WorkoutMetrics {
      */
     fun isNewPersonalRecord(candidateBestKg: Double?, previousBestKg: Double?): Boolean =
         candidateBestKg != null && (previousBestKg == null || candidateBestKg > previousBestKg)
+
+    /**
+     * Sweeps [completedSessions] chronologically and marks, per session, which exercises achieved a
+     * new **max-effective-weight PR** at that point in time (spec §3.5): the running best effective
+     * weight per exercise is tracked, and a session's exercise is a record when its best strictly
+     * exceeds everything before it (ties are not PRs). [typeOf] resolves an exercise's [ExerciseType],
+     * [bodyWeightForDate] the body weight to apply on a session's date (for bodyweight exercises).
+     * Returns the set of `(sessionStableId, exerciseStableId)` pairs that set a record — a session
+     * keeps its badge even once a later session beats it.
+     */
+    fun personalRecords(
+        completedSessions: List<WorkoutSession>,
+        typeOf: (String) -> ExerciseType,
+        bodyWeightForDate: (LocalDate) -> Double?,
+    ): Set<Pair<String, String>> {
+        val records = mutableSetOf<Pair<String, String>>()
+        val runningBest = mutableMapOf<String, Double>()
+        completedSessions
+            .sortedWith(compareBy<WorkoutSession> { it.date }.thenBy { it.startedAtMs })
+            .forEach { session ->
+                session.exercises.forEach { se ->
+                    val best = bestEffectiveWeightKg(
+                        se.sets,
+                        typeOf(se.exerciseStableId),
+                        bodyWeightForDate(session.date),
+                    ) ?: return@forEach
+                    if (isNewPersonalRecord(best, runningBest[se.exerciseStableId])) {
+                        records += session.stableId to se.exerciseStableId
+                        runningBest[se.exerciseStableId] = best
+                    }
+                }
+            }
+        return records
+    }
 
     /**
      * The body weight to use for a session on [date] (spec §3.4 fallback "zuletzt bekanntes"): the

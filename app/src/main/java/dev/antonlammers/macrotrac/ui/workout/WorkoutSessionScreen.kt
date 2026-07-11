@@ -373,43 +373,6 @@ private fun SetRow(
     }
 }
 
-/**
- * The leading set marker: the set number tinted by its [SetType] (plus a short W/D/F tag for
- * non-normal types). Tapping opens a menu to change the type. Discreet, colour-token-only (spec §6).
- */
-@Composable
-private fun SetTypeBadge(
-    setNumber: Int,
-    type: SetType,
-    onTypeChange: (SetType) -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    var menuOpen by remember { mutableStateOf(false) }
-    val tint = type.color()
-    Box(modifier) {
-        Column(
-            modifier = Modifier
-                .clip(RoundedCornerShape(8.dp))
-                .clickable { menuOpen = true }
-                .padding(vertical = 4.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) {
-            Text(setNumber.toString(), style = MaterialTheme.typography.labelMedium, color = tint)
-            if (type != SetType.NORMAL) {
-                Text(type.shortLabel(), style = MaterialTheme.typography.labelSmall, color = tint)
-            }
-        }
-        DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
-            SetType.selectable.forEach { option ->
-                DropdownMenuItem(
-                    text = { Text(option.displayName(), color = option.color()) },
-                    onClick = { menuOpen = false; onTypeChange(option) },
-                )
-            }
-        }
-    }
-}
-
 @Composable
 private fun Caption(text: String, modifier: Modifier = Modifier) {
     Text(
@@ -537,14 +500,3 @@ private fun formatMmSs(totalSeconds: Int): String {
     return "%d:%02d".format(safe / 60, safe % 60)
 }
 
-/** Formats a kg value: whole numbers without decimals, otherwise rounded to one decimal. */
-private fun formatKg(value: Double): String {
-    val rounded = kotlin.math.round(value * 10.0) / 10.0
-    return if (rounded % 1.0 == 0.0) rounded.toInt().toString() else "%.1f".format(rounded)
-}
-
-private fun parseWeight(text: String): Double = text.replace(',', '.').toDoubleOrNull() ?: 0.0
-private fun parseReps(text: String): Int = text.filter { it.isDigit() }.toIntOrNull() ?: 0
-private fun weightToText(weightKg: Double): String =
-    if (weightKg == 0.0) "" else if (weightKg % 1.0 == 0.0) weightKg.toInt().toString() else weightKg.toString()
-private fun repsToText(reps: Int): String = if (reps == 0) "" else reps.toString()
