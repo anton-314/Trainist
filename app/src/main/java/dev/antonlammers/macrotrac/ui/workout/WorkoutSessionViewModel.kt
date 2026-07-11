@@ -445,8 +445,23 @@ class WorkoutSessionViewModel(
         cancelRest()
         _session.update { it?.copy(isActive = false, endedAtMs = clock()) }
         viewModelScope.launch {
-            persist()
+            val session = _session.value
+            if (session != null && totalVolumeKg(session) <= 0.0) {
+                if (session.id != 0L) sessions.delete(session.id)
+            } else {
+                persist()
+            }
             _finished.value = true
+        }
+    }
+
+    /** Total volume across all exercises — a session with no logged weight/reps is not worth keeping. */
+    private suspend fun totalVolumeKg(session: WorkoutSession): Double {
+        val byStableId = catalog.exercises().first().associateBy { it.stableId }
+        val bodyWeightKg = _bodyWeightKg.value
+        return session.exercises.sumOf { se ->
+            val type = byStableId[se.exerciseStableId]?.type ?: ExerciseType.WEIGHT_REPS
+            WorkoutMetrics.volumeKg(se.sets, type, bodyWeightKg)
         }
     }
 
