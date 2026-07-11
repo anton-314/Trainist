@@ -32,7 +32,7 @@ data class WorkoutUiState(
 )
 
 @HiltViewModel
-class WorkoutViewModel @Inject constructor(
+class ExerciseCatalogViewModel @Inject constructor(
     private val catalog: ExerciseCatalogRepository,
 ) : ViewModel() {
 

@@ -20,6 +20,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.Edit
@@ -31,6 +32,7 @@ import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
@@ -69,15 +71,16 @@ import java.util.Locale
 import kotlinx.coroutines.launch
 
 /**
- * "Training" tab — the searchable / filterable exercise catalog (bundled entries + custom ones).
- * Ink & Paper style, reusing the existing list/bottom-sheet building blocks. Catalog exercises are
- * read-only; custom exercises are created via the FAB and edited/deleted via swipe.
+ * The searchable / filterable exercise catalog (bundled entries + custom ones), reached from the
+ * Training tab's templates screen. Ink & Paper style, reusing the existing list/bottom-sheet
+ * building blocks. Catalog exercises are read-only; custom exercises are created via the FAB and
+ * edited/deleted via swipe.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun WorkoutScreen(
-    @Suppress("UNUSED_PARAMETER") navController: NavController,
-    viewModel: WorkoutViewModel = hiltViewModel(),
+fun ExerciseCatalogScreen(
+    navController: NavController,
+    viewModel: ExerciseCatalogViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val exercises by viewModel.exercises.collectAsStateWithLifecycle()
@@ -131,7 +134,16 @@ fun WorkoutScreen(
     }
 
     Scaffold(
-        topBar = { TopAppBar(title = { Text("Training") }) },
+        topBar = {
+            TopAppBar(
+                title = { Text("Übungen") },
+                navigationIcon = {
+                    IconButton(onClick = { navController.popBackStack() }) {
+                        Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Zurück")
+                    }
+                },
+            )
+        },
         floatingActionButton = {
             FloatingActionButton(
                 onClick = { showCreateSheet = true },

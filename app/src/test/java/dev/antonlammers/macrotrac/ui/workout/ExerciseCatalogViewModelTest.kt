@@ -24,11 +24,11 @@ import org.junit.Before
 import org.junit.Test
 
 @OptIn(ExperimentalCoroutinesApi::class)
-class WorkoutViewModelTest {
+class ExerciseCatalogViewModelTest {
 
     private val testDispatcher = StandardTestDispatcher()
     private lateinit var repo: FakeExerciseCatalogRepository
-    private lateinit var viewModel: WorkoutViewModel
+    private lateinit var viewModel: ExerciseCatalogViewModel
 
     @Before
     fun setup() {
@@ -59,7 +59,7 @@ class WorkoutViewModelTest {
             catalog("b", "Squat", "quadriceps", "barbell"),
             catalog("a", "Bench Press", "chest", "barbell"),
         )
-        viewModel = WorkoutViewModel(repo)
+        viewModel = ExerciseCatalogViewModel(repo)
         subscribe(viewModel.exercises)
         advanceUntilIdle()
         assertEquals(listOf("Bench Press", "Squat"), viewModel.exercises.value.map { it.name })
@@ -71,7 +71,7 @@ class WorkoutViewModelTest {
             catalog("a", "Bench Press", "chest", "barbell"),
             catalog("b", "Squat", "quadriceps", "barbell"),
         )
-        viewModel = WorkoutViewModel(repo)
+        viewModel = ExerciseCatalogViewModel(repo)
         subscribe(viewModel.exercises)
         viewModel.onQueryChange("bench")
         advanceUntilIdle()
@@ -87,7 +87,7 @@ class WorkoutViewModelTest {
             catalog("b", "Push-Up", "chest", "body only"),
             catalog("c", "Squat", "quadriceps", "barbell"),
         )
-        viewModel = WorkoutViewModel(repo)
+        viewModel = ExerciseCatalogViewModel(repo)
         subscribe(viewModel.exercises)
 
         viewModel.onMuscleSelected("chest")
@@ -102,7 +102,7 @@ class WorkoutViewModelTest {
     @Test
     fun `selecting the active muscle filter clears it`() = runTest {
         seed(catalog("a", "Bench Press", "chest", "barbell"))
-        viewModel = WorkoutViewModel(repo)
+        viewModel = ExerciseCatalogViewModel(repo)
         viewModel.onMuscleSelected("chest")
         advanceUntilIdle()
         assertEquals("chest", viewModel.uiState.value.muscle)
@@ -117,7 +117,7 @@ class WorkoutViewModelTest {
             catalog("b", "Push-Up", "chest", "body only"),
             catalog("c", "Squat", "quadriceps", "barbell"),
         )
-        viewModel = WorkoutViewModel(repo)
+        viewModel = ExerciseCatalogViewModel(repo)
         subscribe(viewModel.filterOptions)
         advanceUntilIdle()
         val options = viewModel.filterOptions.value
@@ -129,7 +129,7 @@ class WorkoutViewModelTest {
 
     @Test
     fun `saveCustomExercise creates a custom entry with a generated stable id`() = runTest {
-        viewModel = WorkoutViewModel(repo)
+        viewModel = ExerciseCatalogViewModel(repo)
         viewModel.saveCustomExercise(
             stableId = null,
             name = "  My Row  ",
@@ -151,7 +151,7 @@ class WorkoutViewModelTest {
 
     @Test
     fun `saveCustomExercise with existing id updates in place`() = runTest {
-        viewModel = WorkoutViewModel(repo)
+        viewModel = ExerciseCatalogViewModel(repo)
         repo.upsertAll(listOf(Exercise("my-1", "Old", ExerciseType.WEIGHT_REPS, isCustom = true)))
         viewModel.saveCustomExercise(
             stableId = "my-1",
@@ -170,7 +170,7 @@ class WorkoutViewModelTest {
 
     @Test
     fun `blank name is ignored`() = runTest {
-        viewModel = WorkoutViewModel(repo)
+        viewModel = ExerciseCatalogViewModel(repo)
         viewModel.saveCustomExercise(
             stableId = null, name = "   ", type = ExerciseType.WEIGHT_REPS,
             primaryMuscles = emptyList(), equipment = null, mechanic = null, instructions = emptyList(),
@@ -182,7 +182,7 @@ class WorkoutViewModelTest {
     @Test
     fun `deferred delete hides then removes the exercise`() = runTest {
         repo.upsertAll(listOf(Exercise("my-1", "Custom", ExerciseType.WEIGHT_REPS, isCustom = true)))
-        viewModel = WorkoutViewModel(repo)
+        viewModel = ExerciseCatalogViewModel(repo)
         subscribe(viewModel.exercises)
         advanceUntilIdle()
         val exercise = repo.exercises().first().first()
@@ -201,7 +201,7 @@ class WorkoutViewModelTest {
     @Test
     fun `undo delete restores the exercise`() = runTest {
         repo.upsertAll(listOf(Exercise("my-1", "Custom", ExerciseType.WEIGHT_REPS, isCustom = true)))
-        viewModel = WorkoutViewModel(repo)
+        viewModel = ExerciseCatalogViewModel(repo)
         subscribe(viewModel.exercises)
         advanceUntilIdle()
         val exercise = repo.exercises().first().first()
