@@ -4,10 +4,13 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dev.antonlammers.macrotrac.domain.InlineHistory
+import dev.antonlammers.macrotrac.domain.SetPerformance
 import dev.antonlammers.macrotrac.domain.model.Exercise
 import dev.antonlammers.macrotrac.domain.model.ExerciseType
 import dev.antonlammers.macrotrac.domain.model.SessionExercise
 import dev.antonlammers.macrotrac.domain.model.SetEntry
+import dev.antonlammers.macrotrac.domain.model.SetType
 import dev.antonlammers.macrotrac.domain.model.WorkoutSession
 import dev.antonlammers.macrotrac.domain.repository.ExerciseCatalogRepository
 import dev.antonlammers.macrotrac.domain.repository.WorkoutSessionRepository
@@ -37,6 +40,8 @@ data class SessionExerciseUi(
     val name: String,
     val type: ExerciseType,
     val sets: List<SetEntry>,
+    /** Values logged for this exercise last time, shown as per-set placeholder hints (spec §3.3). */
+    val lastPerformance: List<SetPerformance> = emptyList(),
 )
 
 data class WorkoutSessionUiState(
@@ -45,12 +50,13 @@ data class WorkoutSessionUiState(
 )
 
 /**
- * Drives a live training session (spec §3.3, grundgerüst — no set-types/inline-history/timer/
- * calculations yet). The single active session is the source of truth and is **persisted on every
- * change** (continuous persistence), so it survives app death and is resumable. On entry the VM
- * resumes the existing active session if there is one; otherwise it creates a fresh one (empty or
- * seeded from a template) and immediately persists it. Finishing marks it completed; discarding
- * deletes it.
+ * Drives a live training session (spec §3.3; no rest-timer or volume/1RM/PR calculations yet). The
+ * single active session is the source of truth and is **persisted on every change** (continuous
+ * persistence), so it survives app death and is resumable. On entry the VM resumes the existing
+ * active session if there is one; otherwise it creates a fresh one (empty or seeded from a template)
+ * and immediately persists it. Each set carries a [SetType]; the ui state also exposes each
+ * exercise's last-training values ([InlineHistory]) as placeholder hints. Finishing marks it
+ * completed; discarding deletes it.
  */
 @HiltViewModel
 class WorkoutSessionViewModel(
@@ -93,7 +99,8 @@ class WorkoutSessionViewModel(
     val uiState: StateFlow<WorkoutSessionUiState> = combine(
         _session,
         catalog.exercises(),
-    ) { session, catalogExercises ->
+        sessions.sessions(),
+    ) { session, catalogExercises, history ->
         if (session == null) {
             WorkoutSessionUiState(loading = true)
         } else {
@@ -108,6 +115,7 @@ class WorkoutSessionViewModel(
                         name = exercise?.name ?: se.exerciseStableId,
                         type = exercise?.type ?: ExerciseType.WEIGHT_REPS,
                         sets = se.sets,
+                        lastPerformance = InlineHistory.lastPerformance(history, se.exerciseStableId),
                     )
                 },
             )
@@ -219,6 +227,9 @@ class WorkoutSessionViewModel(
 
     fun toggleSetCompleted(exerciseIndex: Int, setIndex: Int) =
         mutateSet(exerciseIndex, setIndex) { it.copy(completed = !it.completed) }
+
+    fun setSetType(exerciseIndex: Int, setIndex: Int, type: SetType) =
+        mutateSet(exerciseIndex, setIndex) { it.copy(type = type) }
 
     // --- lifecycle ---
 

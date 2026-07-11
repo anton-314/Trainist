@@ -1,8 +1,13 @@
 package dev.antonlammers.macrotrac.ui.workout
 
+import dev.antonlammers.macrotrac.domain.SetPerformance
 import dev.antonlammers.macrotrac.domain.model.Exercise
 import dev.antonlammers.macrotrac.domain.model.ExerciseType
+import dev.antonlammers.macrotrac.domain.model.SessionExercise
+import dev.antonlammers.macrotrac.domain.model.SetEntry
+import dev.antonlammers.macrotrac.domain.model.SetType
 import dev.antonlammers.macrotrac.domain.model.TemplateExercise
+import dev.antonlammers.macrotrac.domain.model.WorkoutSession
 import dev.antonlammers.macrotrac.domain.model.WorkoutTemplate
 import dev.antonlammers.macrotrac.fake.FakeExerciseCatalogRepository
 import dev.antonlammers.macrotrac.fake.FakeWorkoutSessionRepository
@@ -187,6 +192,62 @@ class WorkoutSessionViewModelTest {
         val sets = vm.uiState.value.exercises[0].sets
         assertEquals(10, sets[1].reps) // moved to the back
         assertEquals(listOf(0, 1), sets.map { it.position }) // positions renumbered by order
+    }
+
+    // --- set types ---
+
+    @Test
+    fun `set type is editable and persisted`() = runTest {
+        val vm = viewModel()
+        subscribe(vm.uiState)
+        advanceUntilIdle()
+        vm.addExercise(exercise("bench", "Bench Press"))
+        advanceUntilIdle()
+
+        vm.setSetType(0, 0, SetType.WARMUP)
+        advanceUntilIdle()
+
+        assertEquals(SetType.WARMUP, vm.uiState.value.exercises[0].sets[0].type)
+        assertEquals(SetType.WARMUP, sessions.activeSession().first()!!.exercises[0].sets[0].type)
+    }
+
+    // --- inline history ---
+
+    @Test
+    fun `last performance of an exercise surfaces as inline-history hints`() = runTest {
+        catalog.upsertAll(listOf(exercise("bench", "Bench Press")))
+        // A completed session from a previous day with known values.
+        sessions.save(
+            WorkoutSession(
+                stableId = "past",
+                date = java.time.LocalDate.of(2026, 7, 1),
+                isActive = false,
+                startedAtMs = 1L,
+                endedAtMs = 2L,
+                exercises = listOf(
+                    SessionExercise(
+                        exerciseStableId = "bench",
+                        position = 0,
+                        sets = listOf(
+                            SetEntry(position = 0, weightKg = 80.0, reps = 8),
+                            SetEntry(position = 1, weightKg = 82.5, reps = 6),
+                        ),
+                    ),
+                ),
+            ),
+        )
+        val templateId = templates.save(
+            WorkoutTemplate(stableId = "t", name = "Push", exercises = listOf(TemplateExercise("bench", 0, 2))),
+        )
+
+        val vm = viewModel(templateId)
+        subscribe(vm.uiState)
+        advanceUntilIdle()
+
+        assertEquals(
+            listOf(SetPerformance(80.0, 8), SetPerformance(82.5, 6)),
+            vm.uiState.value.exercises.single().lastPerformance,
+        )
     }
 
     // --- continuous persistence ---

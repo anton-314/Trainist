@@ -2,6 +2,7 @@ package dev.antonlammers.macrotrac.ui.workout
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -51,6 +52,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import dev.antonlammers.macrotrac.domain.model.ExerciseType
 import dev.antonlammers.macrotrac.domain.model.SetEntry
+import dev.antonlammers.macrotrac.domain.model.SetType
 import dev.antonlammers.macrotrac.ui.components.NumericTextField
 
 /**
@@ -156,6 +158,7 @@ fun WorkoutSessionScreen(
                         onWeightChange = { setIndex, w -> viewModel.setWeight(index, setIndex, w) },
                         onRepsChange = { setIndex, r -> viewModel.setReps(index, setIndex, r) },
                         onToggleCompleted = { setIndex -> viewModel.toggleSetCompleted(index, setIndex) },
+                        onSetTypeChange = { setIndex, type -> viewModel.setSetType(index, setIndex, type) },
                     )
                 }
                 item {
@@ -188,6 +191,7 @@ private fun ExerciseCard(
     onWeightChange: (Int, Double) -> Unit,
     onRepsChange: (Int, Int) -> Unit,
     onToggleCompleted: (Int) -> Unit,
+    onSetTypeChange: (Int, SetType) -> Unit,
 ) {
     val weightCaption = if (exercise.type == ExerciseType.BODYWEIGHT) "ZUSATZ" else "KG"
     Column(
@@ -216,13 +220,16 @@ private fun ExerciseCard(
         }
 
         exercise.sets.forEachIndexed { setIndex, set ->
+            val hint = exercise.lastPerformance.getOrNull(setIndex)
             SetRow(
                 setNumber = setIndex + 1,
                 set = set,
-                decimalWeight = true,
+                weightPlaceholder = hint?.let { weightToText(it.weightKg).ifEmpty { "0" } },
+                repsPlaceholder = hint?.let { it.reps.takeIf { r -> r != 0 }?.toString() },
                 onWeightChange = { onWeightChange(setIndex, it) },
                 onRepsChange = { onRepsChange(setIndex, it) },
                 onToggleCompleted = { onToggleCompleted(setIndex) },
+                onSetTypeChange = { onSetTypeChange(setIndex, it) },
                 onMoveUp = { onMoveSetUp(setIndex) },
                 onMoveDown = { onMoveSetDown(setIndex) },
                 onDelete = { onRemoveSet(setIndex) },
@@ -242,10 +249,12 @@ private fun ExerciseCard(
 private fun SetRow(
     setNumber: Int,
     set: SetEntry,
-    decimalWeight: Boolean,
+    weightPlaceholder: String?,
+    repsPlaceholder: String?,
     onWeightChange: (Double) -> Unit,
     onRepsChange: (Int) -> Unit,
     onToggleCompleted: () -> Unit,
+    onSetTypeChange: (SetType) -> Unit,
     onMoveUp: () -> Unit,
     onMoveDown: () -> Unit,
     onDelete: () -> Unit,
@@ -259,17 +268,18 @@ private fun SetRow(
     var menuOpen by remember { mutableStateOf(false) }
 
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text(
-            setNumber.toString(),
-            style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.width(24.dp),
+        SetTypeBadge(
+            setNumber = setNumber,
+            type = set.type,
+            onTypeChange = onSetTypeChange,
+            modifier = Modifier.width(32.dp),
         )
         NumericTextField(
             value = weightText,
             onValueChange = { weightText = it; onWeightChange(parseWeight(it)) },
             label = null,
-            decimal = decimalWeight,
+            decimal = true,
+            placeholder = weightPlaceholder,
             modifier = Modifier.weight(1f),
         )
         NumericTextField(
@@ -277,6 +287,7 @@ private fun SetRow(
             onValueChange = { repsText = it; onRepsChange(parseReps(it)) },
             label = null,
             decimal = false,
+            placeholder = repsPlaceholder,
             modifier = Modifier.weight(1f),
         )
         IconButton(onClick = onToggleCompleted, modifier = Modifier.size(40.dp)) {
@@ -304,6 +315,43 @@ private fun SetRow(
                 DropdownMenuItem(
                     text = { Text("Löschen") },
                     onClick = { menuOpen = false; onDelete() },
+                )
+            }
+        }
+    }
+}
+
+/**
+ * The leading set marker: the set number tinted by its [SetType] (plus a short W/D/F tag for
+ * non-normal types). Tapping opens a menu to change the type. Discreet, colour-token-only (spec §6).
+ */
+@Composable
+private fun SetTypeBadge(
+    setNumber: Int,
+    type: SetType,
+    onTypeChange: (SetType) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    var menuOpen by remember { mutableStateOf(false) }
+    val tint = type.color()
+    Box(modifier) {
+        Column(
+            modifier = Modifier
+                .clip(RoundedCornerShape(8.dp))
+                .clickable { menuOpen = true }
+                .padding(vertical = 4.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            Text(setNumber.toString(), style = MaterialTheme.typography.labelMedium, color = tint)
+            if (type != SetType.NORMAL) {
+                Text(type.shortLabel(), style = MaterialTheme.typography.labelSmall, color = tint)
+            }
+        }
+        DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
+            SetType.selectable.forEach { option ->
+                DropdownMenuItem(
+                    text = { Text(option.displayName(), color = option.color()) },
+                    onClick = { menuOpen = false; onTypeChange(option) },
                 )
             }
         }

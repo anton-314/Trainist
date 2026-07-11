@@ -42,6 +42,7 @@ fun NumericTextField(
     decimal: Boolean = true,
     suffix: String? = null,
     supportingText: String? = null,
+    placeholder: String? = null,
     textStyle: TextStyle = LocalTextStyle.current,
     leadingIcon: @Composable (() -> Unit)? = null,
 ) {
@@ -61,6 +62,7 @@ fun NumericTextField(
             if (it.text != value) onValueChange(it.text)
         },
         label = label?.let { { Text(it) } },
+        placeholder = placeholder?.let { { Text(it) } },
         textStyle = textStyle,
         leadingIcon = leadingIcon,
         keyboardOptions = KeyboardOptions(
