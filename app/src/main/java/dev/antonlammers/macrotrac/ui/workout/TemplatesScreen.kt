@@ -13,12 +13,12 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.CalendarMonth
 import androidx.compose.material.icons.rounded.Delete
+import androidx.compose.material.icons.rounded.DragIndicator
 import androidx.compose.material.icons.rounded.Edit
 import androidx.compose.material.icons.rounded.FitnessCenter
 import androidx.compose.material.icons.rounded.MenuBook
@@ -52,15 +52,20 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
-import dev.antonlammers.macrotrac.domain.model.WorkoutTemplate
+import dev.antonlammers.macrotrac.ui.components.DragReorderColumn
 import dev.antonlammers.macrotrac.ui.navigation.Screen
 import kotlinx.coroutines.launch
+import java.time.LocalDate
+import java.time.temporal.ChronoUnit
 
 /**
  * "Training" tab home — a resume hint for any running session plus the list of saved workout
  * templates. The FAB starts an empty workout; tapping a template starts a session from it; swiping a
- * template edits (StartToEnd) or deletes it (EndToStart, with undo). The top bar holds a "new
- * template" and an exercise-catalog action. Ink & Paper style, reusing the app's building blocks.
+ * template edits (StartToEnd) or deletes it (EndToStart, with undo); long-pressing the drag handle
+ * reorders the list manually (persisted immediately, like every other reorderable list in the app).
+ * Each card also shows when the template was last trained from, so the longest-neglected ones are
+ * easy to spot. The top bar holds a "new template" and an exercise-catalog action. Ink & Paper style,
+ * reusing the app's building blocks.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -117,26 +122,36 @@ fun TemplatesScreen(
             if (templates.isEmpty()) {
                 item(key = "empty") { EmptyTemplates() }
             } else {
-                items(templates, key = { it.id }) { template ->
-                    SwipeableTemplateCard(
-                        template = template,
-                        onStart = { navController.navigate(Screen.WorkoutSession.start(template.id)) },
-                        onEdit = { navController.navigate(Screen.TemplateEditor.forTemplate(template.id)) },
-                        onDelete = {
-                            viewModel.deletePending(template)
-                            coroutineScope.launch {
-                                val result = snackbar.showSnackbar(
-                                    message = "Vorlage gelöscht",
-                                    actionLabel = "Rückgängig",
-                                    duration = SnackbarDuration.Short,
-                                )
-                                when (result) {
-                                    SnackbarResult.ActionPerformed -> viewModel.undoDelete(template)
-                                    SnackbarResult.Dismissed -> viewModel.confirmDelete(template)
+                item(key = "templates") {
+                    DragReorderColumn(
+                        items = templates,
+                        key = { it.template.id },
+                        onMove = viewModel::moveTemplate,
+                        verticalArrangement = Arrangement.spacedBy(12.dp),
+                    ) { _, item, rowModifier, dragHandleModifier, _ ->
+                        val template = item.template
+                        SwipeableTemplateCard(
+                            item = item,
+                            rowModifier = rowModifier,
+                            dragHandleModifier = dragHandleModifier,
+                            onStart = { navController.navigate(Screen.WorkoutSession.start(template.id)) },
+                            onEdit = { navController.navigate(Screen.TemplateEditor.forTemplate(template.id)) },
+                            onDelete = {
+                                viewModel.deletePending(template)
+                                coroutineScope.launch {
+                                    val result = snackbar.showSnackbar(
+                                        message = "Vorlage gelöscht",
+                                        actionLabel = "Rückgängig",
+                                        duration = SnackbarDuration.Short,
+                                    )
+                                    when (result) {
+                                        SnackbarResult.ActionPerformed -> viewModel.undoDelete(template)
+                                        SnackbarResult.Dismissed -> viewModel.confirmDelete(template)
+                                    }
                                 }
-                            }
-                        },
-                    )
+                            },
+                        )
+                    }
                 }
             }
         }
@@ -178,7 +193,9 @@ private fun ActiveSessionBanner(onClick: () -> Unit) {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun SwipeableTemplateCard(
-    template: WorkoutTemplate,
+    item: TemplateListItem,
+    rowModifier: Modifier,
+    dragHandleModifier: Modifier,
     onStart: () -> Unit,
     onEdit: () -> Unit,
     onDelete: () -> Unit,
@@ -193,10 +210,11 @@ private fun SwipeableTemplateCard(
         }
     )
     SwipeToDismissBox(
+        modifier = rowModifier,
         state = dismissState,
         backgroundContent = { SwipeBackground(dismissState.targetValue) },
     ) {
-        TemplateCard(template = template, onClick = onStart)
+        TemplateCard(item = item, dragHandleModifier = dragHandleModifier, onClick = onStart)
     }
 }
 
@@ -234,10 +252,11 @@ private fun SwipeBackground(target: SwipeToDismissBoxValue) {
     }
 }
 
-/** A flat template card: name (serif) over a mono summary line (exercise + set counts). */
+/** A flat template card: a drag handle, name (serif) over a mono summary line (exercise/set counts
+ *  plus when it was last trained), and long-press-to-drag reordering via [dragHandleModifier]. */
 @Composable
-private fun TemplateCard(template: WorkoutTemplate, onClick: () -> Unit) {
-    Column(
+private fun TemplateCard(item: TemplateListItem, dragHandleModifier: Modifier, onClick: () -> Unit) {
+    Row(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(18.dp))
@@ -245,14 +264,23 @@ private fun TemplateCard(template: WorkoutTemplate, onClick: () -> Unit) {
             .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(18.dp))
             .clickable(onClick = onClick)
             .padding(horizontal = 18.dp, vertical = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Text(template.name, style = MaterialTheme.typography.titleMedium)
-        Text(
-            template.summaryLine(),
-            style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        Icon(
+            Icons.Rounded.DragIndicator,
+            contentDescription = "Verschieben",
+            tint = MaterialTheme.colorScheme.outline,
+            modifier = dragHandleModifier,
         )
+        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text(item.template.name, style = MaterialTheme.typography.titleMedium)
+            Text(
+                item.summaryLine(),
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
     }
 }
 
@@ -279,10 +307,21 @@ private fun EmptyTemplates() {
     }
 }
 
-private fun WorkoutTemplate.summaryLine(): String {
-    val exerciseCount = exercises.size
-    val setCount = exercises.sumOf { it.targetSets }
+private fun TemplateListItem.summaryLine(): String {
+    val exerciseCount = template.exercises.size
+    val setCount = template.exercises.sumOf { it.targetSets }
     val exercisePart = if (exerciseCount == 1) "1 Übung" else "$exerciseCount Übungen"
     val setPart = if (setCount == 1) "1 Satz" else "$setCount Sätze"
-    return "$exercisePart · $setPart"
+    return "$exercisePart · $setPart · ${lastUsedDate.lastUsedText()}"
+}
+
+/** "Heute" / "Gestern" / "Vor N Tagen" / "Noch nie trainiert" — orientation, not a precise date. */
+private fun LocalDate?.lastUsedText(): String {
+    if (this == null) return "Noch nie trainiert"
+    val days = ChronoUnit.DAYS.between(this, LocalDate.now())
+    return when {
+        days <= 0L -> "Heute"
+        days == 1L -> "Gestern"
+        else -> "Vor $days Tagen"
+    }
 }

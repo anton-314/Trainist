@@ -22,7 +22,14 @@ class WorkoutTemplateRepositoryImpl @Inject constructor(
         dao.templateById(id).map { it?.toDomain() }
 
     override suspend fun save(template: WorkoutTemplate): Long = runner.transaction {
-        val templateId = dao.insertTemplate(template.toEntity())
+        // A new template (id == 0) is appended to the end of the manual order; editing an existing
+        // one preserves its current position (the REPLACE insert would otherwise overwrite it).
+        val position = if (template.id != 0L) {
+            dao.positionOf(template.id) ?: dao.nextPosition()
+        } else {
+            dao.nextPosition()
+        }
+        val templateId = dao.insertTemplate(template.toEntity(position))
         // On replace the FK already cleared old slots; the explicit delete also covers a plain
         // update where the id was reused without a cascade. Then rewrite the ordered slots.
         dao.deleteTemplateExercises(templateId)
@@ -31,4 +38,8 @@ class WorkoutTemplateRepositoryImpl @Inject constructor(
     }
 
     override suspend fun delete(id: Long) = dao.deleteTemplate(id)
+
+    override suspend fun reorder(templateIds: List<Long>) = runner.transaction {
+        templateIds.forEachIndexed { index, id -> dao.updatePosition(id, index) }
+    }
 }

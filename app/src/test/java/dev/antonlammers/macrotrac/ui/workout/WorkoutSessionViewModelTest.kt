@@ -106,6 +106,18 @@ class WorkoutSessionViewModelTest {
         assertEquals(3, exercises[0].sets.size)
         assertEquals(2, exercises[1].sets.size)
         assertTrue(exercises.flatMap { it.sets }.all { it.weightKg == 0.0 && it.reps == 0 && !it.completed })
+
+        // Links the session back to its template, so the templates list can show "last used".
+        assertEquals("tpl", sessions.activeSession().first()?.templateStableId)
+    }
+
+    @Test
+    fun `starting an empty (non-template) session leaves templateStableId null`() = runTest {
+        val vm = viewModel()
+        subscribe(vm.uiState)
+        advanceUntilIdle()
+
+        assertNull(sessions.activeSession().first()?.templateStableId)
     }
 
     // --- exercises ---

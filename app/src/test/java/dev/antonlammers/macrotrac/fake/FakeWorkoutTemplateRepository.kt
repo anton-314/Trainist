@@ -7,12 +7,14 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 
+/** [templates] order is the canonical manual order — like Room's `position` column, but the list's
+ *  own order stands in for it, so a new template is appended and [reorder] simply rearranges it. */
 class FakeWorkoutTemplateRepository : WorkoutTemplateRepository {
 
     private val _templates = MutableStateFlow<List<WorkoutTemplate>>(emptyList())
     private var nextId = 1L
 
-    override fun templates(): Flow<List<WorkoutTemplate>> = _templates.map { it.sortedBy { t -> t.name } }
+    override fun templates(): Flow<List<WorkoutTemplate>> = _templates
 
     override fun template(id: Long): Flow<WorkoutTemplate?> =
         _templates.map { list -> list.firstOrNull { it.id == id } }
@@ -26,11 +28,22 @@ class FakeWorkoutTemplateRepository : WorkoutTemplateRepository {
             id = id,
             exercises = template.exercises.mapIndexed { index, e -> e.copy(position = index) },
         )
-        _templates.update { list -> list.filterNot { it.id == id } + normalized }
+        _templates.update { list ->
+            val existingIndex = list.indexOfFirst { it.id == id }
+            if (existingIndex >= 0) list.toMutableList().apply { this[existingIndex] = normalized }
+            else list + normalized
+        }
         return id
     }
 
     override suspend fun delete(id: Long) {
         _templates.update { it.filterNot { t -> t.id == id } }
+    }
+
+    override suspend fun reorder(templateIds: List<Long>) {
+        _templates.update { list ->
+            val byId = list.associateBy { it.id }
+            templateIds.mapNotNull { byId[it] } + list.filterNot { it.id in templateIds }
+        }
     }
 }

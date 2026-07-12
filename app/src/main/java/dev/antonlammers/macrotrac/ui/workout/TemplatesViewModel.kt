@@ -13,18 +13,26 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import java.time.LocalDate
 import javax.inject.Inject
+
+/** A template paired with the date it was last trained from, if ever (spec: "last used" hint). */
+data class TemplateListItem(
+    val template: WorkoutTemplate,
+    val lastUsedDate: LocalDate?,
+)
 
 /**
  * "Training" tab home — the list of saved workout templates plus a resume hint for any in-progress
  * session. Creating/editing templates happens on the separate [TemplateEditorViewModel] screen;
- * here we only list and delete (with an undo window, mirroring the custom-food / custom-exercise
- * deferred-delete pattern).
+ * here we only list, delete (with an undo window, mirroring the custom-food / custom-exercise
+ * deferred-delete pattern) and manually reorder (drag-and-drop, persisted immediately like every
+ * other reorderable list in the app).
  */
 @HiltViewModel
 class TemplatesViewModel @Inject constructor(
     private val repository: WorkoutTemplateRepository,
-    sessions: WorkoutSessionRepository,
+    private val sessions: WorkoutSessionRepository,
 ) : ViewModel() {
 
     // Deferred delete: hidden from the list while the undo snackbar is shown.
@@ -34,11 +42,17 @@ class TemplatesViewModel @Inject constructor(
     val activeSession: StateFlow<WorkoutSession?> = sessions.activeSession()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
-    val templates: StateFlow<List<WorkoutTemplate>> = combine(
+    val templates: StateFlow<List<TemplateListItem>> = combine(
         repository.templates(),
+        sessions.sessions(),
         _pendingDelete,
-    ) { list, pending ->
+    ) { list, allSessions, pending ->
+        val lastUsedByTemplate = allSessions
+            .mapNotNull { s -> s.templateStableId?.let { it to s.date } }
+            .groupBy({ it.first }, { it.second })
+            .mapValues { (_, dates) -> dates.max() }
         list.filter { pending == null || it.id != pending.id }
+            .map { TemplateListItem(it, lastUsedByTemplate[it.stableId]) }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     fun deletePending(template: WorkoutTemplate) {
@@ -52,5 +66,14 @@ class TemplatesViewModel @Inject constructor(
 
     fun undoDelete(template: WorkoutTemplate) {
         if (_pendingDelete.value?.id == template.id) _pendingDelete.value = null
+    }
+
+    /** Swap two templates — called repeatedly (once per adjacent step) while one is dragged into place. */
+    fun moveTemplate(from: Int, to: Int) {
+        val current = templates.value
+        if (from !in current.indices || to !in current.indices) return
+        val ids = current.map { it.template.id }.toMutableList()
+        val tmp = ids[from]; ids[from] = ids[to]; ids[to] = tmp
+        viewModelScope.launch { repository.reorder(ids) }
     }
 }

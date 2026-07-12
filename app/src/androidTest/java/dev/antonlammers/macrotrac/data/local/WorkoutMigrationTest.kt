@@ -12,9 +12,9 @@ import org.junit.Test
 import org.junit.runner.RunWith
 
 /**
- * Verifies the additive v7 → v8 migration on a real SQLite engine: it must create the six workout
- * tables and leave existing data intact. Instrumented (needs Android's SQLite) — run via
- * `connectedDebugAndroidTest` against a device/emulator.
+ * Verifies the additive workout-module migrations (v7 → v10) on a real SQLite engine: each one must
+ * apply its schema change and leave existing data intact. Instrumented (needs Android's SQLite) — run
+ * via `connectedDebugAndroidTest` against a device/emulator.
  */
 @RunWith(AndroidJUnit4::class)
 class WorkoutMigrationTest {
@@ -119,6 +119,52 @@ class WorkoutMigrationTest {
             c.moveToFirst()
             assertEquals("squat", c.getString(0))
             assertEquals(180, c.getInt(1))
+        }
+
+        db.close()
+    }
+
+    @Test
+    fun migrate9to10_addsTemplatePositionAndSessionTemplateLink_andPreservesExistingData() {
+        val db = openV7WithOneFoodEntry()
+        AppDatabase.MIGRATION_7_8.migrate(db)
+        AppDatabase.MIGRATION_8_9.migrate(db)
+        db.execSQL("INSERT INTO workout_templates (id, stableId, name) VALUES (5, 'tpl', 'Push Day')")
+        db.execSQL(
+            "INSERT INTO workout_sessions (stableId, date, isActive, startedAtMs, endedAtMs, note) " +
+                "VALUES ('s1', '2026-07-10', 1, 1000, NULL, NULL)",
+        )
+
+        AppDatabase.MIGRATION_9_10.migrate(db)
+
+        val templateColumns = db.query("PRAGMA table_info(workout_templates)").use { c ->
+            val nameIdx = c.getColumnIndex("name")
+            buildSet { while (c.moveToNext()) add(c.getString(nameIdx)) }
+        }
+        assertTrue(templateColumns.contains("position"))
+        val sessionColumns = db.query("PRAGMA table_info(workout_sessions)").use { c ->
+            val nameIdx = c.getColumnIndex("name")
+            buildSet { while (c.moveToNext()) add(c.getString(nameIdx)) }
+        }
+        assertTrue(sessionColumns.contains("templateStableId"))
+
+        // The pre-existing template's position is backfilled from its row id, not left at 0.
+        db.query("SELECT position FROM workout_templates WHERE stableId = 'tpl'").use { c ->
+            c.moveToFirst()
+            assertEquals(5, c.getInt(0))
+        }
+
+        // The pre-existing session's new templateStableId column defaults to null.
+        db.query("SELECT templateStableId FROM workout_sessions WHERE stableId = 's1'").use { c ->
+            c.moveToFirst()
+            assertTrue(c.isNull(0))
+        }
+
+        // Usable: a new session can now record the template it was started from.
+        db.execSQL("UPDATE workout_sessions SET templateStableId = 'tpl' WHERE stableId = 's1'")
+        db.query("SELECT templateStableId FROM workout_sessions WHERE stableId = 's1'").use { c ->
+            c.moveToFirst()
+            assertEquals("tpl", c.getString(0))
         }
 
         db.close()

@@ -273,7 +273,7 @@ class WorkoutSessionViewModel(
                 )
             }
             .orEmpty()
-        return buildEmpty().copy(exercises = exercises)
+        return buildEmpty().copy(exercises = exercises, templateStableId = template?.stableId)
     }
 
     private fun today(): LocalDate =

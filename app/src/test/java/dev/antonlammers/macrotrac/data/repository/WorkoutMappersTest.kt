@@ -100,6 +100,14 @@ class WorkoutMappersTest {
     }
 
     @Test
+    fun `template entity carries the manual drag-order position, not the domain model`() {
+        val template = WorkoutTemplate(id = 5, stableId = "tpl", name = "Push Day")
+
+        assertEquals(3, template.toEntity(position = 3).position)
+        assertEquals(0, template.toEntity(position = 0).position)
+    }
+
+    @Test
     fun `session maps nested graph sorted by position with parsed enums`() {
         val relation = SessionWithExercises(
             session = WorkoutSessionEntity(
@@ -164,6 +172,21 @@ class WorkoutMappersTest {
         assertEquals(180, back.restTotalSeconds)
         assertEquals(181_000L, back.restEndAtMs)
         assertEquals(45_000L, back.restPausedRemainingMs)
+    }
+
+    @Test
+    fun `session round-trips the template it was started from, or null for a free workout`() {
+        val fromTemplate = WorkoutSession(
+            stableId = "sess", date = LocalDate.of(2026, 7, 10), isActive = true,
+            startedAtMs = 1_000, templateStableId = "tpl-push",
+        )
+        val entity = fromTemplate.toEntity()
+        assertEquals("tpl-push", entity.templateStableId)
+        val relation = SessionWithExercises(session = entity, exercises = emptyList())
+        assertEquals("tpl-push", relation.toDomain().templateStableId)
+
+        val free = fromTemplate.copy(templateStableId = null)
+        assertNull(free.toEntity().templateStableId)
     }
 
     @Test

@@ -28,7 +28,7 @@ import dev.antonlammers.macrotrac.data.local.entity.WorkoutTemplateEntity
         ExerciseEntity::class, WorkoutTemplateEntity::class, TemplateExerciseEntity::class,
         WorkoutSessionEntity::class, SessionExerciseEntity::class, SetEntryEntity::class,
     ],
-    version = 9,
+    version = 10,
     exportSchema = true,
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -145,6 +145,19 @@ abstract class AppDatabase : RoomDatabase() {
                 db.execSQL("ALTER TABLE workout_sessions ADD COLUMN restTotalSeconds INTEGER")
                 db.execSQL("ALTER TABLE workout_sessions ADD COLUMN restEndAtMs INTEGER")
                 db.execSQL("ALTER TABLE workout_sessions ADD COLUMN restPausedRemainingMs INTEGER")
+            }
+        }
+
+        /**
+         * Adds manual drag-to-reorder ordering for templates (backfilled from `id` so existing
+         * templates keep their creation order) and links a session back to the template it was
+         * started from, so the templates list can show each one's "last used" date.
+         */
+        val MIGRATION_9_10 = object : Migration(9, 10) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE workout_templates ADD COLUMN position INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("UPDATE workout_templates SET position = id")
+                db.execSQL("ALTER TABLE workout_sessions ADD COLUMN templateStableId TEXT")
             }
         }
     }

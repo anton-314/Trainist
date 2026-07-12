@@ -21,6 +21,8 @@ data class WorkoutSessionEntity(
     val startedAtMs: Long,
     val endedAtMs: Long?,
     val note: String?,
+    /** The template this session was started from, if any — drives "last used" per template. */
+    val templateStableId: String? = null,
     val restExerciseStableId: String? = null,
     val restTotalSeconds: Int? = null,
     val restEndAtMs: Long? = null,

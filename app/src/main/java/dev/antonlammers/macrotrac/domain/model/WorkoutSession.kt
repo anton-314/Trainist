@@ -16,6 +16,8 @@ data class WorkoutSession(
     val endedAtMs: Long? = null,
     val note: String? = null,
     val exercises: List<SessionExercise> = emptyList(),
+    /** The template this session was started from, if any — drives "last used" per template. */
+    val templateStableId: String? = null,
     /**
      * Anchor of an in-progress rest timer, persisted so it survives leaving and resuming the
      * session (all null when no rest is running). [restEndAtMs]/[restPausedRemainingMs] mirror

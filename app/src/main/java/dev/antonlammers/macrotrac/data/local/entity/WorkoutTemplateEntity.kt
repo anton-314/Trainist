@@ -9,4 +9,6 @@ data class WorkoutTemplateEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val stableId: String,
     val name: String,
+    /** Manual drag-to-reorder position in the templates list — lower sorts first. */
+    val position: Int = 0,
 )

@@ -36,9 +36,9 @@ import kotlinx.coroutines.launch
 /**
  * A plain, non-lazy vertical list of [items] that can be reordered by long-pressing and dragging a
  * dedicated handle — the one drag-and-drop pattern used app-wide for reorderable lists (template
- * exercise slots, session set rows, stats cards), replacing the previous mix of up/down arrows and a
- * reorder menu. Meant for short lists nested inside a single outer `LazyColumn` item, not a scrolling
- * list of its own.
+ * exercise slots, session set rows, stats cards, the templates list itself), replacing the previous
+ * mix of up/down arrows and a reorder menu. Meant for short lists nested inside a single outer
+ * `LazyColumn` item, not a scrolling list of its own.
  *
  * Long-pressing the handle picks the row up (a short haptic tick confirms the grab) and the row
  * follows the finger; crossing a neighbour's mid-height calls [onMove] immediately — so it can fire

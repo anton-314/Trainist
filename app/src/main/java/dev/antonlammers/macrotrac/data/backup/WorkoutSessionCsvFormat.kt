@@ -20,9 +20,10 @@ object WorkoutSessionCsvFormat {
     private const val STARTED_AT_MS = "started_at_ms"
     private const val ENDED_AT_MS = "ended_at_ms"
     private const val NOTE = "note"
+    private const val TEMPLATE_STABLE_ID = "template_stable_id"
 
     val HEADER: String =
-        listOf(STABLE_ID, DATE, IS_ACTIVE, STARTED_AT_MS, ENDED_AT_MS, NOTE).joinToString(",")
+        listOf(STABLE_ID, DATE, IS_ACTIVE, STARTED_AT_MS, ENDED_AT_MS, NOTE, TEMPLATE_STABLE_ID).joinToString(",")
 
     fun toRow(session: WorkoutSession): String = listOf(
         session.stableId.escapeCsv(),
@@ -31,6 +32,7 @@ object WorkoutSessionCsvFormat {
         session.startedAtMs,
         session.endedAtMs ?: "",
         session.note?.escapeCsv() ?: "",
+        session.templateStableId?.escapeCsv() ?: "",
     ).joinToString(",")
 
     /** Parses a header row into a session with an empty exercise list (attached on assembly). */
@@ -47,6 +49,8 @@ object WorkoutSessionCsvFormat {
             startedAtMs = startedAtMs,
             endedAtMs = cols.csvLong(headers, ENDED_AT_MS),
             note = cols.csvStr(headers, NOTE)?.takeIf { it.isNotBlank() },
+            // Missing on older backups (no such column yet) — the session simply has no known template.
+            templateStableId = cols.csvStr(headers, TEMPLATE_STABLE_ID)?.takeIf { it.isNotBlank() },
             exercises = emptyList(),
         )
     }

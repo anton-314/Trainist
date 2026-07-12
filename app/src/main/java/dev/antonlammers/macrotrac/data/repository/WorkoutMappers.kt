@@ -74,8 +74,9 @@ internal object WorkoutMappers {
         },
     )
 
-    fun WorkoutTemplate.toEntity(): WorkoutTemplateEntity =
-        WorkoutTemplateEntity(id = id, stableId = stableId, name = name)
+    /** [position] is a storage-only ordering concern resolved by the repository, not the domain model. */
+    fun WorkoutTemplate.toEntity(position: Int): WorkoutTemplateEntity =
+        WorkoutTemplateEntity(id = id, stableId = stableId, name = name, position = position)
 
     /** Template exercises re-numbered by list order so [position] is always canonical. */
     fun WorkoutTemplate.exerciseEntities(templateId: Long): List<TemplateExerciseEntity> =
@@ -99,6 +100,7 @@ internal object WorkoutMappers {
         endedAtMs = session.endedAtMs,
         note = session.note,
         exercises = exercises.sortedBy { it.sessionExercise.position }.map { it.toDomain() },
+        templateStableId = session.templateStableId,
         restExerciseStableId = session.restExerciseStableId,
         restTotalSeconds = session.restTotalSeconds,
         restEndAtMs = session.restEndAtMs,
@@ -130,6 +132,7 @@ internal object WorkoutMappers {
         startedAtMs = startedAtMs,
         endedAtMs = endedAtMs,
         note = note,
+        templateStableId = templateStableId,
         restExerciseStableId = restExerciseStableId,
         restTotalSeconds = restTotalSeconds,
         restEndAtMs = restEndAtMs,

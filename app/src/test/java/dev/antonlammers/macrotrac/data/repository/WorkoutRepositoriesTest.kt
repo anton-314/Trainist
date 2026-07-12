@@ -141,7 +141,48 @@ class WorkoutRepositoriesTest {
         assertNull(repo.template(id).first())
     }
 
+    @Test
+    fun `new templates are appended in creation order and an edit preserves its position`() = runTest {
+        val repo = WorkoutTemplateRepositoryImpl(FakeWorkoutTemplateDao(), ImmediateTransactionRunner())
+        repo.save(WorkoutTemplate(stableId = "a", name = "Push"))
+        val bId = repo.save(WorkoutTemplate(stableId = "b", name = "Pull"))
+        repo.save(WorkoutTemplate(stableId = "c", name = "Legs"))
+
+        assertEquals(listOf("a", "b", "c"), repo.templates().first().map { it.stableId })
+
+        // Editing the middle template (rename) must not move it in the list.
+        repo.save(WorkoutTemplate(id = bId, stableId = "b", name = "Pull v2"))
+        assertEquals(listOf("a", "b", "c"), repo.templates().first().map { it.stableId })
+        assertEquals("Pull v2", repo.templates().first()[1].name)
+    }
+
+    @Test
+    fun `reorder applies the new manual order and persists it`() = runTest {
+        val repo = WorkoutTemplateRepositoryImpl(FakeWorkoutTemplateDao(), ImmediateTransactionRunner())
+        val aId = repo.save(WorkoutTemplate(stableId = "a", name = "Push"))
+        val bId = repo.save(WorkoutTemplate(stableId = "b", name = "Pull"))
+        val cId = repo.save(WorkoutTemplate(stableId = "c", name = "Legs"))
+
+        repo.reorder(listOf(cId, aId, bId))
+
+        assertEquals(listOf("c", "a", "b"), repo.templates().first().map { it.stableId })
+    }
+
     // --- Sessions ---
+
+    @Test
+    fun `saving a session persists the template it was started from`() = runTest {
+        val repo = WorkoutSessionRepositoryImpl(FakeWorkoutSessionDao(), ImmediateTransactionRunner())
+
+        val id = repo.save(
+            WorkoutSession(
+                stableId = "s1", date = LocalDate.of(2026, 7, 10), isActive = false,
+                startedAtMs = 1_000, endedAtMs = 2_000, templateStableId = "tpl-push",
+            ),
+        )
+
+        assertEquals("tpl-push", repo.session(id).first()?.templateStableId)
+    }
 
     @Test
     fun `saving a session persists the full exercise and set graph`() = runTest {
@@ -272,7 +313,7 @@ private class FakeWorkoutTemplateDao : WorkoutTemplateDao {
 
     override fun allTemplates(): Flow<List<TemplateWithExercises>> =
         combine(templates, exercises) { ts, tes ->
-            ts.sortedBy { it.name }.map { t -> TemplateWithExercises(t, tes.filter { it.templateId == t.id }) }
+            ts.sortedBy { it.position }.map { t -> TemplateWithExercises(t, tes.filter { it.templateId == t.id }) }
         }
 
     override fun templateById(id: Long): Flow<TemplateWithExercises?> =
@@ -305,6 +346,14 @@ private class FakeWorkoutTemplateDao : WorkoutTemplateDao {
     override suspend fun deleteTemplate(id: Long) {
         templates.update { it.filterNot { t -> t.id == id } }
         exercises.update { it.filterNot { te -> te.templateId == id } }
+    }
+
+    override suspend fun positionOf(id: Long): Int? = templates.value.firstOrNull { it.id == id }?.position
+
+    override suspend fun nextPosition(): Int = (templates.value.maxOfOrNull { it.position } ?: -1) + 1
+
+    override suspend fun updatePosition(id: Long, position: Int) {
+        templates.update { list -> list.map { if (it.id == id) it.copy(position = position) else it } }
     }
 }
 
