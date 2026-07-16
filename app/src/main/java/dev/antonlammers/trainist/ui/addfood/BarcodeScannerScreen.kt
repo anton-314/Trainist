@@ -1,7 +1,11 @@
 package dev.antonlammers.trainist.ui.addfood
 
 import android.Manifest
+import android.app.Activity
+import android.content.Context
+import android.content.ContextWrapper
 import android.content.pm.PackageManager
+import android.view.WindowManager
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.camera.core.Camera
@@ -25,15 +29,12 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.ime
-import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.union
-import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -51,6 +52,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import dev.antonlammers.trainist.ui.components.NumericTextField
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -92,6 +94,21 @@ fun BarcodeScannerScreen(navController: NavController) {
     }
     LaunchedEffect(Unit) {
         if (!hasPermission) launcher.launch(Manifest.permission.CAMERA)
+    }
+
+    // Pin the window to ADJUST_NOTHING for this screen so the frame never resizes for the keyboard.
+    // The rest of the app leaves the soft-input mode at its default (which resizes), which would
+    // "double up" with the panel's own imePadding — the frame shrinks above the keyboard *and* the
+    // inset padding lifts the panel again, floating it a full keyboard-height too high. With the frame
+    // pinned to not resize, the IME is a plain inset and the panel's imePadding is the single, correct,
+    // device-independent mechanism. Restored to the previous mode on leave.
+    DisposableEffect(Unit) {
+        val window = context.findActivity()?.window
+        val previousMode = window?.attributes?.softInputMode
+        window?.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_NOTHING)
+        onDispose {
+            if (window != null && previousMode != null) window.setSoftInputMode(previousMode)
+        }
     }
 
     Box(
@@ -142,17 +159,19 @@ fun BarcodeScannerScreen(navController: NavController) {
             var manualBarcode by remember { mutableStateOf("") }
 
             // Always-docked manual-entry panel (no extra tap to reveal it) — same submit flow as a scan.
-            // The IME/nav-bar inset is applied to the Surface itself (as the *max* of the two, not their
-            // sum) so the whole panel slides up to sit directly above the keyboard. Applying imePadding
-            // to the inner Row instead would inflate the Surface by the keyboard height, filling the lower
-            // half of the screen with white and pushing the field to the top.
+            // The window is pinned to ADJUST_NOTHING (see the DisposableEffect above), so the frame does
+            // not resize and the IME is a plain inset: imePadding lifts the panel to sit flush above the
+            // keyboard, and navigationBarsPadding clears the gesture nav bar when the keyboard is closed
+            // (imePadding subsumes it while the keyboard is up). This is the single, device-independent
+            // mechanism — no resize to double against.
             Surface(
                 color = MaterialTheme.colorScheme.surface,
                 shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .fillMaxWidth()
-                    .windowInsetsPadding(WindowInsets.ime.union(WindowInsets.navigationBars)),
+                    .navigationBarsPadding()
+                    .imePadding(),
             ) {
                 Row(
                     modifier = Modifier
@@ -206,6 +225,13 @@ fun BarcodeScannerScreen(navController: NavController) {
 
 /** Translucent scrim behind the round camera-overlay controls (torch, close). */
 private val TranslucentControl = Color(0x55000000)
+
+/** Unwraps a (possibly wrapped) Compose [Context] to the hosting [Activity], or null. */
+private tailrec fun Context.findActivity(): Activity? = when (this) {
+    is Activity -> this
+    is ContextWrapper -> baseContext.findActivity()
+    else -> null
+}
 
 @ExperimentalGetImage
 @Composable
