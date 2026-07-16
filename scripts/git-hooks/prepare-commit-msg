@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+# Stamps every commit message with the version it will produce: a running build counter equal to
+# the commit's depth in history (see app/build.gradle.kts, which derives versionCode/versionName
+# from `git rev-list --count HEAD` the same way), so the number in the message always matches what
+# a build made from that commit reports.
+set -euo pipefail
+
+MSG_FILE="$1"
+
+# Idempotent: don't add a second trailer on `git commit --amend`.
+if grep -q "^Version: " "$MSG_FILE" 2>/dev/null; then
+    exit 0
+fi
+
+COUNT=$(git rev-list --count HEAD 2>/dev/null || echo 0)
+VERSION="1.0.$((COUNT + 1))"
+
+printf '\nVersion: %s\n' "$VERSION" >> "$MSG_FILE"

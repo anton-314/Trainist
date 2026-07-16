@@ -6,6 +6,20 @@ plugins {
     alias(libs.plugins.hilt)
 }
 
+// The app's version is a running build counter — the number of commits on the checked-out
+// history — so every commit on any branch produces its own, always-increasing version.
+// `prepare-commit-msg` (scripts/git-hooks/) stamps each commit with the version it will produce.
+fun gitCommitCount(): Int = try {
+    val process = ProcessBuilder("git", "rev-list", "--count", "HEAD")
+        .directory(rootDir)
+        .redirectErrorStream(true)
+        .start()
+    process.waitFor()
+    process.inputStream.bufferedReader().readText().trim().toIntOrNull() ?: 1
+} catch (e: Exception) {
+    1
+}
+
 android {
     namespace = "dev.antonlammers.trainist"
     compileSdk {
@@ -16,8 +30,9 @@ android {
         applicationId = "dev.antonlammers.trainist"
         minSdk = 24
         targetSdk = 36
-        versionCode = 1
-        versionName = "1.0"
+        val buildNumber = gitCommitCount()
+        versionCode = buildNumber
+        versionName = "1.0.$buildNumber"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -40,6 +55,7 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 }
 
