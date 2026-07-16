@@ -54,11 +54,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.core.graphics.drawable.toBitmap
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.antonlammers.trainist.R
@@ -118,6 +120,16 @@ private fun WelcomeStep(
     val dataState by dataViewModel.uiState.collectAsStateWithLifecycle()
     val snackbar = remember { SnackbarHostState() }
 
+    // Rasterize the launcher icon: on API 26+ R.mipmap.ic_launcher_round resolves to an
+    // AdaptiveIconDrawable, which Compose's painterResource cannot decode (it crashes). Loading the
+    // drawable and drawing it into a bitmap works for both adaptive and legacy icons.
+    val context = LocalContext.current
+    val logo = remember {
+        context.packageManager.getApplicationIcon(context.packageName)
+            .toBitmap(width = 288, height = 288)
+            .asImageBitmap()
+    }
+
     LaunchedEffect(dataState.message) {
         dataState.message?.let {
             snackbar.showSnackbar(it)
@@ -140,7 +152,7 @@ private fun WelcomeStep(
         ) {
             Spacer(Modifier.height(48.dp))
             Image(
-                painter = painterResource(R.mipmap.ic_launcher_round),
+                bitmap = logo,
                 contentDescription = null,
                 modifier = Modifier
                     .size(96.dp)
