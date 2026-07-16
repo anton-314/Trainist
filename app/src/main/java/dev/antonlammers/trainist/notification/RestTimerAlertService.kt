@@ -24,10 +24,17 @@ import androidx.core.app.ServiceCompat
  * one a phone's own alarm clock uses — normally exempt from silent mode, audible over headphones like
  * any other audio) and [Vibrator.vibrate] is called directly rather than via a notification channel.
  *
+ * The alert is a short **notification-style chime** — [RingtoneManager.TYPE_NOTIFICATION], not
+ * [RingtoneManager.TYPE_ALARM] — since the latter is the user's own configured alarm-clock tone,
+ * which is typically long/melody-length and reads as "my alarm went off", not a quick app cue. Total
+ * runtime (sound + vibration) is hard-capped at [ALERT_DURATION_MS] regardless of the resolved tone's
+ * own length, so the alert always ends quickly even without user interaction. It can also be silenced
+ * immediately: tapping the notification's "Stoppen" action (or swiping it away, or opening the app,
+ * see [RestTimerNotifier.buildExpiredNotification] / `MainActivity`) sends [ACTION_STOP].
+ *
  * Runs as a short-lived foreground service — started from [RestTimerAlarmReceiver] in response to an
  * exact alarm, one of Android's documented background foreground-service-start exemptions — so
  * playback reliably survives with the screen off/locked and the app process not otherwise running.
- * Stops itself once the sound finishes (or after [MAX_RUNTIME_MS] as a safety net).
  */
 class RestTimerAlertService : Service() {
 
@@ -35,10 +42,16 @@ class RestTimerAlertService : Service() {
     private var vibrator: Vibrator? = null
     private var wakeLock: PowerManager.WakeLock? = null
     private var stopped = false
+    private val mainHandler = Handler(Looper.getMainLooper())
 
     override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        if (intent?.action == ACTION_STOP) {
+            stopAlert()
+            return START_NOT_STICKY
+        }
+
         ServiceCompat.startForeground(
             this,
             RestTimerNotifier.NOTIFICATION_ID_ALERT,
@@ -48,7 +61,10 @@ class RestTimerAlertService : Service() {
 
         wakeLock = getSystemService(PowerManager::class.java)
             ?.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "Trainist:RestTimerAlert")
-            ?.apply { acquire(MAX_RUNTIME_MS) }
+            ?.apply { acquire(ALERT_DURATION_MS + 1_000L) }
+
+        // Hard cap: the alert must always be short, regardless of how long the resolved tone actually is.
+        mainHandler.postDelayed({ stopAlert() }, ALERT_DURATION_MS)
 
         vibrate()
         playSound()
@@ -67,14 +83,9 @@ class RestTimerAlertService : Service() {
     }
 
     private fun playSound() {
-        val uri = RingtoneManager.getActualDefaultRingtoneUri(this, RingtoneManager.TYPE_ALARM)
-            ?: RingtoneManager.getActualDefaultRingtoneUri(this, RingtoneManager.TYPE_NOTIFICATION)
-        if (uri == null) {
-            // No ringtone configured at all (device/user has both alarm and notification sound set to
-            // "None") — let the vibration alone run its course instead of cancelling it immediately.
-            Handler(Looper.getMainLooper()).postDelayed({ stopAlert() }, VIBRATION_ONLY_DURATION_MS)
-            return
-        }
+        val uri = RingtoneManager.getActualDefaultRingtoneUri(this, RingtoneManager.TYPE_NOTIFICATION)
+            ?: RingtoneManager.getActualDefaultRingtoneUri(this, RingtoneManager.TYPE_ALARM)
+        if (uri == null) return
         player = MediaPlayer().apply {
             setAudioAttributes(
                 AudioAttributes.Builder()
@@ -97,6 +108,7 @@ class RestTimerAlertService : Service() {
     private fun stopAlert() {
         if (stopped) return
         stopped = true
+        mainHandler.removeCallbacksAndMessages(null)
         vibrator?.cancel()
         vibrator = null
         player?.let { runCatching { it.stop() }; runCatching { it.release() } }
@@ -113,10 +125,12 @@ class RestTimerAlertService : Service() {
     }
 
     companion object {
-        // Safety net in case playback hangs — the alert itself is a short clip (a few seconds).
-        private const val MAX_RUNTIME_MS = 15_000L
-        // Vibration-only fallback duration (no ringtone configured on the device at all).
-        private const val VIBRATION_ONLY_DURATION_MS = 4_000L
+        /** Sent as the [Intent.getAction] to silence an in-progress alert immediately. */
+        const val ACTION_STOP = "dev.antonlammers.trainist.action.STOP_REST_ALERT"
+
+        // The alert is meant to be a short cue, not a ringing alarm — always stop after this long,
+        // regardless of the resolved tone's actual length.
+        private const val ALERT_DURATION_MS = 6_000L
         private val VIBRATION_PATTERN = longArrayOf(0, 400, 200, 400)
     }
 }

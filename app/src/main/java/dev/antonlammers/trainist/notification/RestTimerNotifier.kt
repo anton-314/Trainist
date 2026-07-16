@@ -125,6 +125,16 @@ object RestTimerNotifier {
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setCategory(NotificationCompat.CATEGORY_ALARM)
             .setContentIntent(openWorkoutPendingIntent(context))
+            // Explicit "Stoppen" action + swipe-to-dismiss both silence the alert immediately — the
+            // sound/vibration otherwise only stop on their own after RestTimerAlertService's short cap.
+            .addAction(
+                NotificationCompat.Action.Builder(
+                    R.drawable.ic_notification,
+                    "Stoppen",
+                    stopAlertPendingIntent(context),
+                ).build(),
+            )
+            .setDeleteIntent(stopAlertPendingIntent(context))
             .setAutoCancel(true)
             .build()
     }
@@ -157,6 +167,14 @@ object RestTimerNotifier {
             putExtra(EXTRA_OPEN_WORKOUT_SESSION, true)
         }
         return PendingIntent.getActivity(context, 0, intent, PendingIntent.FLAG_IMMUTABLE)
+    }
+
+    /** Targets [RestTimerAlertService] directly with [RestTimerAlertService.ACTION_STOP]. */
+    private fun stopAlertPendingIntent(context: Context): PendingIntent {
+        val intent = Intent(context, RestTimerAlertService::class.java).apply {
+            action = RestTimerAlertService.ACTION_STOP
+        }
+        return PendingIntent.getService(context, 0, intent, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
     }
 
     private fun formatMmSs(totalSeconds: Int): String {

@@ -32,6 +32,9 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         requestNotificationPermissionIfNeeded()
         val openWorkoutSession = intent.getBooleanExtra(RestTimerNotifier.EXTRA_OPEN_WORKOUT_SESSION, false)
+        // Tapping the rest-over alert notification to open the app should silence it immediately —
+        // otherwise the alert sound/vibration keeps running until its own short cap elapses.
+        if (openWorkoutSession) RestTimerNotifier.cancel(this)
         @OptIn(ExperimentalGetImage::class)
         setContent {
             TrainistTheme {
