@@ -29,11 +29,10 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.ime
-import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.isImeVisible
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.union
-import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -76,7 +75,7 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.navigation.NavController
 import java.util.concurrent.atomic.AtomicBoolean
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @ExperimentalGetImage
 @Composable
 fun BarcodeScannerScreen(navController: NavController) {
@@ -142,17 +141,19 @@ fun BarcodeScannerScreen(navController: NavController) {
             var manualBarcode by remember { mutableStateOf("") }
 
             // Always-docked manual-entry panel (no extra tap to reveal it) — same submit flow as a scan.
-            // The IME/nav-bar inset is applied to the Surface itself (as the *max* of the two, not their
-            // sum) so the whole panel slides up to sit directly above the keyboard. Applying imePadding
-            // to the inner Row instead would inflate the Surface by the keyboard height, filling the lower
-            // half of the screen with white and pushing the field to the top.
+            // The window itself resizes for the IME (adjustResize), so the content Box already shrinks to
+            // the area above the keyboard and BottomCenter lands the panel right on top of it — we must
+            // NOT also add an imePadding, or the panel gets pushed up a *second* keyboard-height and floats
+            // far above the keyboard. We only pad for the navigation bar (keyboard-closed state), and
+            // ignore it while the IME is up so the panel sits flush against the keyboard.
+            val imeVisible = WindowInsets.isImeVisible
             Surface(
                 color = MaterialTheme.colorScheme.surface,
                 shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .fillMaxWidth()
-                    .windowInsetsPadding(WindowInsets.ime.union(WindowInsets.navigationBars)),
+                    .then(if (imeVisible) Modifier else Modifier.navigationBarsPadding()),
             ) {
                 Row(
                     modifier = Modifier
