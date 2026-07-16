@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Datenschutzerklärung — Trainist</title>
+<style>
+  :root {
+    color-scheme: light dark;
+    --bg: #fbfaf7;
+    --text: #201c14;
+    --text-2: #55503f;
+    --line: #ddd7c8;
+    --accent: #8a6fae;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #16130d;
+      --text: #ede8db;
+      --text-2: #b6ae98;
+      --line: #3a3527;
+      --accent: #b79fcb;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    line-height: 1.6;
+  }
+  main {
+    max-width: 42rem;
+    margin: 0 auto;
+    padding: 3rem 1.25rem 5rem;
+  }
+  h1 {
+    font-size: 1.75rem;
+    margin-bottom: 0.25rem;
+  }
+  .meta {
+    color: var(--text-2);
+    font-size: 0.9rem;
+    margin-bottom: 2.5rem;
+  }
+  h2 {
+    font-size: 1.15rem;
+    margin-top: 2.5rem;
+    padding-bottom: 0.4rem;
+    border-bottom: 1px solid var(--line);
+  }
+  p, li { color: var(--text-2); }
+  ul { padding-left: 1.25rem; }
+  li { margin-bottom: 0.4rem; }
+  a { color: var(--accent); }
+  strong { color: var(--text); }
+  code {
+    background: color-mix(in srgb, var(--line) 40%, transparent);
+    padding: 0.1rem 0.35rem;
+    border-radius: 0.3rem;
+    font-size: 0.9em;
+  }
+</style>
+</head>
+<body>
+<main>
+  <h1>Datenschutzerklärung</h1>
+  <p class="meta">Trainist (dev.antonlammers.trainist) &middot; Stand: 16. Juli 2026</p>
+
+  <h2>Verantwortlicher</h2>
+  <p>
+    Anton Lammers<br>
+    E-Mail: <a href="mailto:lammersanton9@gmail.com">lammersanton9@gmail.com</a>
+  </p>
+
+  <h2>Grundsatz: Daten bleiben auf deinem Gerät</h2>
+  <p>
+    Trainist ist ohne Benutzerkonto und ohne eigenen Server nutzbar. Alle Eingaben —
+    Ernährungseinträge, Gewichtswerte, Ziele, eigene Lebensmittel, Übungen, Trainingspläne und
+    -einheiten — werden ausschließlich lokal in einer Datenbank auf deinem Gerät gespeichert.
+    Diese Daten werden von uns nicht erhoben, nicht auf einen Server übertragen und nicht an
+    Dritte weitergegeben.
+  </p>
+
+  <h2>Netzwerkzugriffe</h2>
+  <ul>
+    <li>
+      <strong>Barcode-Scan (Lebensmittelsuche):</strong> Wird ein Barcode gescannt oder manuell
+      eingegeben, sendet die App die Barcode-Nummer an die offene, gemeinnützige Datenbank
+      <a href="https://world.openfoodfacts.org/" target="_blank" rel="noopener">Open Food
+      Facts</a>, um Produktdaten (Name, Nährwerte) abzurufen. Dabei wird technisch bedingt deine
+      IP-Adresse an Open Food Facts übertragen; es werden keine weiteren persönlichen Daten
+      mitgesendet. Es gilt die
+      <a href="https://world.openfoodfacts.org/privacy" target="_blank" rel="noopener">Datenschutzerklärung
+      von Open Food Facts</a>.
+    </li>
+    <li>
+      <strong>Schriftarten:</strong> Die App lädt ihre Schriftarten (Newsreader, Hanken Grotesk,
+      JetBrains Mono) zur Laufzeit über den Google-Fonts-Provider von Google Play Services nach.
+      Dabei finden die üblichen technischen Anfragen an Google statt; es werden keine
+      App-Inhalte oder personenbezogenen Daten aus Trainist übermittelt.
+    </li>
+  </ul>
+  <p>
+    Ein Tracking, Werbenetzwerk oder Analytics-Dienst ist in der App nicht enthalten.
+  </p>
+
+  <h2>Berechtigungen</h2>
+  <ul>
+    <li>
+      <strong>Kamera:</strong> Wird ausschließlich zum Scannen von Barcodes verwendet
+      (On-Device-Erkennung via ML Kit). Es werden keine Bilder gespeichert oder übertragen.
+    </li>
+    <li>
+      <strong>Benachrichtigungen:</strong> Für die tägliche Erinnerung an die Ernährungserfassung
+      und den Pausen-Timer im Training. Beide laufen vollständig lokal auf dem Gerät.
+    </li>
+    <li>
+      <strong>Exakte Alarme:</strong> Damit der Pausen-Timer im Training zuverlässig zur
+      richtigen Zeit benachrichtigt, auch wenn das Gerät im Ruhezustand ist. Dient ausschließlich
+      der lokalen Zeitsteuerung, keine Datenerhebung.
+    </li>
+  </ul>
+
+  <h2>Backup &amp; Datenexport</h2>
+  <p>
+    Wenn du die automatische Android-Sicherung (Google-Konto-Backup) aktiviert hast, sichert
+    Android die lokale App-Datenbank wie jede andere App-Daten auch — das läuft über dein
+    eigenes Google-Konto und unterliegt Googles eigenen Datenschutzbestimmungen, nicht unseren.
+  </p>
+  <p>
+    Der Datenexport in den Einstellungen erstellt eine ZIP-Datei mit deinen Daten, die du selbst
+    über die Teilen-Funktion deines Geräts an ein Ziel deiner Wahl sendest (z. B. eigener
+    Cloud-Speicher, lokale Ablage). Wir haben darauf keinen Zugriff.
+  </p>
+
+  <h2>Löschung</h2>
+  <p>
+    Einzelne Einträge lassen sich jederzeit in der App löschen. Beim Deinstallieren der App
+    werden alle lokal gespeicherten Daten entfernt (sofern nicht separat über die
+    Android-Gerätesicherung an anderer Stelle gesichert).
+  </p>
+
+  <h2>Kinder</h2>
+  <p>Trainist richtet sich nicht gezielt an Kinder unter 16 Jahren.</p>
+
+  <h2>Änderungen dieser Erklärung</h2>
+  <p>
+    Diese Datenschutzerklärung kann angepasst werden, wenn sich die App oder rechtliche
+    Anforderungen ändern. Die aktuelle Fassung ist immer unter dieser Adresse abrufbar.
+  </p>
+
+  <h2>Kontakt</h2>
+  <p>
+    Fragen zum Datenschutz beantworten wir gerne per E-Mail:
+    <a href="mailto:lammersanton9@gmail.com">lammersanton9@gmail.com</a>
+  </p>
+</main>
+</body>
+</html>
