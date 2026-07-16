@@ -22,6 +22,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.FileDownload
 import androidx.compose.material.icons.rounded.FileUpload
+import androidx.compose.material.icons.rounded.MailOutline
 import androidx.compose.material.icons.rounded.VolunteerActivism
 import androidx.compose.material.icons.rounded.Warning
 import androidx.compose.material3.Button
@@ -455,9 +456,29 @@ private fun ColumnScope.DonationSection() {
                 )
                 Text("Kaffee spendieren")
             }
+            OutlinedButton(
+                onClick = {
+                    val intent = Intent(Intent.ACTION_SENDTO, Uri.parse("mailto:$DEVELOPER_CONTACT_EMAIL")).apply {
+                        putExtra(Intent.EXTRA_SUBJECT, "Trainist Feedback")
+                    }
+                    context.startActivity(intent)
+                },
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(14.dp),
+            ) {
+                Icon(
+                    Icons.Rounded.MailOutline,
+                    contentDescription = null,
+                    modifier = Modifier.padding(end = 8.dp),
+                )
+                Text("Entwickler kontaktieren")
+            }
         }
     }
 }
+
+/** Support inbox for feedback, bugs and feature suggestions (see [DonationSection]). */
+private const val DEVELOPER_CONTACT_EMAIL = "lammy.google.develop.flatness494@passmail.net"
 
 /** Mono-uppercase section header (matches the Stats "Daten" caption). */
 @Composable
