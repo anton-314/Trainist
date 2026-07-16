@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
@@ -37,9 +39,30 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
+    // Release signing: read from a local, gitignored `keystore.properties` (dev machines) with a
+    // fallback to environment variables (CI, where the upload keystore is injected from secrets).
+    val keystoreProperties = Properties().apply {
+        val propsFile = rootProject.file("keystore.properties")
+        if (propsFile.exists()) {
+            propsFile.inputStream().use { load(it) }
+        }
+    }
+    fun signingProp(key: String, envVar: String): String? =
+        keystoreProperties.getProperty(key) ?: System.getenv(envVar)
+
+    signingConfigs {
+        create("release") {
+            signingProp("storeFile", "RELEASE_KEYSTORE_PATH")?.let { storeFile = file(it) }
+            storePassword = signingProp("storePassword", "RELEASE_KEYSTORE_PASSWORD")
+            keyAlias = signingProp("keyAlias", "RELEASE_KEY_ALIAS")
+            keyPassword = signingProp("keyPassword", "RELEASE_KEY_PASSWORD")
+        }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = false
+            signingConfig = signingConfigs.getByName("release")
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
