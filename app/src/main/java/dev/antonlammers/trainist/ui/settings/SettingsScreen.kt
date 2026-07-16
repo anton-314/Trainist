@@ -1,6 +1,7 @@
 package dev.antonlammers.trainist.ui.settings
 
 import android.content.Intent
+import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
@@ -21,6 +22,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.FileDownload
 import androidx.compose.material.icons.rounded.FileUpload
+import androidx.compose.material.icons.rounded.VolunteerActivism
 import androidx.compose.material.icons.rounded.Warning
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -101,6 +103,10 @@ fun SettingsScreen(
             HorizontalDivider()
             SectionHeader("Daten")
             DataSection(dataViewModel, snackbar)
+
+            HorizontalDivider()
+            SectionHeader("Unterstützung")
+            DonationSection()
 
             VersionFooter()
 
@@ -405,6 +411,50 @@ private fun ColumnScope.DataSection(
                     uncheckedBorderColor = Color.Transparent,
                 ),
             )
+        }
+    }
+}
+
+/** A flat card linking out to the developer's PayPal.me page for optional donations. */
+@Composable
+private fun ColumnScope.DonationSection() {
+    val context = LocalContext.current
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Text("Gefällt dir Trainist?", style = MaterialTheme.typography.titleMedium)
+            Text(
+                "Die App wird von einer einzelnen Person in der Freizeit entwickelt. " +
+                    "Wenn sie dir hilft, freue ich mich über einen Kaffee.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Button(
+                onClick = {
+                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://paypal.me/antonlamm"))
+                    context.startActivity(intent)
+                },
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(14.dp),
+            ) {
+                Icon(
+                    Icons.Rounded.VolunteerActivism,
+                    contentDescription = null,
+                    modifier = Modifier.padding(end = 8.dp),
+                )
+                Text("Kaffee spendieren")
+            }
         }
     }
 }
