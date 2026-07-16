@@ -11,6 +11,13 @@
     <uses-permission
         android:name="android.permission.SCHEDULE_EXACT_ALARM"
         android:maxSdkVersion="32" />
+    <!-- The rest-over alert plays real alarm-stream audio + vibrates directly (RestTimerAlertService),
+         instead of relying on a notification's own sound/vibration, which is muted by ringer/Do Not
+         Disturb settings. -->
+    <uses-permission android:name="android.permission.VIBRATE" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
     <uses-feature android:name="android.hardware.camera" android:required="false" />
 
     <application
@@ -48,6 +55,11 @@
         <receiver
             android:name=".notification.RestTimerAlarmReceiver"
             android:exported="false" />
+
+        <service
+            android:name=".notification.RestTimerAlertService"
+            android:exported="false"
+            android:foregroundServiceType="mediaPlayback" />
 
         <provider
             android:name="androidx.core.content.FileProvider"

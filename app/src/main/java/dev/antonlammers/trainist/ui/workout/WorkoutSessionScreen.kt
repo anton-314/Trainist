@@ -96,6 +96,9 @@ fun WorkoutSessionScreen(
         viewModel.restCommands.collect { command ->
             when (command) {
                 is RestCommand.Start -> {
+                    // Defensively stop a still-sounding alert from a previous rest (e.g. the next set is
+                    // checked off before the prior alarm finished playing) before starting the new one.
+                    RestTimerNotifier.cancel(context)
                     RestTimerScheduler.schedule(context, command.delayMs)
                     RestTimerNotifier.showOngoing(context, command.exerciseName, command.endAtMs)
                 }
