@@ -33,9 +33,17 @@ class SettingsRepositoryImpl @Inject constructor(
         prefs.edit { putString(KEY_STATS_CARD_ORDER, order.joinToString(",") { it.name }) }
     }
 
+    override suspend fun isOnboardingCompleted(): Boolean =
+        prefs.getBoolean(KEY_ONBOARDING_COMPLETED, false)
+
+    override suspend fun setOnboardingCompleted(completed: Boolean) {
+        prefs.edit { putBoolean(KEY_ONBOARDING_COMPLETED, completed) }
+    }
+
     private companion object {
         const val PREFS_NAME = "trainist_settings"
         const val KEY_REMINDER_ENABLED = "meal_reminder_enabled"
         const val KEY_STATS_CARD_ORDER = "stats_card_order"
+        const val KEY_ONBOARDING_COMPLETED = "onboarding_completed"
     }
 }

@@ -9,10 +9,16 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.camera.core.ExperimentalGetImage
+import androidx.compose.runtime.getValue
 import androidx.core.content.ContextCompat
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dagger.hilt.android.AndroidEntryPoint
 import dev.antonlammers.trainist.notification.RestTimerNotifier
 import dev.antonlammers.trainist.ui.navigation.AppNavigation
+import dev.antonlammers.trainist.ui.onboarding.OnboardingScreen
+import dev.antonlammers.trainist.ui.onboarding.OnboardingState
+import dev.antonlammers.trainist.ui.onboarding.OnboardingViewModel
 import dev.antonlammers.trainist.ui.theme.TrainistTheme
 
 @AndroidEntryPoint
@@ -29,7 +35,19 @@ class MainActivity : ComponentActivity() {
         @OptIn(ExperimentalGetImage::class)
         setContent {
             TrainistTheme {
-                AppNavigation(openWorkoutSession = openWorkoutSession)
+                // First-launch gate: show the welcome flow until onboarding is completed, then the
+                // main app. Loading is a brief blank while the persisted flag is read (avoids a
+                // welcome-screen flash for returning users).
+                val onboardingViewModel: OnboardingViewModel = hiltViewModel()
+                val onboardingState by onboardingViewModel.state.collectAsStateWithLifecycle()
+                when (onboardingState) {
+                    OnboardingState.Loading -> Unit
+                    OnboardingState.Onboarding ->
+                        OnboardingScreen(onFinished = onboardingViewModel::complete)
+
+                    OnboardingState.Completed ->
+                        AppNavigation(openWorkoutSession = openWorkoutSession)
+                }
             }
         }
     }

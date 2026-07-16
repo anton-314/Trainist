@@ -49,7 +49,12 @@ class DataViewModel @Inject constructor(
         }
     }
 
-    fun import(uri: Uri) {
+    /**
+     * @param onSuccess invoked (after the result message is set) only when the import completed
+     * without throwing — used by the onboarding quick-start to advance into the app once a backup
+     * has been restored. Callers that don't care (the Settings screen) omit it.
+     */
+    fun import(uri: Uri, onSuccess: () -> Unit = {}) {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
             runCatching { importer.import(uri) }
@@ -67,6 +72,7 @@ class DataViewModel @Inject constructor(
                     }
                     val msg = if (parts.isEmpty()) "Nichts importiert" else parts.joinToString(", ")
                     _uiState.update { it.copy(isLoading = false, message = msg) }
+                    onSuccess()
                 }
                 .onFailure { e ->
                     _uiState.update { it.copy(isLoading = false, message = "Import fehlgeschlagen: ${e.message}") }

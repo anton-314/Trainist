@@ -16,4 +16,13 @@ interface SettingsRepository {
     suspend fun statsCardOrder(): List<StatCardType>
 
     suspend fun setStatsCardOrder(order: List<StatCardType>)
+
+    /**
+     * Whether the first-launch welcome/onboarding flow has been completed. Default: false, so a
+     * fresh install shows the welcome screen exactly once. Set to true after any onboarding path
+     * (backup quick-start, start-empty, or the goals guide) finishes.
+     */
+    suspend fun isOnboardingCompleted(): Boolean
+
+    suspend fun setOnboardingCompleted(completed: Boolean)
 }

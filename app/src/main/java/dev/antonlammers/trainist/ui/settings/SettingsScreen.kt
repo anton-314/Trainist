@@ -5,9 +5,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
@@ -16,7 +14,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -51,7 +48,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
@@ -63,6 +59,9 @@ import dev.antonlammers.trainist.domain.MacroCalculator
 import dev.antonlammers.trainist.domain.model.DailyGoal
 import dev.antonlammers.trainist.ui.components.NumericTextField
 import dev.antonlammers.trainist.ui.data.DataViewModel
+import dev.antonlammers.trainist.ui.goals.FieldLabel
+import dev.antonlammers.trainist.ui.goals.GoalField
+import dev.antonlammers.trainist.ui.goals.formatWeight
 import dev.antonlammers.trainist.ui.goals.GoalsViewModel
 import dev.antonlammers.trainist.ui.theme.CalorieColor
 import dev.antonlammers.trainist.ui.theme.CarbsColor
@@ -70,7 +69,6 @@ import dev.antonlammers.trainist.ui.theme.FatColor
 import dev.antonlammers.trainist.ui.theme.ProteinColor
 import dev.antonlammers.trainist.util.normalizeDecimal
 import kotlinx.coroutines.launch
-import java.util.Locale
 
 /**
  * Settings hub: the daily-goals editor and the data section (backup export/import + reminder
@@ -420,59 +418,3 @@ private fun SectionHeader(label: String) {
         color = MaterialTheme.colorScheme.onSurfaceVariant,
     )
 }
-
-/** Mono-uppercase static caption shown above an input field. */
-@Composable
-private fun FieldLabel(label: String) {
-    Text(
-        label.uppercase(Locale("de")),
-        style = MaterialTheme.typography.labelMedium,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-    )
-}
-
-/**
- * A goal input: a mono-uppercase caption above a serif-valued [NumericTextField], with an optional
- * 8×20dp colored accent tick (the macro's data color) in the leading slot.
- */
-@Composable
-private fun GoalField(
-    label: String,
-    value: String,
-    onValueChange: (String) -> Unit,
-    modifier: Modifier = Modifier,
-    accentColor: Color? = null,
-    decimal: Boolean = false,
-    suffix: String? = null,
-    supportingText: String? = null,
-) {
-    Column(modifier, verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        FieldLabel(label)
-        NumericTextField(
-            value = value,
-            onValueChange = onValueChange,
-            label = null,
-            decimal = decimal,
-            suffix = suffix,
-            supportingText = supportingText,
-            textStyle = MaterialTheme.typography.titleMedium,
-            leadingIcon = accentColor?.let { color -> { AccentTick(color) } },
-            modifier = Modifier.fillMaxWidth(),
-        )
-    }
-}
-
-/** Small vertical accent bar carrying a macro's data color. */
-@Composable
-private fun AccentTick(color: Color) {
-    Box(
-        Modifier
-            .size(width = 8.dp, height = 20.dp)
-            .clip(RoundedCornerShape(4.dp))
-            .background(color),
-    )
-}
-
-/** Whole numbers without a decimal point, fractional weights as-is (e.g. 72 / 72.5). */
-private fun formatWeight(kg: Double): String =
-    if (kg % 1.0 == 0.0) kg.toInt().toString() else kg.toString()
