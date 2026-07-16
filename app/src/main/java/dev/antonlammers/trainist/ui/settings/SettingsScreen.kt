@@ -58,6 +58,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
+import dev.antonlammers.trainist.BuildConfig
 import dev.antonlammers.trainist.domain.MacroCalculator
 import dev.antonlammers.trainist.domain.model.DailyGoal
 import dev.antonlammers.trainist.ui.components.NumericTextField
@@ -103,10 +104,24 @@ fun SettingsScreen(
             SectionHeader("Daten")
             DataSection(dataViewModel, snackbar)
 
+            VersionFooter()
+
             // Extra bottom breathing room so the last card clears the navigation bar.
             Spacer(Modifier.height(24.dp))
         }
     }
+}
+
+/** App version, shown at the very bottom of the settings hub (see [BuildConfig.VERSION_NAME]). */
+@Composable
+private fun ColumnScope.VersionFooter() {
+    Spacer(Modifier.height(8.dp))
+    Text(
+        "Version ${BuildConfig.VERSION_NAME}",
+        style = MaterialTheme.typography.labelMedium,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = Modifier.align(Alignment.CenterHorizontally),
+    )
 }
 
 /** Daily-goals editor: body-weight-driven recommendations + macro/kcal fields + target weight. */
