@@ -88,9 +88,12 @@ fun <T> DragReorderColumn(
                     // layout shift when a swap moves them. Applying both to the dragged row would make
                     // the placement animation fight the manual offset, so it is disabled while dragging.
                     .then(if (isDragging) Modifier else Modifier.animatePlacement())
+                    // No shadowElevation here: its default rectangular shadow shape doesn't match the
+                    // rounded cards drawn underneath, which left a rectangular "frame" visible around
+                    // the dragged tile in light mode. zIndex + this offset + each screen's own
+                    // isDragging tint already read as "picked up" without it.
                     .graphicsLayer {
                         translationY = if (isDragging) dragOffsetPx else 0f
-                        shadowElevation = if (isDragging) 6f else 0f
                     }
 
                 val dragHandleModifier = Modifier.pointerInput(itemKey) {
