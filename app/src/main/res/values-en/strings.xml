@@ -243,4 +243,25 @@
     <string name="template_editor_empty_hint">No exercises yet — add some from the catalog.</string>
     <string name="template_editor_remove_set_content_description">Remove set</string>
     <string name="template_editor_add_set_short_label">Set</string>
+
+    <!-- StatsScreen (ui/stats/StatsScreen.kt, ui/stats/StatsViewModel.kt) -->
+    <string name="stats_title">Stats</string>
+    <string name="stats_time_range_week">7 days</string>
+    <string name="stats_time_range_month">30 days</string>
+    <string name="stats_time_range_year">1 year</string>
+    <string name="stats_card_calories">Calories</string>
+    <string name="stats_card_clean_eating">Clean Eating</string>
+    <string name="stats_card_weight">Weight</string>
+    <string name="stats_card_training_frequency">Training Frequency</string>
+    <string name="stats_card_strength">Strength Progress</string>
+    <string name="stats_empty_calories">No entries yet</string>
+    <string name="stats_empty_clean_eating">No tagged entries yet</string>
+    <string name="stats_empty_weight">No weight data yet</string>
+    <string name="stats_empty_frequency">No sessions yet</string>
+    <string name="stats_empty_strength">No training data yet</string>
+    <string name="stats_empty_strength_exercise">No data for this exercise in this range</string>
+    <string name="stats_clean_average">Avg %1$d %%</string>
+    <string name="stats_weight_current">Current</string>
+    <string name="stats_weight_change">Change</string>
+    <string name="stats_weight_target">Target</string>
 </resources>

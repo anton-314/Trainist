@@ -243,4 +243,25 @@
     <string name="template_editor_empty_hint">Noch keine Übungen — füge welche aus dem Katalog hinzu.</string>
     <string name="template_editor_remove_set_content_description">Satz entfernen</string>
     <string name="template_editor_add_set_short_label">Satz</string>
+
+    <!-- StatsScreen (ui/stats/StatsScreen.kt, ui/stats/StatsViewModel.kt) -->
+    <string name="stats_title">Statistik</string>
+    <string name="stats_time_range_week">7 Tage</string>
+    <string name="stats_time_range_month">30 Tage</string>
+    <string name="stats_time_range_year">1 Jahr</string>
+    <string name="stats_card_calories">Kalorien</string>
+    <string name="stats_card_clean_eating">Clean-Ernährung</string>
+    <string name="stats_card_weight">Gewicht</string>
+    <string name="stats_card_training_frequency">Trainingsfrequenz</string>
+    <string name="stats_card_strength">Kraftverlauf</string>
+    <string name="stats_empty_calories">Noch keine Einträge</string>
+    <string name="stats_empty_clean_eating">Noch keine getaggten Einträge</string>
+    <string name="stats_empty_weight">Noch keine Gewichtsdaten</string>
+    <string name="stats_empty_frequency">Noch keine Einheiten</string>
+    <string name="stats_empty_strength">Noch keine Trainingsdaten</string>
+    <string name="stats_empty_strength_exercise">Für diese Übung keine Daten im Zeitraum</string>
+    <string name="stats_clean_average">Ø %1$d %%</string>
+    <string name="stats_weight_current">Aktuell</string>
+    <string name="stats_weight_change">Veränderung</string>
+    <string name="stats_weight_target">Ziel</string>
 </resources>

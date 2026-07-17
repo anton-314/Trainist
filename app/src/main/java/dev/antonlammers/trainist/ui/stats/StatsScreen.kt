@@ -45,6 +45,7 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import java.time.LocalDate
@@ -54,11 +55,13 @@ import kotlin.math.abs
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
+import dev.antonlammers.trainist.R
 import dev.antonlammers.trainist.domain.model.StatCardType
 import dev.antonlammers.trainist.ui.components.DragReorderColumn
 import dev.antonlammers.trainist.ui.theme.CalorieColor
 import dev.antonlammers.trainist.ui.theme.ProteinColor
 import dev.antonlammers.trainist.ui.theme.TagHealthyColor
+import dev.antonlammers.trainist.ui.util.currentAppLocale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -70,7 +73,7 @@ fun StatsScreen(
 
     Scaffold(
         topBar = {
-            TopAppBar(title = { Text("Statistik") })
+            TopAppBar(title = { Text(stringResource(R.string.stats_title)) })
         },
     ) { padding ->
         Column(
@@ -91,7 +94,7 @@ fun StatsScreen(
                         onClick = { statsViewModel.setTimeRange(range) },
                         label = {
                             Text(
-                                range.label.uppercase(Locale("de")),
+                                range.label().uppercase(currentAppLocale()),
                                 style = MaterialTheme.typography.labelMedium,
                             )
                         },
@@ -121,9 +124,9 @@ fun StatsScreen(
                     verticalArrangement = Arrangement.spacedBy(12.dp),
                 ) { _, card, rowModifier, dragHandleModifier, isDragging ->
                     when (card) {
-                        StatCardType.CALORIES -> ChartCard("Kalorien", rowModifier, dragHandleModifier, isDragging) {
+                        StatCardType.CALORIES -> ChartCard(stringResource(R.string.stats_card_calories), rowModifier, dragHandleModifier, isDragging) {
                             if (state.caloriePoints.isEmpty() || state.caloriePoints.all { it.value == 0.0 }) {
-                                ChartEmptyHint("Noch keine Einträge")
+                                ChartEmptyHint(stringResource(R.string.stats_empty_calories))
                             } else {
                                 BarChart(
                                     points = state.caloriePoints,
@@ -136,14 +139,14 @@ fun StatsScreen(
                             }
                         }
                         StatCardType.CLEAN_EATING -> ChartCard(
-                            title = "Clean-Ernährung",
+                            title = stringResource(R.string.stats_card_clean_eating),
                             rowModifier = rowModifier,
                             dragHandleModifier = dragHandleModifier,
                             isDragging = isDragging,
                             trailing = {
                                 state.overallCleanPercent?.let { pct ->
                                     Text(
-                                        "Ø $pct %",
+                                        stringResource(R.string.stats_clean_average, pct),
                                         style = MaterialTheme.typography.labelMedium,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     )
@@ -151,7 +154,7 @@ fun StatsScreen(
                             },
                         ) {
                             if (state.overallCleanPercent == null) {
-                                ChartEmptyHint("Noch keine getaggten Einträge")
+                                ChartEmptyHint(stringResource(R.string.stats_empty_clean_eating))
                             } else {
                                 BarChart(
                                     points = state.cleanPoints,
@@ -164,10 +167,10 @@ fun StatsScreen(
                                 )
                             }
                         }
-                        StatCardType.WEIGHT -> ChartCard("Gewicht", rowModifier, dragHandleModifier, isDragging) {
+                        StatCardType.WEIGHT -> ChartCard(stringResource(R.string.stats_card_weight), rowModifier, dragHandleModifier, isDragging) {
                             val weight = state.weight
                             if (!weight.hasData) {
-                                ChartEmptyHint("Noch keine Gewichtsdaten")
+                                ChartEmptyHint(stringResource(R.string.stats_empty_weight))
                             } else {
                                 WeightSummary(weight)
                                 WeightChart(
@@ -181,9 +184,9 @@ fun StatsScreen(
                                 )
                             }
                         }
-                        StatCardType.TRAINING_FREQUENCY -> ChartCard("Trainingsfrequenz", rowModifier, dragHandleModifier, isDragging) {
+                        StatCardType.TRAINING_FREQUENCY -> ChartCard(stringResource(R.string.stats_card_training_frequency), rowModifier, dragHandleModifier, isDragging) {
                             if (state.frequencyPoints.isEmpty() || state.frequencyPoints.all { it.value == 0.0 }) {
-                                ChartEmptyHint("Noch keine Einheiten")
+                                ChartEmptyHint(stringResource(R.string.stats_empty_frequency))
                             } else {
                                 BarChart(
                                     points = state.frequencyPoints,
@@ -195,9 +198,9 @@ fun StatsScreen(
                                 )
                             }
                         }
-                        StatCardType.STRENGTH -> ChartCard("Kraftverlauf", rowModifier, dragHandleModifier, isDragging) {
+                        StatCardType.STRENGTH -> ChartCard(stringResource(R.string.stats_card_strength), rowModifier, dragHandleModifier, isDragging) {
                             if (state.strengthExercises.isEmpty()) {
-                                ChartEmptyHint("Noch keine Trainingsdaten")
+                                ChartEmptyHint(stringResource(R.string.stats_empty_strength))
                             } else {
                                 ExerciseSelector(
                                     exercises = state.strengthExercises,
@@ -205,7 +208,7 @@ fun StatsScreen(
                                     onSelect = statsViewModel::setSelectedExercise,
                                 )
                                 if (!state.strength.hasData) {
-                                    ChartEmptyHint("Für diese Übung keine Daten im Zeitraum")
+                                    ChartEmptyHint(stringResource(R.string.stats_empty_strength_exercise))
                                 } else {
                                     val data = state.strength
                                     val range = state.timeRange
@@ -322,12 +325,12 @@ private fun WeightSummary(data: WeightChartData) {
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(20.dp),
     ) {
-        data.current?.let { SummaryStat("Aktuell", "${formatKg(it)} kg") }
+        data.current?.let { SummaryStat(stringResource(R.string.stats_weight_current), "${formatKg(it)} kg") }
         data.delta?.let {
             val sign = if (it >= 0) "+" else "-"
-            SummaryStat("Veränderung", "$sign${formatKg(abs(it))} kg")
+            SummaryStat(stringResource(R.string.stats_weight_change), "$sign${formatKg(abs(it))} kg")
         }
-        data.targetKg?.let { SummaryStat("Ziel", "${formatKg(it)} kg") }
+        data.targetKg?.let { SummaryStat(stringResource(R.string.stats_weight_target), "${formatKg(it)} kg") }
     }
 }
 
@@ -335,7 +338,7 @@ private fun WeightSummary(data: WeightChartData) {
 private fun SummaryStat(label: String, value: String) {
     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
         Text(
-            label.uppercase(Locale("de")),
+            label.uppercase(currentAppLocale()),
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -476,7 +479,7 @@ private fun ChartCard(
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Icon(
                         Icons.Rounded.DragIndicator,
-                        contentDescription = "Ziehen zum Verschieben",
+                        contentDescription = stringResource(R.string.workout_session_drag_handle_content_description),
                         tint = MaterialTheme.colorScheme.outline,
                         modifier = dragHandleModifier.size(20.dp),
                     )
@@ -521,6 +524,15 @@ private fun ExerciseSelector(
         }
     }
 }
+
+@Composable
+private fun TimeRange.label(): String = stringResource(
+    when (this) {
+        TimeRange.WEEK -> R.string.stats_time_range_week
+        TimeRange.MONTH -> R.string.stats_time_range_month
+        TimeRange.YEAR -> R.string.stats_time_range_year
+    },
+)
 
 private fun weightTickFormatter(range: TimeRange): DateTimeFormatter = when (range) {
     TimeRange.WEEK -> DateTimeFormatter.ofPattern("EE", Locale("de"))

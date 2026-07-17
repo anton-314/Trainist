@@ -28,10 +28,12 @@ import java.time.format.DateTimeFormatter
 import java.util.Locale
 import javax.inject.Inject
 
-enum class TimeRange(val label: String) {
-    WEEK("7 Tage"),
-    MONTH("30 Tage"),
-    YEAR("1 Jahr"),
+// Display labels live in the UI layer (TimeRange.label() in StatsScreen.kt) since this ViewModel
+// has no Compose context to resolve a string resource.
+enum class TimeRange {
+    WEEK,
+    MONTH,
+    YEAR,
 }
 
 data class ChartPoint(val label: String, val value: Double)
