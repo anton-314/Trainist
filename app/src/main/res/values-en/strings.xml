@@ -217,4 +217,20 @@
     <string name="data_import_exercises">%1$d custom exercises</string>
     <string name="data_import_templates">%1$d templates</string>
     <string name="data_import_sessions">%1$d sessions</string>
+
+    <!-- ExerciseCatalogScreen (ui/workout/ExerciseCatalogScreen.kt) -->
+    <string name="exercise_catalog_title">Exercises</string>
+    <string name="exercise_catalog_create_content_description">Create custom exercise</string>
+    <string name="exercise_catalog_muscle_filter_label">MUSCLE</string>
+    <string name="exercise_catalog_equipment_filter_label">EQUIPMENT</string>
+    <string name="exercise_catalog_deleted_message">Exercise deleted</string>
+    <string name="exercise_catalog_clear_search_content_description">Clear search</string>
+    <string name="exercise_catalog_readonly_content_description">Catalog exercise (read-only)</string>
+    <string name="exercise_editor_title_new">New exercise</string>
+    <string name="exercise_editor_title_edit">Edit exercise</string>
+    <string name="exercise_editor_type_label">TYPE</string>
+    <string name="exercise_editor_muscles_field">Muscles (comma-separated)</string>
+    <string name="exercise_editor_equipment_field">Equipment</string>
+    <string name="exercise_editor_mechanic_label">MECHANIC</string>
+    <string name="exercise_editor_instructions_field">Instructions (one line per step)</string>
 </resources>

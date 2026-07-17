@@ -60,11 +60,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
+import dev.antonlammers.trainist.R
 import dev.antonlammers.trainist.domain.model.Exercise
 import dev.antonlammers.trainist.domain.model.ExerciseType
 import dev.antonlammers.trainist.domain.model.Mechanic
@@ -92,6 +94,11 @@ fun ExerciseCatalogScreen(
 
     var showCreateSheet by remember { mutableStateOf(false) }
     var exerciseToEdit by remember { mutableStateOf<Exercise?>(null) }
+
+    // Resolved here (not inside the snackbar-launching lambda below, which runs in a coroutine
+    // scope rather than a @Composable context, so stringResource() isn't callable there).
+    val exerciseDeletedMessage = stringResource(R.string.exercise_catalog_deleted_message)
+    val undoLabel = stringResource(R.string.common_undo)
 
     if (showCreateSheet) {
         ExerciseEditorSheet(
@@ -133,10 +140,10 @@ fun ExerciseCatalogScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Übungen") },
+                title = { Text(stringResource(R.string.exercise_catalog_title)) },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Zurück")
+                        Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = stringResource(R.string.common_back))
                     }
                 },
             )
@@ -149,7 +156,7 @@ fun ExerciseCatalogScreen(
                 elevation = androidx.compose.material3.FloatingActionButtonDefaults.elevation(0.dp, 0.dp, 0.dp, 0.dp),
                 shape = RoundedCornerShape(20.dp),
             ) {
-                Icon(Icons.Rounded.Add, contentDescription = "Eigene Übung anlegen")
+                Icon(Icons.Rounded.Add, contentDescription = stringResource(R.string.exercise_catalog_create_content_description))
             }
         },
         snackbarHost = { SnackbarHost(snackbar) },
@@ -163,7 +170,7 @@ fun ExerciseCatalogScreen(
 
             if (filterOptions.muscles.isNotEmpty()) {
                 FilterChipRow(
-                    label = "MUSKEL",
+                    label = stringResource(R.string.exercise_catalog_muscle_filter_label),
                     options = filterOptions.muscles,
                     selected = state.muscle,
                     onSelected = viewModel::onMuscleSelected,
@@ -171,7 +178,7 @@ fun ExerciseCatalogScreen(
             }
             if (filterOptions.equipment.isNotEmpty()) {
                 FilterChipRow(
-                    label = "EQUIPMENT",
+                    label = stringResource(R.string.exercise_catalog_equipment_filter_label),
                     options = filterOptions.equipment,
                     selected = state.equipment,
                     onSelected = viewModel::onEquipmentSelected,
@@ -180,7 +187,7 @@ fun ExerciseCatalogScreen(
 
             LazyColumn(modifier = Modifier.fillMaxSize()) {
                 if (exercises.isEmpty()) {
-                    item { EmptyHint("Keine Übungen gefunden.") }
+                    item { EmptyHint(stringResource(R.string.workout_exercise_picker_empty)) }
                 } else {
                     items(exercises, key = { it.stableId }) { exercise ->
                         if (exercise.isCustom) {
@@ -192,8 +199,8 @@ fun ExerciseCatalogScreen(
                                     viewModel.deletePending(exercise)
                                     coroutineScope.launch {
                                         val result = snackbar.showSnackbar(
-                                            message = "Übung gelöscht",
-                                            actionLabel = "Rückgängig",
+                                            message = exerciseDeletedMessage,
+                                            actionLabel = undoLabel,
                                             duration = SnackbarDuration.Short,
                                         )
                                         when (result) {
@@ -230,14 +237,14 @@ private fun SearchField(query: String, onQueryChange: (String) -> Unit) {
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 8.dp),
-        placeholder = { Text("Übung suchen") },
+        placeholder = { Text(stringResource(R.string.workout_exercise_search_placeholder)) },
         leadingIcon = {
             Icon(Icons.Rounded.Search, contentDescription = null, tint = MaterialTheme.colorScheme.outline)
         },
         trailingIcon = if (query.isNotEmpty()) {
             {
                 IconButton(onClick = { onQueryChange("") }) {
-                    Icon(Icons.Rounded.Clear, contentDescription = "Suche löschen", tint = MaterialTheme.colorScheme.outline)
+                    Icon(Icons.Rounded.Clear, contentDescription = stringResource(R.string.exercise_catalog_clear_search_content_description), tint = MaterialTheme.colorScheme.outline)
                 }
             }
         } else null,
@@ -335,12 +342,12 @@ private fun SwipeBackground(target: SwipeToDismissBoxValue) {
         when (target) {
             SwipeToDismissBoxValue.EndToStart -> Icon(
                 Icons.Rounded.Delete,
-                contentDescription = "Löschen",
+                contentDescription = stringResource(R.string.common_delete),
                 tint = MaterialTheme.colorScheme.onErrorContainer,
             )
             SwipeToDismissBoxValue.StartToEnd -> Icon(
                 Icons.Rounded.Edit,
-                contentDescription = "Bearbeiten",
+                contentDescription = stringResource(R.string.common_edit),
                 tint = MaterialTheme.colorScheme.onPrimaryContainer,
             )
             else -> {}
@@ -363,7 +370,7 @@ private fun ExerciseRowContent(exercise: Exercise, onClick: () -> Unit) {
             if (!exercise.isCustom) {
                 Icon(
                     Icons.Rounded.Lock,
-                    contentDescription = "Katalog-Übung (schreibgeschützt)",
+                    contentDescription = stringResource(R.string.exercise_catalog_readonly_content_description),
                     tint = MaterialTheme.colorScheme.outline,
                     modifier = Modifier.size(14.dp),
                 )
@@ -442,12 +449,12 @@ private fun ExerciseEditorSheet(
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             Text(
-                if (initial == null) "Neue Übung" else "Übung bearbeiten",
+                stringResource(if (initial == null) R.string.exercise_editor_title_new else R.string.exercise_editor_title_edit),
                 style = MaterialTheme.typography.titleLarge,
             )
-            OutlinedTextField(name, { name = it }, label = { Text("Name *") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+            OutlinedTextField(name, { name = it }, label = { Text(stringResource(R.string.addfood_field_name)) }, singleLine = true, modifier = Modifier.fillMaxWidth())
 
-            Text("TYP", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(stringResource(R.string.exercise_editor_type_label), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 ExerciseType.entries.forEach { t ->
                     FilterChip(
@@ -460,13 +467,13 @@ private fun ExerciseEditorSheet(
 
             OutlinedTextField(
                 muscles, { muscles = it },
-                label = { Text("Muskeln (Komma-getrennt)") },
+                label = { Text(stringResource(R.string.exercise_editor_muscles_field)) },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
             )
-            OutlinedTextField(equipment, { equipment = it }, label = { Text("Equipment") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+            OutlinedTextField(equipment, { equipment = it }, label = { Text(stringResource(R.string.exercise_editor_equipment_field)) }, singleLine = true, modifier = Modifier.fillMaxWidth())
 
-            Text("MECHANIK", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(stringResource(R.string.exercise_editor_mechanic_label), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Mechanic.entries.forEach { m ->
                     FilterChip(
@@ -479,7 +486,7 @@ private fun ExerciseEditorSheet(
 
             OutlinedTextField(
                 instructions, { instructions = it },
-                label = { Text("Anleitung (eine Zeile pro Schritt)") },
+                label = { Text(stringResource(R.string.exercise_editor_instructions_field)) },
                 modifier = Modifier.fillMaxWidth(),
             )
 
@@ -499,7 +506,7 @@ private fun ExerciseEditorSheet(
                 enabled = isValid,
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(14.dp),
-            ) { Text("Speichern", style = MaterialTheme.typography.labelLarge) }
+            ) { Text(stringResource(R.string.common_save), style = MaterialTheme.typography.labelLarge) }
         }
     }
 }

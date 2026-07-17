@@ -217,4 +217,20 @@
     <string name="data_import_exercises">%1$d eigene Übungen</string>
     <string name="data_import_templates">%1$d Vorlagen</string>
     <string name="data_import_sessions">%1$d Einheiten</string>
+
+    <!-- ExerciseCatalogScreen (ui/workout/ExerciseCatalogScreen.kt) -->
+    <string name="exercise_catalog_title">Übungen</string>
+    <string name="exercise_catalog_create_content_description">Eigene Übung anlegen</string>
+    <string name="exercise_catalog_muscle_filter_label">MUSKEL</string>
+    <string name="exercise_catalog_equipment_filter_label">EQUIPMENT</string>
+    <string name="exercise_catalog_deleted_message">Übung gelöscht</string>
+    <string name="exercise_catalog_clear_search_content_description">Suche löschen</string>
+    <string name="exercise_catalog_readonly_content_description">Katalog-Übung (schreibgeschützt)</string>
+    <string name="exercise_editor_title_new">Neue Übung</string>
+    <string name="exercise_editor_title_edit">Übung bearbeiten</string>
+    <string name="exercise_editor_type_label">TYP</string>
+    <string name="exercise_editor_muscles_field">Muskeln (Komma-getrennt)</string>
+    <string name="exercise_editor_equipment_field">Equipment</string>
+    <string name="exercise_editor_mechanic_label">MECHANIK</string>
+    <string name="exercise_editor_instructions_field">Anleitung (eine Zeile pro Schritt)</string>
 </resources>
