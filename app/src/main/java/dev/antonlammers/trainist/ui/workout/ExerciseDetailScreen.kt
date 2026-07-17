@@ -49,7 +49,7 @@ import dev.antonlammers.trainist.ui.util.localizedDateFormatter
 import java.time.LocalDate
 
 /**
- * Per-exercise detail (spec §3.8): the exercise's catalog metadata, its current max-weight PR, an
+ * Per-exercise detail: the exercise's catalog metadata, its current max-weight PR, an
  * all-time strength (estimated-1RM) mini-chart (reusing the stats `StrengthChart`), and the complete
  * chronological set log across all sessions. Reached from the catalog, the live session and the
  * history. Ink & Paper style.

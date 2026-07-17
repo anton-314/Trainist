@@ -39,7 +39,7 @@ data class HistoryExerciseUi(
     val sets: List<SetEntry>,
     val volumeKg: Double,
     val estimatedOneRepMaxKg: Double?,
-    /** True when this exercise set a new max-weight PR in this session (spec §3.5). */
+    /** True when this exercise set a new max-weight PR in this session. */
     val isPersonalRecord: Boolean,
 )
 
@@ -59,7 +59,7 @@ data class WorkoutHistoryUiState(
 )
 
 /**
- * Drives the training history (spec §3.6): a month calendar with training-day markers, the sessions
+ * Drives the training history: a month calendar with training-day markers, the sessions
  * of the selected day (with volume / estimated 1RM / PR badges), and in-place editing of a past
  * session's sets (weight, reps, set-type, add/remove set) plus session deletion with an undo window.
  *

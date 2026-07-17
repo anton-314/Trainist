@@ -31,7 +31,7 @@ data class StrengthChartData(
 data class ExerciseOption(val stableId: String, val name: String)
 
 /**
- * Training-series math (spec §3.7), unit-testable without Robolectric/instrumentation — the
+ * Training-series math, unit-testable without Robolectric/instrumentation — the
  * training counterpart to [WeightSeries]. Buckets align with the existing calorie/weight charts
  * (per day for WEEK/MONTH, per month for YEAR) over the same [TimeRange] axis. [frequency]'s bucket
  * labels resolve the app's current locale via [localizedDateFormatter] (backed by

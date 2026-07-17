@@ -8,21 +8,21 @@ import dev.antonlammers.trainist.domain.model.WorkoutSession
 import java.time.LocalDate
 
 /**
- * Pure, Android-free training calculations (spec §3.4 / §3.5) — analogous to [MacroCalculator] and
+ * Pure, Android-free training calculations — analogous to [MacroCalculator] and
  * `WeightSeries`, reachable by JVM unit tests. Everything is derived from plain values so the ViewModel
  * (which owns the Room/Weight-repository wiring) can feed it and the later history/stats screens can
  * reuse the exact same logic.
  *
  * The **effective weight** of a set is the basis for volume, 1RM and PRs:
  * - [ExerciseType.WEIGHT_REPS]: the entered external weight.
- * - [ExerciseType.BODYWEIGHT]: the tracked body weight + the optional added weight (spec §3.4 — the
- *   real link between the nutrition and training sides). With no recorded body weight the caller
+ * - [ExerciseType.BODYWEIGHT]: the tracked body weight + the optional added weight (the real link
+ *   between the nutrition and training sides). With no recorded body weight the caller
  *   passes the last known one (see [resolveBodyWeightKg]); if none exists at all it passes null and
  *   only the added weight is counted.
  */
 object WorkoutMetrics {
 
-    /** Effective weight of a single set (spec §3.4). */
+    /** Effective weight of a single set. */
     fun effectiveWeightKg(type: ExerciseType, enteredWeightKg: Double, bodyWeightKg: Double?): Double =
         when (type) {
             ExerciseType.WEIGHT_REPS -> enteredWeightKg
@@ -30,7 +30,7 @@ object WorkoutMetrics {
         }
 
     /**
-     * Estimated 1RM of a single set by the **Epley** formula: `weight × (1 + reps / 30)` (spec §3.4).
+     * Estimated 1RM of a single set by the **Epley** formula: `weight × (1 + reps / 30)`.
      * Display-only — never a PR trigger. Zero for a set with no reps (nothing was lifted).
      */
     fun epleyOneRepMaxKg(effectiveWeightKg: Double, reps: Int): Double =
@@ -41,7 +41,7 @@ object WorkoutMetrics {
         if (set.type == SetType.WARMUP) 0.0
         else effectiveWeightKg(type, set.weightKg, bodyWeightKg) * set.reps
 
-    /** Total volume over [sets] (Σ effective weight × reps; warm-ups excluded) — spec §3.4. */
+    /** Total volume over [sets] (Σ effective weight × reps; warm-ups excluded). */
     fun volumeKg(sets: List<SetEntry>, type: ExerciseType, bodyWeightKg: Double?): Double =
         sets.sumOf { setVolumeKg(it, type, bodyWeightKg) }
 
@@ -56,7 +56,7 @@ object WorkoutMetrics {
 
     /**
      * The highest effective weight over the performed, non-warm-up sets — the basis for PR detection
-     * (spec §3.5), or null if there is no such set. Warm-ups and un-performed sets (reps < 1) are
+     *, or null if there is no such set. Warm-ups and un-performed sets (reps < 1) are
      * excluded, so e.g. an untouched placeholder set of a bodyweight exercise is never a "record".
      */
     fun bestEffectiveWeightKg(sets: List<SetEntry>, type: ExerciseType, bodyWeightKg: Double?): Double? =
@@ -66,7 +66,7 @@ object WorkoutMetrics {
 
     /**
      * Whether [candidateBestKg] is a **new personal record** versus [previousBestKg] — a new highest
-     * effective weight for the exercise (spec §3.5). Strictly greater: a tie is **not** a new PR. A
+     * effective weight for the exercise. Strictly greater: a tie is **not** a new PR. A
      * null candidate (no performed set) is never a PR; a null previous best means any real candidate
      * is the first PR.
      */
@@ -75,7 +75,7 @@ object WorkoutMetrics {
 
     /**
      * Sweeps [completedSessions] chronologically and marks, per session, which exercises achieved a
-     * new **max-effective-weight PR** at that point in time (spec §3.5): the running best effective
+     * new **max-effective-weight PR** at that point in time: the running best effective
      * weight per exercise is tracked, and a session's exercise is a record when its best strictly
      * exceeds everything before it (ties are not PRs). [typeOf] resolves an exercise's [ExerciseType],
      * [bodyWeightForDate] the body weight to apply on a session's date (for bodyweight exercises).
@@ -108,7 +108,7 @@ object WorkoutMetrics {
     }
 
     /**
-     * The body weight to use for a session on [date] (spec §3.4 fallback "zuletzt bekanntes"): the
+     * The body weight to use for a session on [date]: the
      * most recent entry on or before [date]; if there is none, the earliest known entry as a
      * last-resort estimate; null only when there are no weight entries at all ("gar keins vorhanden"
      * → the caller counts only the added weight).

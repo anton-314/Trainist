@@ -24,8 +24,8 @@ import dev.antonlammers.trainist.domain.model.SetType
 import dev.antonlammers.trainist.ui.theme.TagNeutralColor
 
 /**
- * UI-layer presentation for [SetType]. Colours reuse **existing** data/theme tokens (no new colours,
- * per spec §6): NORMAL stays neutral, WARMUP borrows the amber tag tone, DROP the accent, FAILURE
+ * UI-layer presentation for [SetType]. Colours reuse **existing** data/theme tokens (no new
+ * colours): NORMAL stays neutral, WARMUP borrows the amber tag tone, DROP the accent, FAILURE
  * the error/red tone.
  */
 @Composable
@@ -57,7 +57,7 @@ fun SetType.shortLabel(): String = when (this) {
 /**
  * The leading set marker shared by the live session and the history editor: the set number tinted by
  * its [SetType] (plus a short W/D/F tag for non-normal types). Tapping opens a menu to change the
- * type. Discreet, colour-token-only (spec §6).
+ * type. Discreet, colour-token-only.
  */
 @Composable
 fun SetTypeBadge(

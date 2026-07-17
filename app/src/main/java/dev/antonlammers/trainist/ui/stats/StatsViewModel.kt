@@ -46,7 +46,7 @@ data class StatsUiState(
     val overallCleanPercent: Int? = null,
     val weight: WeightChartData = WeightChartData(),
     val goalKcal: Double = 0.0,
-    /** Completed sessions per time bucket (spec §3.7 — training frequency). */
+    /** Completed sessions per time bucket (training frequency). */
     val frequencyPoints: List<ChartPoint> = emptyList(),
     /** Exercises trained in range, selectable for the strength chart. */
     val strengthExercises: List<ExerciseOption> = emptyList(),
@@ -72,7 +72,7 @@ class StatsViewModel @Inject constructor(
     private val _cardOrder = MutableStateFlow(StatCardType.DEFAULT_ORDER)
 
     // All weigh-ins (loaded once) — used to resolve body weight for bodyweight-exercise 1RMs, which
-    // may reference a weigh-in from before the visible range's start (spec §3.4 "last known").
+    // may reference a weigh-in from before the visible range's start ("last known" fallback).
     private val _allWeights = MutableStateFlow<List<WeightEntry>>(emptyList())
 
     init {

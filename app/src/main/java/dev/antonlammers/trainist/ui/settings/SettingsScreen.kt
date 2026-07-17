@@ -438,7 +438,7 @@ private fun ColumnScope.DataSection(
 
 /**
  * Language picker: a flat card showing the current selection, tapping opens a bottom sheet with
- * Systemsprache/Deutsch/English (Phase 3 of I18N_PLAN.md). [LanguageViewModel] delegates to
+ * Systemsprache/Deutsch/English. [LanguageViewModel] delegates to
  * `AppCompatDelegate`, which recreates any *registered* `AppCompatActivity` automatically on API
  * 33+; `MainActivity` is a plain `ComponentActivity` (see CLAUDE.md's i18n bullet), so below API 33
  * the activity is recreated explicitly here after a pick, mirroring `attachBaseContext`'s own

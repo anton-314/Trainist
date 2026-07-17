@@ -1,7 +1,7 @@
 package dev.antonlammers.trainist.domain
 
 /**
- * Pure, Android-free state of a rest timer (spec §3.3). It is anchored to a wall-clock end time
+ * Pure, Android-free state of a rest timer. It is anchored to a wall-clock end time
  * ([endAtMs]) so the remaining time is always recomputed from "now" — the countdown stays correct
  * across backgrounding, and the background notification is scheduled for the same instant.
  *

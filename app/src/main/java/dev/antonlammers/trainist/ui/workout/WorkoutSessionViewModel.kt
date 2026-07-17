@@ -54,11 +54,11 @@ data class SessionExerciseUi(
     val name: String,
     val type: ExerciseType,
     val sets: List<SetEntry>,
-    /** Values logged for this exercise last time, shown as per-set placeholder hints (spec §3.3). */
+    /** Values logged for this exercise last time, shown as per-set placeholder hints. */
     val lastPerformance: List<SetPerformance> = emptyList(),
     /** Rest duration in seconds for this exercise (per-exercise override, or the global default). */
     val restSeconds: Int = RestTimer.DEFAULT_REST_SECONDS,
-    /** Σ (effective weight × reps) over the non-warm-up sets so far (spec §3.4). */
+    /** Σ (effective weight × reps) over the non-warm-up sets so far. */
     val volumeKg: Double = 0.0,
     /** Highest Epley estimated 1RM over the performed sets, or null if nothing has been logged. */
     val estimatedOneRepMaxKg: Double? = null,
@@ -97,7 +97,7 @@ sealed interface RestCommand {
 }
 
 /**
- * Drives a live training session (spec §3.3; no volume/1RM/PR calculations yet). The single active
+ * Drives a live training session. The single active
  * session is the source of truth and is **persisted on every change** (continuous persistence), so
  * it survives app death and is resumable. On entry the VM resumes the existing active session if
  * there is one; otherwise it creates a fresh one (empty or seeded from a template) and immediately
@@ -134,7 +134,7 @@ class WorkoutSessionViewModel(
 
     private val _session = MutableStateFlow<WorkoutSession?>(null)
 
-    // Resolved body weight for the session date, feeding bodyweight-exercise volume/1RM (spec §3.4).
+    // Resolved body weight for the session date, feeding bodyweight-exercise volume/1RM.
     private val _bodyWeightKg = MutableStateFlow<Double?>(null)
 
     private val _finished = MutableStateFlow(false)
@@ -457,7 +457,7 @@ class WorkoutSessionViewModel(
         }
     }
 
-    /** Persist a per-exercise rest override (spec §3.3 — stored on the exercise via [restSeconds]). */
+    /** Persist a per-exercise rest override (stored on the exercise via [restSeconds]). */
     fun setExerciseRest(exerciseStableId: String, seconds: Int) {
         viewModelScope.launch {
             val exercise = catalog.exercise(exerciseStableId).first() ?: return@launch

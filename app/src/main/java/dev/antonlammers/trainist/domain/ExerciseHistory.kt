@@ -14,7 +14,7 @@ data class PerformedSet(
     val weightKg: Double,
     val reps: Int,
     val type: SetType,
-    /** True for the single set that holds the current max-weight PR (spec §3.5). */
+    /** True for the single set that holds the current max-weight PR. */
     val isPersonalRecord: Boolean = false,
 )
 
@@ -39,7 +39,7 @@ data class ExerciseHistoryData(
 }
 
 /**
- * Pure, Android-free aggregation of one exercise's history across all sessions (spec §3.8) — analogous
+ * Pure, Android-free aggregation of one exercise's history across all sessions — analogous
  * to [InlineHistory]/[WorkoutMetrics]. Produces the chronological set log and locates the current
  * PR (the earliest set that reached the highest effective weight). The active session is included if
  * present (a set logged just now counts); [bodyWeightForDate] resolves body weight per session date

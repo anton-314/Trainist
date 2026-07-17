@@ -64,7 +64,7 @@ import java.time.LocalDate
 import java.time.YearMonth
 
 /**
- * Training history (spec §3.6): a month calendar with a dot on training days; tapping a day shows its
+ * Training history: a month calendar with a dot on training days; tapping a day shows its
  * session(s) with per-exercise volume / estimated 1RM and a PR trophy badge, and lets the user correct
  * a past unit in place (weight, reps, set-type, add/remove set) or delete it with an undo snackbar.
  * Ink & Paper style, reusing the shared set-entry building blocks.

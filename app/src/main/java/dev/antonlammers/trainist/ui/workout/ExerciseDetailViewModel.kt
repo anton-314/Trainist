@@ -31,7 +31,7 @@ data class ExerciseDetailUiState(
 )
 
 /**
- * Drives the per-exercise detail screen (spec §3.8): it joins the exercise's catalog metadata with
+ * Drives the per-exercise detail screen: it joins the exercise's catalog metadata with
  * its complete training history — the chronological set log + current max-weight PR ([ExerciseHistory],
  * pure) — and the all-time strength (estimated-1RM) progression for the mini-chart ([WorkoutSeries],
  * reused from the stats tab). Body weight for bodyweight-exercise effective weights is resolved from

@@ -71,7 +71,7 @@ import dev.antonlammers.trainist.ui.navigation.Screen
 import dev.antonlammers.trainist.ui.util.currentAppLocale
 
 /**
- * The live-session screen (spec §3.3, grundgerüst). Renders [WorkoutSessionViewModel]'s ui state:
+ * The live-session screen. Renders [WorkoutSessionViewModel]'s ui state:
  * a list of exercises, each with editable set rows (weight, reps, check-off, reorder, delete) and an
  * "add set" action, plus an "add exercise" catalog picker. Leaving via back keeps the session running
  * (it is persisted continuously); the top-bar "Fertig" finishes it, the delete icon discards it.
@@ -329,7 +329,7 @@ private fun ExerciseCard(
             Text(stringResource(R.string.workout_add_set_button), style = MaterialTheme.typography.labelLarge, modifier = Modifier.padding(start = 8.dp))
         }
 
-        // Volume + estimated 1RM summary — only once at least one work set has been logged (spec §3.4).
+        // Volume + estimated 1RM summary — only once at least one work set has been logged.
         if (exercise.volumeKg > 0.0 || exercise.estimatedOneRepMaxKg != null) {
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
             Row(horizontalArrangement = Arrangement.spacedBy(28.dp)) {

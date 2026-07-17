@@ -321,7 +321,7 @@
     <!-- Language picker (ui/settings/SettingsScreen.kt, ui/settings/LanguageViewModel.kt).
          The language names themselves are native endonyms ("Deutsch"/"English") and stay
          identical across locales by design — a language picker traditionally shows each
-         language's own name, not a translated one, per I18N_PLAN.md's own wording. -->
+         language's own name, not a translated one. -->
     <string name="settings_language_section_header">Language</string>
     <string name="settings_language_system">System language</string>
     <string name="settings_language_german">Deutsch</string>

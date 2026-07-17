@@ -16,7 +16,7 @@ import androidx.compose.ui.unit.dp
 import dev.antonlammers.trainist.R
 
 /**
- * The monochrome personal-record marker (spec §3.5/§6): an accent trophy glyph + mono "PR" label.
+ * The monochrome personal-record marker: an accent trophy glyph + mono "PR" label.
  * Shared by the history day-detail and the exercise-detail set log so the PR badge is consistent.
  */
 @Composable

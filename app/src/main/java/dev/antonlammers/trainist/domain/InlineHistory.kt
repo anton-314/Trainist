@@ -6,8 +6,8 @@ import dev.antonlammers.trainist.domain.model.WorkoutSession
 data class SetPerformance(val weightKg: Double, val reps: Int)
 
 /**
- * Pure, Android-free derivation of "what did I do last time" for the inline-history hints (spec
- * §3.3). Given the session history and an exercise, it finds the most recent **completed** session
+ * Pure, Android-free derivation of "what did I do last time" for the inline-history hints.
+ * Given the session history and an exercise, it finds the most recent **completed** session
  * that contains that exercise and returns its logged sets (in order) as placeholder values.
  *
  * The active (in-progress) session is ignored — hints reflect a *previous* training, not the one
