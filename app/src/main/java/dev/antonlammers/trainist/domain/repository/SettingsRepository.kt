@@ -25,4 +25,13 @@ interface SettingsRepository {
     suspend fun isOnboardingCompleted(): Boolean
 
     suspend fun setOnboardingCompleted(completed: Boolean)
+
+    /**
+     * The user's chosen app language as a BCP-47 tag (e.g. "de", "en"), or `null` to follow the
+     * system language. Backed by the Android per-app language mechanism, which already persists
+     * this itself — the repository is a thin, testable wrapper around it.
+     */
+    suspend fun getAppLanguage(): String?
+
+    suspend fun setAppLanguage(tag: String?)
 }

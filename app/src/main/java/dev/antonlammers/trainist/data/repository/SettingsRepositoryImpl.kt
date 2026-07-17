@@ -1,7 +1,9 @@
 package dev.antonlammers.trainist.data.repository
 
 import android.content.Context
+import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.content.edit
+import androidx.core.os.LocaleListCompat
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dev.antonlammers.trainist.domain.model.StatCardType
 import dev.antonlammers.trainist.domain.repository.SettingsRepository
@@ -38,6 +40,20 @@ class SettingsRepositoryImpl @Inject constructor(
 
     override suspend fun setOnboardingCompleted(completed: Boolean) {
         prefs.edit { putBoolean(KEY_ONBOARDING_COMPLETED, completed) }
+    }
+
+    override suspend fun getAppLanguage(): String? {
+        val locales = AppCompatDelegate.getApplicationLocales()
+        return if (locales.isEmpty) null else locales.toLanguageTags()
+    }
+
+    override suspend fun setAppLanguage(tag: String?) {
+        val locales = if (tag == null) {
+            LocaleListCompat.getEmptyLocaleList()
+        } else {
+            LocaleListCompat.forLanguageTags(tag)
+        }
+        AppCompatDelegate.setApplicationLocales(locales)
     }
 
     private companion object {

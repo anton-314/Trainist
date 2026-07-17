@@ -1,13 +1,16 @@
 package dev.antonlammers.trainist
 
 import android.Manifest
+import android.content.Context
 import android.content.pm.PackageManager
+import android.content.res.Configuration
 import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.appcompat.app.AppCompatDelegate
 import androidx.camera.core.ExperimentalGetImage
 import androidx.compose.runtime.getValue
 import androidx.core.content.ContextCompat
@@ -26,6 +29,25 @@ class MainActivity : ComponentActivity() {
 
     private val notificationPermissionLauncher =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { /* result ignored */ }
+
+    // AppCompatDelegate.setApplicationLocales() only auto-recreates AppCompatActivity subclasses
+    // below API 33 (it needs a registered AppCompatDelegate to intercept attachBaseContext).
+    // MainActivity stays a plain ComponentActivity — switching to AppCompatActivity would require
+    // a Theme.AppCompat descendant, at odds with the "Ink & Paper" plain-Material-theme setup
+    // (see CLAUDE.md's theme-isolation note) — so the per-app locale is applied manually here for
+    // API < 33. On API 33+ AppCompatDelegate already delegates to the platform LocaleManager,
+    // which applies app-wide regardless of the Activity's base class.
+    override fun attachBaseContext(newBase: Context) {
+        val context = if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
+            AppCompatDelegate.getApplicationLocales().get(0)?.let { locale ->
+                val config = Configuration(newBase.resources.configuration).apply { setLocale(locale) }
+                newBase.createConfigurationContext(config)
+            } ?: newBase
+        } else {
+            newBase
+        }
+        super.attachBaseContext(context)
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)

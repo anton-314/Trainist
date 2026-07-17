@@ -7,6 +7,7 @@ class FakeSettingsRepository(
     private var reminderEnabled: Boolean = true,
     private var statsCardOrder: List<StatCardType> = StatCardType.DEFAULT_ORDER,
     private var onboardingCompleted: Boolean = false,
+    private var appLanguage: String? = null,
 ) : SettingsRepository {
 
     override suspend fun isReminderEnabled(): Boolean = reminderEnabled
@@ -25,5 +26,11 @@ class FakeSettingsRepository(
 
     override suspend fun setOnboardingCompleted(completed: Boolean) {
         onboardingCompleted = completed
+    }
+
+    override suspend fun getAppLanguage(): String? = appLanguage
+
+    override suspend fun setAppLanguage(tag: String?) {
+        appLanguage = tag
     }
 }
