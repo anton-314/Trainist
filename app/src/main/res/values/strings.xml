@@ -302,4 +302,13 @@
     <string name="exercise_detail_pr_label">PERSÖNLICHER REKORD</string>
     <string name="exercise_detail_history_header">VERLAUF</string>
     <string name="exercise_detail_history_empty">Diese Übung wurde noch nicht trainiert.</string>
+
+    <!-- MacroWidget (widget/MacroWidget.kt) — a Glance app widget, resolved via context.getString()
+         (Glance's own LocalContext, not the regular Compose UI LocalContext stringResource() needs). -->
+    <string name="widget_open_button">Öffnen →</string>
+    <string name="widget_kcal_remaining">%1$d kcal noch</string>
+    <string name="widget_kcal_over_goal">+%1$d kcal über Ziel</string>
+    <string name="widget_macro_protein_letter">P</string>
+    <string name="widget_macro_carbs_letter">K</string>
+    <string name="widget_macro_fat_letter">F</string>
 </resources>

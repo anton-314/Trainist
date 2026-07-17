@@ -31,6 +31,7 @@ import androidx.glance.text.TextStyle
 import androidx.glance.unit.ColorProvider
 import dagger.hilt.android.EntryPointAccessors
 import dev.antonlammers.trainist.MainActivity
+import dev.antonlammers.trainist.R
 import dev.antonlammers.trainist.di.WidgetEntryPoint
 import dev.antonlammers.trainist.ui.theme.CalorieColor
 import dev.antonlammers.trainist.ui.theme.CarbsColor
@@ -103,7 +104,7 @@ private fun WidgetContent(data: WidgetData) {
             verticalAlignment = Alignment.Vertical.CenterVertically,
         ) {
             Text(
-                "Trainist",
+                context.getString(R.string.app_name),
                 style = TextStyle(
                     color = GlanceTheme.colors.onSurface,
                     fontWeight = FontWeight.Bold,
@@ -112,7 +113,7 @@ private fun WidgetContent(data: WidgetData) {
                 modifier = GlanceModifier.defaultWeight(),
             )
             Text(
-                "Öffnen →",
+                context.getString(R.string.widget_open_button),
                 style = TextStyle(
                     color = GlanceTheme.colors.primary,
                     fontWeight = FontWeight.Medium,
@@ -127,9 +128,9 @@ private fun WidgetContent(data: WidgetData) {
         val remaining = data.remainingKcal
         Text(
             if (remaining >= 0)
-                "${remaining.toInt()} kcal noch"
+                context.getString(R.string.widget_kcal_remaining, remaining.toInt())
             else
-                "+${(-remaining).toInt()} kcal über Ziel",
+                context.getString(R.string.widget_kcal_over_goal, (-remaining).toInt()),
             style = TextStyle(
                 color = if (remaining >= 0) GlanceTheme.colors.onBackground
                         else GlanceTheme.colors.error,
@@ -157,11 +158,11 @@ private fun WidgetContent(data: WidgetData) {
         Spacer(GlanceModifier.height(10.dp))
 
         // Macro rows
-        MacroRow("P", data.consumedProtein, data.goalProtein, ProteinColor)
+        MacroRow(context.getString(R.string.widget_macro_protein_letter), data.consumedProtein, data.goalProtein, ProteinColor)
         Spacer(GlanceModifier.height(5.dp))
-        MacroRow("K", data.consumedCarbs, data.goalCarbs, CarbsColor)
+        MacroRow(context.getString(R.string.widget_macro_carbs_letter), data.consumedCarbs, data.goalCarbs, CarbsColor)
         Spacer(GlanceModifier.height(5.dp))
-        MacroRow("F", data.consumedFat, data.goalFat, FatColor)
+        MacroRow(context.getString(R.string.widget_macro_fat_letter), data.consumedFat, data.goalFat, FatColor)
     }
 }
 
