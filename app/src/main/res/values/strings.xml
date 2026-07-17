@@ -153,4 +153,17 @@
     <string name="workout_session_rest_resume_content_description">Fortsetzen</string>
     <string name="workout_session_rest_pause_content_description">Pausieren</string>
     <string name="workout_session_rest_skip_content_description">Überspringen</string>
+
+    <!-- TemplatesScreen (ui/workout/TemplatesScreen.kt) -->
+    <string name="templates_title">Training</string>
+    <string name="templates_history_content_description">Verlauf</string>
+    <string name="templates_new_template_content_description">Neue Vorlage</string>
+    <string name="templates_catalog_content_description">Übungskatalog</string>
+    <string name="templates_start_workout_button">Workout starten</string>
+    <string name="templates_active_session_title">Laufende Einheit</string>
+    <string name="templates_active_session_subtitle">Tippen zum Fortsetzen</string>
+    <string name="templates_drag_handle_content_description">Verschieben</string>
+    <string name="templates_empty_title">Noch keine Vorlagen</string>
+    <string name="templates_empty_body">Lege über das Plus-Symbol eine Workout-Vorlage an — oder starte direkt ein freies Workout.</string>
+    <string name="templates_deleted_message">Vorlage gelöscht</string>
 </resources>

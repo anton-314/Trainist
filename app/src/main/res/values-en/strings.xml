@@ -153,4 +153,17 @@
     <string name="workout_session_rest_resume_content_description">Resume</string>
     <string name="workout_session_rest_pause_content_description">Pause</string>
     <string name="workout_session_rest_skip_content_description">Skip</string>
+
+    <!-- TemplatesScreen (ui/workout/TemplatesScreen.kt) -->
+    <string name="templates_title">Training</string>
+    <string name="templates_history_content_description">History</string>
+    <string name="templates_new_template_content_description">New template</string>
+    <string name="templates_catalog_content_description">Exercise catalog</string>
+    <string name="templates_start_workout_button">Start workout</string>
+    <string name="templates_active_session_title">Session in progress</string>
+    <string name="templates_active_session_subtitle">Tap to resume</string>
+    <string name="templates_drag_handle_content_description">Move</string>
+    <string name="templates_empty_title">No templates yet</string>
+    <string name="templates_empty_body">Create a workout template using the plus icon — or just start a free workout.</string>
+    <string name="templates_deleted_message">Template deleted</string>
 </resources>
