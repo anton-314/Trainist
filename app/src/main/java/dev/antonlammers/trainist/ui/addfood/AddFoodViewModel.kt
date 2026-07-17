@@ -190,16 +190,16 @@ class AddFoodViewModel @Inject constructor(
                     if (food != null) {
                         _uiState.update { it.copy(isLoading = false, selectedFood = food, amountGrams = "100", tag = food.tag) }
                     } else {
-                        _uiState.update { it.copy(isLoading = false, error = "Produkt nicht gefunden") }
+                        _uiState.update { it.copy(isLoading = false, error = BarcodeError.PRODUCT_NOT_FOUND) }
                     }
                 }
                 .onFailure { e ->
-                    val msg = when (e) {
-                        is BarcodeException.ServerUnavailable -> "Open Food Facts nicht erreichbar"
-                        is BarcodeException.NetworkUnavailable -> "Keine Internetverbindung"
-                        else -> "Unbekannter Fehler"
+                    val error = when (e) {
+                        is BarcodeException.ServerUnavailable -> BarcodeError.SERVER_UNAVAILABLE
+                        is BarcodeException.NetworkUnavailable -> BarcodeError.NETWORK_UNAVAILABLE
+                        else -> BarcodeError.UNKNOWN
                     }
-                    _uiState.update { it.copy(isLoading = false, error = msg) }
+                    _uiState.update { it.copy(isLoading = false, error = error) }
                 }
         }
     }
@@ -216,10 +216,18 @@ sealed interface LocalSearchResult {
     data class CustomFoodResult(val food: Food) : LocalSearchResult
 }
 
+/** Barcode-lookup failure kinds; the UI resolves each to a localized message. */
+enum class BarcodeError {
+    PRODUCT_NOT_FOUND,
+    SERVER_UNAVAILABLE,
+    NETWORK_UNAVAILABLE,
+    UNKNOWN,
+}
+
 data class AddFoodUiState(
     val query: String = "",
     val isLoading: Boolean = false,
-    val error: String? = null,
+    val error: BarcodeError? = null,
     val selectedFood: Food? = null,
     val amountGrams: String = "100",
     val mealCategory: MealCategory = MealCategory.SNACK,

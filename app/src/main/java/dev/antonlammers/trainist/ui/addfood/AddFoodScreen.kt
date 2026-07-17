@@ -66,11 +66,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
+import dev.antonlammers.trainist.R
 import dev.antonlammers.trainist.domain.model.Food
 import dev.antonlammers.trainist.domain.model.FoodEntry
 import dev.antonlammers.trainist.domain.model.FoodTag
@@ -79,6 +81,7 @@ import dev.antonlammers.trainist.ui.components.NumericTextField
 import dev.antonlammers.trainist.ui.components.TagDot
 import dev.antonlammers.trainist.ui.components.TagSelector
 import dev.antonlammers.trainist.ui.navigation.Screen
+import dev.antonlammers.trainist.ui.util.currentAppLocale
 import dev.antonlammers.trainist.util.normalizeDecimal
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
@@ -101,6 +104,12 @@ fun AddFoodScreen(
     var showCreateDialog by remember { mutableStateOf(false) }
     var foodToEdit by remember { mutableStateOf<Food?>(null) }
     var selectedTab by remember { mutableIntStateOf(0) }
+
+    // Resolved here (not inside the snackbar-launching lambdas below, which run in a coroutine
+    // scope rather than a @Composable context, so stringResource() isn't callable there).
+    val customFoodDeletedMessage = stringResource(R.string.addfood_custom_food_deleted)
+    val entryDeletedMessage = stringResource(R.string.addfood_entry_deleted)
+    val undoLabel = stringResource(R.string.common_undo)
 
     LaunchedEffect(state.entryAdded) {
         if (state.entryAdded) {
@@ -140,13 +149,13 @@ fun AddFoodScreen(
         )
     }
 
-    state.error?.let { errorMsg ->
+    state.error?.let { error ->
         AlertDialog(
             onDismissRequest = viewModel::clearError,
-            title = { Text("Barcode-Suche") },
-            text = { Text(errorMsg) },
+            title = { Text(stringResource(R.string.addfood_barcode_error_title)) },
+            text = { Text(stringResource(error.messageRes())) },
             confirmButton = {
-                TextButton(onClick = viewModel::clearError) { Text("OK") }
+                TextButton(onClick = viewModel::clearError) { Text(stringResource(R.string.common_ok)) }
             },
         )
     }
@@ -171,19 +180,19 @@ fun AddFoodScreen(
                 title = {
                     val isToday = viewModel.targetDate == LocalDate.now()
                     if (isToday) {
-                        Text("Mahlzeit hinzufügen")
+                        Text(stringResource(R.string.addfood_title))
                     } else {
-                        Text("Eintrag für ${viewModel.targetDate.formatRelative()}")
+                        Text(stringResource(R.string.addfood_title_for_date, viewModel.targetDate.formatRelative()))
                     }
                 },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Zurück")
+                        Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = stringResource(R.string.common_back))
                     }
                 },
                 actions = {
                     IconButton(onClick = { showCreateDialog = true }) {
-                        Icon(Icons.Rounded.Add, contentDescription = "Eigenes Lebensmittel")
+                        Icon(Icons.Rounded.Add, contentDescription = stringResource(R.string.addfood_add_custom_food_content_description))
                     }
                 },
             )
@@ -203,8 +212,8 @@ fun AddFoodScreen(
 
             if (state.query.isEmpty() && !state.isLoading) {
                 Row(modifier = Modifier.fillMaxWidth()) {
-                    MonoTab("Verlauf", selectedTab == 0) { selectedTab = 0 }
-                    MonoTab("Meine Lebensmittel", selectedTab == 1) { selectedTab = 1 }
+                    MonoTab(stringResource(R.string.addfood_tab_history), selectedTab == 0) { selectedTab = 0 }
+                    MonoTab(stringResource(R.string.addfood_tab_custom_foods), selectedTab == 1) { selectedTab = 1 }
                 }
             }
 
@@ -215,7 +224,7 @@ fun AddFoodScreen(
                     if (selectedTab == 1) {
                         if (customFoods.isEmpty()) {
                             item {
-                                EmptyHint("Noch keine eigenen Lebensmittel.\nTippe auf + um eines anzulegen.")
+                                EmptyHint(stringResource(R.string.addfood_empty_custom_foods))
                             }
                         } else {
                             items(customFoods, key = { "custom_${it.id}" }) { food ->
@@ -227,8 +236,8 @@ fun AddFoodScreen(
                                         viewModel.deletePendingCustomFood(food)
                                         coroutineScope.launch {
                                             val result = snackbar.showSnackbar(
-                                                message = "Lebensmittel gelöscht",
-                                                actionLabel = "Rückgängig",
+                                                message = customFoodDeletedMessage,
+                                                actionLabel = undoLabel,
                                                 duration = SnackbarDuration.Short,
                                             )
                                             when (result) {
@@ -243,7 +252,7 @@ fun AddFoodScreen(
                         }
                     } else {
                         if (recentEntries.isEmpty()) {
-                            item { EmptyHint("Noch keine Einträge im Verlauf.") }
+                            item { EmptyHint(stringResource(R.string.addfood_empty_history)) }
                         } else {
                             val grouped = recentEntries
                                 .groupBy { it.date }
@@ -261,8 +270,8 @@ fun AddFoodScreen(
                                             viewModel.deletePendingEntry(entry)
                                             coroutineScope.launch {
                                                 val result = snackbar.showSnackbar(
-                                                    message = "Eintrag gelöscht",
-                                                    actionLabel = "Rückgängig",
+                                                    message = entryDeletedMessage,
+                                                    actionLabel = undoLabel,
                                                     duration = SnackbarDuration.Short,
                                                 )
                                                 when (result) {
@@ -292,7 +301,7 @@ fun AddFoodScreen(
                 // Search results: flat list of matching custom foods + deduplicated history
                 if (state.query.isNotBlank() && !state.isLoading) {
                     if (localSearchResults.isEmpty()) {
-                        item { EmptyHint("Keine Ergebnisse") }
+                        item { EmptyHint(stringResource(R.string.addfood_empty_search_results)) }
                     } else {
                         items(
                             localSearchResults,
@@ -312,8 +321,8 @@ fun AddFoodScreen(
                                         viewModel.deletePendingCustomFood(result.food)
                                         coroutineScope.launch {
                                             val r = snackbar.showSnackbar(
-                                                message = "Lebensmittel gelöscht",
-                                                actionLabel = "Rückgängig",
+                                                message = customFoodDeletedMessage,
+                                                actionLabel = undoLabel,
                                                 duration = SnackbarDuration.Short,
                                             )
                                             when (r) {
@@ -330,8 +339,8 @@ fun AddFoodScreen(
                                         viewModel.deletePendingEntry(result.entry)
                                         coroutineScope.launch {
                                             val r = snackbar.showSnackbar(
-                                                message = "Eintrag gelöscht",
-                                                actionLabel = "Rückgängig",
+                                                message = entryDeletedMessage,
+                                                actionLabel = undoLabel,
                                                 duration = SnackbarDuration.Short,
                                             )
                                             when (r) {
@@ -373,7 +382,7 @@ private fun SearchBar(
             value = query,
             onValueChange = onQueryChange,
             modifier = Modifier.weight(1f),
-            placeholder = { Text("Lebensmittel suchen") },
+            placeholder = { Text(stringResource(R.string.addfood_search_placeholder)) },
             leadingIcon = {
                 Icon(
                     Icons.Rounded.Search,
@@ -401,7 +410,7 @@ private fun SearchBar(
         ) {
             Icon(
                 Icons.Rounded.QrCodeScanner,
-                contentDescription = "Barcode scannen",
+                contentDescription = stringResource(R.string.addfood_scan_barcode_content_description),
                 tint = MaterialTheme.colorScheme.onSurface,
             )
         }
@@ -423,7 +432,7 @@ private fun RowScope.MonoTab(
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Text(
-            label.uppercase(Locale("de")),
+            label.uppercase(currentAppLocale()),
             style = MaterialTheme.typography.labelSmall,
             color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline,
             textAlign = TextAlign.Center,
@@ -442,7 +451,7 @@ private fun RowScope.MonoTab(
 @Composable
 private fun DateGroupHeader(label: String) {
     Text(
-        label.uppercase(Locale("de")),
+        label.uppercase(currentAppLocale()),
         style = MaterialTheme.typography.labelMedium,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
         modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 14.dp, bottom = 4.dp),
@@ -492,8 +501,13 @@ private fun SwipeableCustomFoodRow(
                 append(food.name)
                 food.brand?.let { append(" ($it)") }
             },
-            detail = "${food.kcalPer100g.toInt()} kcal · ${food.proteinPer100g.toInt()}g P · " +
-                "${food.carbsPer100g.toInt()}g K · ${food.fatPer100g.toInt()}g F · pro 100 g",
+            detail = stringResource(
+                R.string.addfood_food_detail_per_100g,
+                food.kcalPer100g.toInt(),
+                food.proteinPer100g.toInt(),
+                food.carbsPer100g.toInt(),
+                food.fatPer100g.toInt(),
+            ),
             onClick = onClick,
         )
     }
@@ -523,8 +537,13 @@ private fun SwipeableHistoryRow(
                 entry.brand?.let { append(" ($it)") }
                 append(" · ${entry.amountGrams.toInt()} g")
             },
-            detail = "${entry.kcal.toInt()} kcal · ${entry.proteinG.toInt()}g P · " +
-                "${entry.carbsG.toInt()}g K · ${entry.fatG.toInt()}g F",
+            detail = stringResource(
+                R.string.addfood_food_detail_total,
+                entry.kcal.toInt(),
+                entry.proteinG.toInt(),
+                entry.carbsG.toInt(),
+                entry.fatG.toInt(),
+            ),
             onClick = onClick,
         )
     }
@@ -551,12 +570,12 @@ private fun SwipeBackground(target: SwipeToDismissBoxValue) {
         when (target) {
             SwipeToDismissBoxValue.EndToStart -> Icon(
                 Icons.Rounded.Delete,
-                contentDescription = "Löschen",
+                contentDescription = stringResource(R.string.common_delete),
                 tint = MaterialTheme.colorScheme.onErrorContainer,
             )
             SwipeToDismissBoxValue.StartToEnd -> Icon(
                 Icons.Rounded.Edit,
-                contentDescription = "Bearbeiten",
+                contentDescription = stringResource(R.string.common_edit),
                 tint = MaterialTheme.colorScheme.onPrimaryContainer,
             )
             else -> {}
@@ -636,18 +655,24 @@ private fun CustomFoodDialog(
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             Text(
-                if (initial == null) "Neues Lebensmittel" else "Lebensmittel bearbeiten",
+                stringResource(
+                    if (initial == null) {
+                        R.string.addfood_custom_food_dialog_title_new
+                    } else {
+                        R.string.addfood_custom_food_dialog_title_edit
+                    },
+                ),
                 style = MaterialTheme.typography.titleLarge,
             )
-            OutlinedTextField(name, { name = it }, label = { Text("Name *") }, singleLine = true, modifier = Modifier.fillMaxWidth())
-            OutlinedTextField(brand, { brand = it }, label = { Text("Marke (optional)") }, singleLine = true, modifier = Modifier.fillMaxWidth())
-            NumericTextField(kcal, { kcal = it }, label = "kcal / 100 g *", modifier = Modifier.fillMaxWidth())
-            NumericTextField(protein, { protein = it }, label = "Protein g / 100 g *", modifier = Modifier.fillMaxWidth())
-            NumericTextField(carbs, { carbs = it }, label = "Kohlenhydrate g / 100 g *", modifier = Modifier.fillMaxWidth())
-            NumericTextField(fat, { fat = it }, label = "Fett g / 100 g *", modifier = Modifier.fillMaxWidth())
-            NumericTextField(sugar, { sugar = it }, label = "Zucker g / 100 g", modifier = Modifier.fillMaxWidth())
-            NumericTextField(fiber, { fiber = it }, label = "Ballaststoffe g / 100 g", modifier = Modifier.fillMaxWidth())
-            NumericTextField(salt, { salt = it }, label = "Salz g / 100 g", modifier = Modifier.fillMaxWidth())
+            OutlinedTextField(name, { name = it }, label = { Text(stringResource(R.string.addfood_field_name)) }, singleLine = true, modifier = Modifier.fillMaxWidth())
+            OutlinedTextField(brand, { brand = it }, label = { Text(stringResource(R.string.addfood_field_brand)) }, singleLine = true, modifier = Modifier.fillMaxWidth())
+            NumericTextField(kcal, { kcal = it }, label = stringResource(R.string.addfood_field_kcal), modifier = Modifier.fillMaxWidth())
+            NumericTextField(protein, { protein = it }, label = stringResource(R.string.addfood_field_protein), modifier = Modifier.fillMaxWidth())
+            NumericTextField(carbs, { carbs = it }, label = stringResource(R.string.addfood_field_carbs), modifier = Modifier.fillMaxWidth())
+            NumericTextField(fat, { fat = it }, label = stringResource(R.string.addfood_field_fat), modifier = Modifier.fillMaxWidth())
+            NumericTextField(sugar, { sugar = it }, label = stringResource(R.string.addfood_field_sugar), modifier = Modifier.fillMaxWidth())
+            NumericTextField(fiber, { fiber = it }, label = stringResource(R.string.addfood_field_fiber), modifier = Modifier.fillMaxWidth())
+            NumericTextField(salt, { salt = it }, label = stringResource(R.string.addfood_field_salt), modifier = Modifier.fillMaxWidth())
             TagSelector(selected = tag, onSelected = { tag = it })
             Button(
                 onClick = {
@@ -670,7 +695,7 @@ private fun CustomFoodDialog(
                 enabled = isValid,
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(14.dp),
-            ) { Text("Speichern", style = MaterialTheme.typography.labelLarge) }
+            ) { Text(stringResource(R.string.common_save), style = MaterialTheme.typography.labelLarge) }
         }
     }
 }
@@ -716,7 +741,7 @@ private fun AmountSheet(
 
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Text(
-                    "MENGE",
+                    stringResource(R.string.addfood_amount_label),
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -732,7 +757,7 @@ private fun AmountSheet(
 
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Text(
-                    "MAHLZEIT",
+                    stringResource(R.string.addfood_meal_label),
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -762,10 +787,13 @@ private fun AmountSheet(
                     contentAlignment = Alignment.Center,
                 ) {
                     Text(
-                        "${(food.kcalPer100g * factor).toInt()} kcal · " +
-                            "${(food.proteinPer100g * factor).toInt()}g P · " +
-                            "${(food.carbsPer100g * factor).toInt()}g K · " +
-                            "${(food.fatPer100g * factor).toInt()}g F",
+                        stringResource(
+                            R.string.addfood_food_detail_total,
+                            (food.kcalPer100g * factor).toInt(),
+                            (food.proteinPer100g * factor).toInt(),
+                            (food.carbsPer100g * factor).toInt(),
+                            (food.fatPer100g * factor).toInt(),
+                        ),
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -778,7 +806,7 @@ private fun AmountSheet(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(14.dp),
             ) {
-                Text("Hinzufügen", style = MaterialTheme.typography.labelLarge)
+                Text(stringResource(R.string.addfood_add_button), style = MaterialTheme.typography.labelLarge)
             }
         }
     }
@@ -793,9 +821,19 @@ private fun LocalDate.formatRelative(): String {
     }
 }
 
-private fun MealCategory.displayName() = when (this) {
-    MealCategory.BREAKFAST -> "Frühstück"
-    MealCategory.LUNCH -> "Mittagessen"
-    MealCategory.DINNER -> "Abendessen"
-    MealCategory.SNACK -> "Snack"
+private fun BarcodeError.messageRes(): Int = when (this) {
+    BarcodeError.PRODUCT_NOT_FOUND -> R.string.addfood_barcode_error_not_found
+    BarcodeError.SERVER_UNAVAILABLE -> R.string.addfood_barcode_error_server_unavailable
+    BarcodeError.NETWORK_UNAVAILABLE -> R.string.addfood_barcode_error_network_unavailable
+    BarcodeError.UNKNOWN -> R.string.addfood_barcode_error_unknown
 }
+
+@Composable
+private fun MealCategory.displayName() = stringResource(
+    when (this) {
+        MealCategory.BREAKFAST -> R.string.meal_category_breakfast
+        MealCategory.LUNCH -> R.string.meal_category_lunch
+        MealCategory.DINNER -> R.string.meal_category_dinner
+        MealCategory.SNACK -> R.string.meal_category_snack
+    },
+)

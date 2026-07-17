@@ -3,6 +3,19 @@
 
     <!-- common_* — app-wide reused labels -->
     <string name="common_stop">Stoppen</string>
+    <string name="common_back">Zurück</string>
+    <string name="common_ok">OK</string>
+    <string name="common_save">Speichern</string>
+    <string name="common_delete">Löschen</string>
+    <string name="common_edit">Bearbeiten</string>
+    <string name="common_undo">Rückgängig</string>
+    <string name="common_cancel">Abbrechen</string>
+
+    <!-- Meal categories (domain/model/MealCategory) -->
+    <string name="meal_category_breakfast">Frühstück</string>
+    <string name="meal_category_lunch">Mittagessen</string>
+    <string name="meal_category_dinner">Abendessen</string>
+    <string name="meal_category_snack">Snack</string>
 
     <!-- Food tags (ui/components/FoodTagUi.kt) -->
     <string name="food_tag_healthy">Gesund</string>
@@ -42,4 +55,49 @@
     <string name="rest_timer_channel_alert_description">Meldet, wenn die Satzpause abgelaufen ist.</string>
     <string name="rest_timer_expired_title">Pause vorbei</string>
     <string name="rest_timer_expired_text">Zeit für den nächsten Satz.</string>
+
+    <!-- AddFoodScreen (ui/addfood/AddFoodScreen.kt) -->
+    <string name="addfood_title">Mahlzeit hinzufügen</string>
+    <string name="addfood_title_for_date">Eintrag für %1$s</string>
+    <string name="addfood_add_custom_food_content_description">Eigenes Lebensmittel</string>
+    <string name="addfood_tab_history">Verlauf</string>
+    <string name="addfood_tab_custom_foods">Meine Lebensmittel</string>
+    <string name="addfood_empty_custom_foods">Noch keine eigenen Lebensmittel.\nTippe auf + um eines anzulegen.</string>
+    <string name="addfood_empty_history">Noch keine Einträge im Verlauf.</string>
+    <string name="addfood_empty_search_results">Keine Ergebnisse</string>
+    <string name="addfood_custom_food_deleted">Lebensmittel gelöscht</string>
+    <string name="addfood_entry_deleted">Eintrag gelöscht</string>
+    <string name="addfood_search_placeholder">Lebensmittel suchen</string>
+    <string name="addfood_scan_barcode_content_description">Barcode scannen</string>
+    <string name="addfood_food_detail_per_100g">%1$d kcal · %2$dg P · %3$dg K · %4$dg F · pro 100 g</string>
+    <string name="addfood_food_detail_total">%1$d kcal · %2$dg P · %3$dg K · %4$dg F</string>
+    <string name="addfood_custom_food_dialog_title_new">Neues Lebensmittel</string>
+    <string name="addfood_custom_food_dialog_title_edit">Lebensmittel bearbeiten</string>
+    <string name="addfood_field_name">Name *</string>
+    <string name="addfood_field_brand">Marke (optional)</string>
+    <string name="addfood_field_kcal">kcal / 100 g *</string>
+    <string name="addfood_field_protein">Protein g / 100 g *</string>
+    <string name="addfood_field_carbs">Kohlenhydrate g / 100 g *</string>
+    <string name="addfood_field_fat">Fett g / 100 g *</string>
+    <string name="addfood_field_sugar">Zucker g / 100 g</string>
+    <string name="addfood_field_fiber">Ballaststoffe g / 100 g</string>
+    <string name="addfood_field_salt">Salz g / 100 g</string>
+    <string name="addfood_amount_label">MENGE</string>
+    <string name="addfood_meal_label">MAHLZEIT</string>
+    <string name="addfood_add_button">Hinzufügen</string>
+    <string name="addfood_barcode_error_title">Barcode-Suche</string>
+    <string name="addfood_barcode_error_not_found">Produkt nicht gefunden</string>
+    <string name="addfood_barcode_error_server_unavailable">Open Food Facts nicht erreichbar</string>
+    <string name="addfood_barcode_error_network_unavailable">Keine Internetverbindung</string>
+    <string name="addfood_barcode_error_unknown">Unbekannter Fehler</string>
+
+    <!-- BarcodeScannerScreen (ui/addfood/BarcodeScannerScreen.kt) -->
+    <string name="barcode_scanner_torch_off_content_description">Taschenlampe ausschalten</string>
+    <string name="barcode_scanner_torch_on_content_description">Taschenlampe einschalten</string>
+    <string name="barcode_scanner_manual_entry_placeholder">Barcode-Nummer eingeben</string>
+    <string name="barcode_scanner_search_content_description">Suchen</string>
+    <string name="barcode_scanner_permission_required">Kamerazugriff wird benötigt</string>
+    <string name="barcode_scanner_permission_allow">Erlauben</string>
+    <string name="barcode_scanner_close_content_description">Schließen</string>
+    <string name="barcode_scanner_overlay_caption">Barcode in den Rahmen halten</string>
 </resources>

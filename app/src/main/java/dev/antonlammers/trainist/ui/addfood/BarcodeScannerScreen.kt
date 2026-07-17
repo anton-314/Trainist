@@ -70,12 +70,14 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.navigation.NavController
+import dev.antonlammers.trainist.R
 import java.util.concurrent.atomic.AtomicBoolean
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -151,7 +153,13 @@ fun BarcodeScannerScreen(navController: NavController) {
                 ) {
                     Icon(
                         imageVector = if (torchOn) Icons.Rounded.FlashOn else Icons.Rounded.FlashOff,
-                        contentDescription = if (torchOn) "Taschenlampe ausschalten" else "Taschenlampe einschalten",
+                        contentDescription = stringResource(
+                            if (torchOn) {
+                                R.string.barcode_scanner_torch_off_content_description
+                            } else {
+                                R.string.barcode_scanner_torch_on_content_description
+                            },
+                        ),
                         tint = if (torchOn) MaterialTheme.colorScheme.primary else Color.White,
                     )
                 }
@@ -185,7 +193,7 @@ fun BarcodeScannerScreen(navController: NavController) {
                         onValueChange = { manualBarcode = it },
                         label = null,
                         decimal = false,
-                        placeholder = "Barcode-Nummer eingeben",
+                        placeholder = stringResource(R.string.barcode_scanner_manual_entry_placeholder),
                         textStyle = MaterialTheme.typography.titleMedium,
                         modifier = Modifier.weight(1f),
                     )
@@ -193,7 +201,7 @@ fun BarcodeScannerScreen(navController: NavController) {
                         onClick = { submitBarcode(manualBarcode) },
                         enabled = manualBarcode.isNotBlank(),
                     ) {
-                        Icon(Icons.Rounded.Search, contentDescription = "Suchen")
+                        Icon(Icons.Rounded.Search, contentDescription = stringResource(R.string.barcode_scanner_search_content_description))
                     }
                 }
             }
@@ -202,10 +210,10 @@ fun BarcodeScannerScreen(navController: NavController) {
                 modifier = Modifier.align(Alignment.Center),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
-                Text("Kamerazugriff wird benötigt", color = Color.White)
+                Text(stringResource(R.string.barcode_scanner_permission_required), color = Color.White)
                 Spacer(Modifier.height(16.dp))
                 Button(onClick = { launcher.launch(Manifest.permission.CAMERA) }) {
-                    Text("Erlauben")
+                    Text(stringResource(R.string.barcode_scanner_permission_allow))
                 }
             }
         }
@@ -218,7 +226,7 @@ fun BarcodeScannerScreen(navController: NavController) {
                 .clip(CircleShape)
                 .background(TranslucentControl),
         ) {
-            Icon(Icons.Rounded.Close, contentDescription = "Schließen", tint = Color.White)
+            Icon(Icons.Rounded.Close, contentDescription = stringResource(R.string.barcode_scanner_close_content_description), tint = Color.White)
         }
     }
 }
@@ -344,7 +352,7 @@ private fun ScanOverlay() {
         // Mono caption below the reticle (frame bottom = screen centre + half the frame height).
         val frameH = maxWidth * 0.72f * 0.55f
         Text(
-            text = "Barcode in den Rahmen halten".uppercase(),
+            text = stringResource(R.string.barcode_scanner_overlay_caption).uppercase(),
             style = MaterialTheme.typography.labelMedium,
             color = Color.White,
             textAlign = TextAlign.Center,

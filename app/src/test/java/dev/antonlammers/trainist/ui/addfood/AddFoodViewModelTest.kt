@@ -272,7 +272,7 @@ class AddFoodViewModelTest {
             awaitItem() // loading
             val done = awaitItem()
             assertFalse(done.isLoading)
-            assertEquals("Produkt nicht gefunden", done.error)
+            assertEquals(BarcodeError.PRODUCT_NOT_FOUND, done.error)
             assertNull(done.selectedFood)
         }
     }
@@ -286,7 +286,7 @@ class AddFoodViewModelTest {
             viewModel.handleBarcode("1234567890")
             awaitItem() // loading
             val done = awaitItem()
-            assertEquals("Keine Internetverbindung", done.error)
+            assertEquals(BarcodeError.NETWORK_UNAVAILABLE, done.error)
         }
     }
 
@@ -299,7 +299,7 @@ class AddFoodViewModelTest {
             viewModel.handleBarcode("1234567890")
             awaitItem() // loading
             val done = awaitItem()
-            assertEquals("Open Food Facts nicht erreichbar", done.error)
+            assertEquals(BarcodeError.SERVER_UNAVAILABLE, done.error)
         }
     }
 
@@ -312,7 +312,7 @@ class AddFoodViewModelTest {
             viewModel.handleBarcode("1234567890")
             awaitItem() // loading
             val done = awaitItem()
-            assertEquals("Unbekannter Fehler", done.error)
+            assertEquals(BarcodeError.UNKNOWN, done.error)
         }
     }
 

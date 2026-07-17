@@ -3,6 +3,19 @@
 
     <!-- common_* — app-wide reused labels -->
     <string name="common_stop">Stop</string>
+    <string name="common_back">Back</string>
+    <string name="common_ok">OK</string>
+    <string name="common_save">Save</string>
+    <string name="common_delete">Delete</string>
+    <string name="common_edit">Edit</string>
+    <string name="common_undo">Undo</string>
+    <string name="common_cancel">Cancel</string>
+
+    <!-- Meal categories (domain/model/MealCategory) -->
+    <string name="meal_category_breakfast">Breakfast</string>
+    <string name="meal_category_lunch">Lunch</string>
+    <string name="meal_category_dinner">Dinner</string>
+    <string name="meal_category_snack">Snack</string>
 
     <!-- Food tags (ui/components/FoodTagUi.kt) -->
     <string name="food_tag_healthy">Healthy</string>
@@ -42,4 +55,49 @@
     <string name="rest_timer_channel_alert_description">Alerts you when the rest timer has run out.</string>
     <string name="rest_timer_expired_title">Rest over</string>
     <string name="rest_timer_expired_text">Time for the next set.</string>
+
+    <!-- AddFoodScreen (ui/addfood/AddFoodScreen.kt) -->
+    <string name="addfood_title">Add meal</string>
+    <string name="addfood_title_for_date">Entry for %1$s</string>
+    <string name="addfood_add_custom_food_content_description">Custom food</string>
+    <string name="addfood_tab_history">History</string>
+    <string name="addfood_tab_custom_foods">My foods</string>
+    <string name="addfood_empty_custom_foods">No custom foods yet.\nTap + to create one.</string>
+    <string name="addfood_empty_history">No entries in your history yet.</string>
+    <string name="addfood_empty_search_results">No results</string>
+    <string name="addfood_custom_food_deleted">Food deleted</string>
+    <string name="addfood_entry_deleted">Entry deleted</string>
+    <string name="addfood_search_placeholder">Search foods</string>
+    <string name="addfood_scan_barcode_content_description">Scan barcode</string>
+    <string name="addfood_food_detail_per_100g">%1$d kcal · %2$dg P · %3$dg C · %4$dg F · per 100 g</string>
+    <string name="addfood_food_detail_total">%1$d kcal · %2$dg P · %3$dg C · %4$dg F</string>
+    <string name="addfood_custom_food_dialog_title_new">New food</string>
+    <string name="addfood_custom_food_dialog_title_edit">Edit food</string>
+    <string name="addfood_field_name">Name *</string>
+    <string name="addfood_field_brand">Brand (optional)</string>
+    <string name="addfood_field_kcal">kcal / 100 g *</string>
+    <string name="addfood_field_protein">Protein g / 100 g *</string>
+    <string name="addfood_field_carbs">Carbs g / 100 g *</string>
+    <string name="addfood_field_fat">Fat g / 100 g *</string>
+    <string name="addfood_field_sugar">Sugar g / 100 g</string>
+    <string name="addfood_field_fiber">Fiber g / 100 g</string>
+    <string name="addfood_field_salt">Salt g / 100 g</string>
+    <string name="addfood_amount_label">AMOUNT</string>
+    <string name="addfood_meal_label">MEAL</string>
+    <string name="addfood_add_button">Add</string>
+    <string name="addfood_barcode_error_title">Barcode search</string>
+    <string name="addfood_barcode_error_not_found">Product not found</string>
+    <string name="addfood_barcode_error_server_unavailable">Open Food Facts unavailable</string>
+    <string name="addfood_barcode_error_network_unavailable">No internet connection</string>
+    <string name="addfood_barcode_error_unknown">Unknown error</string>
+
+    <!-- BarcodeScannerScreen (ui/addfood/BarcodeScannerScreen.kt) -->
+    <string name="barcode_scanner_torch_off_content_description">Turn off flashlight</string>
+    <string name="barcode_scanner_torch_on_content_description">Turn on flashlight</string>
+    <string name="barcode_scanner_manual_entry_placeholder">Enter barcode number</string>
+    <string name="barcode_scanner_search_content_description">Search</string>
+    <string name="barcode_scanner_permission_required">Camera access required</string>
+    <string name="barcode_scanner_permission_allow">Allow</string>
+    <string name="barcode_scanner_close_content_description">Close</string>
+    <string name="barcode_scanner_overlay_caption">Hold barcode inside the frame</string>
 </resources>
