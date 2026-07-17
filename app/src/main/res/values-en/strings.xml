@@ -287,4 +287,19 @@
     <string name="workout_history_session_volume">Volume %1$s kg</string>
     <string name="workout_history_delete_session_content_description">Delete session</string>
     <string name="workout_history_session_deleted_message">Session deleted</string>
+
+    <!-- AppNavigation (ui/navigation/AppNavigation.kt) -->
+    <string name="nav_overview_label">Nutrition</string>
+
+    <!-- ExerciseDetailScreen (ui/workout/ExerciseDetailScreen.kt) -->
+    <string name="exercise_detail_title_fallback">Exercise</string>
+    <string name="exercise_detail_strength_header">STRENGTH PROGRESS</string>
+    <string name="exercise_detail_strength_empty">Not enough data yet for a progress chart.</string>
+    <string name="exercise_detail_metadata_header">EXERCISE</string>
+    <string name="exercise_detail_muscles_label">MUSCLES</string>
+    <string name="exercise_detail_category_label">CATEGORY</string>
+    <string name="exercise_detail_instructions_label">INSTRUCTIONS</string>
+    <string name="exercise_detail_pr_label">PERSONAL RECORD</string>
+    <string name="exercise_detail_history_header">HISTORY</string>
+    <string name="exercise_detail_history_empty">This exercise hasn\'t been trained yet.</string>
 </resources>

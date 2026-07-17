@@ -287,4 +287,19 @@
     <string name="workout_history_session_volume">Volumen %1$s kg</string>
     <string name="workout_history_delete_session_content_description">Einheit löschen</string>
     <string name="workout_history_session_deleted_message">Einheit gelöscht</string>
+
+    <!-- AppNavigation (ui/navigation/AppNavigation.kt) -->
+    <string name="nav_overview_label">Ernährung</string>
+
+    <!-- ExerciseDetailScreen (ui/workout/ExerciseDetailScreen.kt) -->
+    <string name="exercise_detail_title_fallback">Übung</string>
+    <string name="exercise_detail_strength_header">KRAFTVERLAUF</string>
+    <string name="exercise_detail_strength_empty">Noch nicht genug Daten für einen Verlauf.</string>
+    <string name="exercise_detail_metadata_header">ÜBUNG</string>
+    <string name="exercise_detail_muscles_label">MUSKELN</string>
+    <string name="exercise_detail_category_label">KATEGORIE</string>
+    <string name="exercise_detail_instructions_label">ANLEITUNG</string>
+    <string name="exercise_detail_pr_label">PERSÖNLICHER REKORD</string>
+    <string name="exercise_detail_history_header">VERLAUF</string>
+    <string name="exercise_detail_history_empty">Diese Übung wurde noch nicht trainiert.</string>
 </resources>

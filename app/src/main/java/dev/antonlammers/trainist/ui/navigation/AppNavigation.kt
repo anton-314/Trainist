@@ -23,6 +23,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
@@ -32,6 +33,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import dev.antonlammers.trainist.R
 import dev.antonlammers.trainist.ui.addfood.AddFoodScreen
 import dev.antonlammers.trainist.ui.addfood.BarcodeScannerScreen
 import dev.antonlammers.trainist.ui.overview.OverviewScreen
@@ -76,12 +78,16 @@ private data class BottomNavItem(
     val unselectedIcon: androidx.compose.ui.graphics.vector.ImageVector,
 )
 
-// Active tab uses the filled (Rounded) icon variant, inactive the outline variant.
-private val bottomNavItems = listOf(
-    BottomNavItem(Screen.Overview, "Ernährung", Icons.Rounded.Restaurant, Icons.Outlined.Restaurant),
-    BottomNavItem(Screen.Workout, "Training", Icons.Rounded.FitnessCenter, Icons.Outlined.FitnessCenter),
-    BottomNavItem(Screen.Stats, "Statistik", Icons.Rounded.BarChart, Icons.Outlined.BarChart),
-    BottomNavItem(Screen.Settings, "Einstellungen", Icons.Rounded.Settings, Icons.Outlined.Settings),
+// Active tab uses the filled (Rounded) icon variant, inactive the outline variant. A @Composable
+// function (not a top-level val) since the labels need stringResource() and must reflect the
+// current app locale on every composition, not just whichever locale was active when the
+// containing class first loaded.
+@Composable
+private fun bottomNavItems() = listOf(
+    BottomNavItem(Screen.Overview, stringResource(R.string.nav_overview_label), Icons.Rounded.Restaurant, Icons.Outlined.Restaurant),
+    BottomNavItem(Screen.Workout, stringResource(R.string.templates_title), Icons.Rounded.FitnessCenter, Icons.Outlined.FitnessCenter),
+    BottomNavItem(Screen.Stats, stringResource(R.string.stats_title), Icons.Rounded.BarChart, Icons.Outlined.BarChart),
+    BottomNavItem(Screen.Settings, stringResource(R.string.settings_title), Icons.Rounded.Settings, Icons.Outlined.Settings),
 )
 
 @ExperimentalGetImage
@@ -92,7 +98,8 @@ fun AppNavigation(
 ) {
     val backStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = backStackEntry?.destination?.route
-    val showBottomNav = bottomNavItems.any { it.screen.route == currentRoute }
+    val navItems = bottomNavItems()
+    val showBottomNav = navItems.any { it.screen.route == currentRoute }
 
     // Tapping a rest-timer notification relaunches the app with this flag set — jump straight
     // into the live session (which resumes the active one regardless of the templateId argument).
@@ -139,7 +146,7 @@ fun AppNavigation(
                 containerColor = MaterialTheme.colorScheme.surface,
                 tonalElevation = 0.dp,
             ) {
-                bottomNavItems.forEach { item ->
+                navItems.forEach { item ->
                     val selected = currentRoute == item.screen.route
                     NavigationBarItem(
                         selected = selected,
