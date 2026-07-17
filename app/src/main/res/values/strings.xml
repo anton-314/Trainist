@@ -1,3 +1,45 @@
 <resources>
     <string name="app_name">Trainist</string>
+
+    <!-- common_* — app-wide reused labels -->
+    <string name="common_stop">Stoppen</string>
+
+    <!-- Food tags (ui/components/FoodTagUi.kt) -->
+    <string name="food_tag_healthy">Gesund</string>
+    <string name="food_tag_neutral">Neutral</string>
+    <string name="food_tag_unhealthy">Ungesund</string>
+    <string name="food_tag_none">Kein Tag</string>
+    <string name="food_tag_selector_label">TAG</string>
+
+    <!-- Workout set types (ui/workout/SetTypeUi.kt) -->
+    <string name="workout_set_type_normal">Normal</string>
+    <string name="workout_set_type_warmup">Aufwärmen</string>
+    <string name="workout_set_type_drop">Drop-Satz</string>
+    <string name="workout_set_type_failure">Failure</string>
+
+    <!-- Exercise metadata formatting (ui/workout/ExerciseFormat.kt) -->
+    <string name="workout_exercise_type_weight_reps">Gewicht × Reps</string>
+    <string name="workout_exercise_type_bodyweight">Körpergewicht</string>
+    <string name="workout_mechanic_compound">Verbund</string>
+    <string name="workout_mechanic_isolation">Isolation</string>
+
+    <!-- Personal-record badge (ui/workout/PrBadge.kt) -->
+    <string name="workout_pr_content_description">Persönlicher Rekord</string>
+    <string name="workout_pr_label">PR</string>
+
+    <!-- Daily meal reminder (notification/MealReminderNotifier.kt) -->
+    <string name="meal_reminder_channel_name">Tägliche Erinnerung</string>
+    <string name="meal_reminder_channel_description">Erinnert dich, wenn du bis 17 Uhr noch nichts eingetragen hast.</string>
+    <string name="meal_reminder_notification_title">Heute noch nichts getrackt</string>
+    <string name="meal_reminder_notification_text">Du hast bis jetzt keine Mahlzeit eingetragen. Tippe, um es nachzuholen.</string>
+
+    <!-- Rest timer (notification/RestTimerNotifier.kt) -->
+    <string name="rest_timer_ongoing_title">Satzpause · %1$s</string>
+    <string name="rest_timer_paused_title">Pausiert · %1$s</string>
+    <string name="rest_timer_channel_ongoing_name">Ruhe-Timer (Status)</string>
+    <string name="rest_timer_channel_ongoing_description">Zeigt die laufende Satzpause an, solange sie läuft.</string>
+    <string name="rest_timer_channel_alert_name">Ruhe-Timer</string>
+    <string name="rest_timer_channel_alert_description">Meldet, wenn die Satzpause abgelaufen ist.</string>
+    <string name="rest_timer_expired_title">Pause vorbei</string>
+    <string name="rest_timer_expired_text">Zeit für den nächsten Satz.</string>
 </resources>

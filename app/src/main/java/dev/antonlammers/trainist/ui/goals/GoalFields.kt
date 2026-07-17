@@ -15,7 +15,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import dev.antonlammers.trainist.ui.components.NumericTextField
-import java.util.Locale
+import dev.antonlammers.trainist.ui.util.currentAppLocale
 
 /**
  * Shared goal-editor field building blocks, reused by the Settings goals editor and the first-run
@@ -27,7 +27,7 @@ import java.util.Locale
 @Composable
 internal fun FieldLabel(label: String) {
     Text(
-        label.uppercase(Locale("de")),
+        label.uppercase(currentAppLocale()),
         style = MaterialTheme.typography.labelMedium,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
     )

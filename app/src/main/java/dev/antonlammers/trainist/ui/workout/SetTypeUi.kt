@@ -17,7 +17,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import dev.antonlammers.trainist.R
 import dev.antonlammers.trainist.domain.model.SetType
 import dev.antonlammers.trainist.ui.theme.TagNeutralColor
 
@@ -34,12 +36,15 @@ fun SetType.color(): Color = when (this) {
     SetType.FAILURE -> MaterialTheme.colorScheme.error
 }
 
-fun SetType.displayName(): String = when (this) {
-    SetType.NORMAL -> "Normal"
-    SetType.WARMUP -> "Aufwärmen"
-    SetType.DROP -> "Drop-Satz"
-    SetType.FAILURE -> "Failure"
-}
+@Composable
+fun SetType.displayName(): String = stringResource(
+    when (this) {
+        SetType.NORMAL -> R.string.workout_set_type_normal
+        SetType.WARMUP -> R.string.workout_set_type_warmup
+        SetType.DROP -> R.string.workout_set_type_drop
+        SetType.FAILURE -> R.string.workout_set_type_failure
+    },
+)
 
 /** Compact marker shown next to the set number for non-normal set types (e.g. "W", "D", "F"). */
 fun SetType.shortLabel(): String = when (this) {

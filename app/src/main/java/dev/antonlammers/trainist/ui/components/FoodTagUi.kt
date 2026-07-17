@@ -15,8 +15,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import dev.antonlammers.trainist.R
 import dev.antonlammers.trainist.domain.model.FoodTag
 import dev.antonlammers.trainist.ui.theme.TagHealthyColor
 import dev.antonlammers.trainist.ui.theme.TagNeutralColor
@@ -31,12 +33,15 @@ fun FoodTag.color(): Color = when (this) {
     FoodTag.NONE -> MaterialTheme.colorScheme.surfaceVariant
 }
 
-fun FoodTag.displayName(): String = when (this) {
-    FoodTag.HEALTHY -> "Gesund"
-    FoodTag.NEUTRAL -> "Neutral"
-    FoodTag.UNHEALTHY -> "Ungesund"
-    FoodTag.NONE -> "Kein Tag"
-}
+@Composable
+fun FoodTag.displayName(): String = stringResource(
+    when (this) {
+        FoodTag.HEALTHY -> R.string.food_tag_healthy
+        FoodTag.NEUTRAL -> R.string.food_tag_neutral
+        FoodTag.UNHEALTHY -> R.string.food_tag_unhealthy
+        FoodTag.NONE -> R.string.food_tag_none
+    },
+)
 
 /** Small colour dot preceding a food's name in a list. Renders nothing for the untagged default. */
 @Composable
@@ -58,7 +63,7 @@ fun TagSelector(
 ) {
     Column(modifier, verticalArrangement = Arrangement.spacedBy(4.dp)) {
         Text(
-            "TAG",
+            stringResource(R.string.food_tag_selector_label),
             style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )

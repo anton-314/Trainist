@@ -46,8 +46,8 @@ object MealReminderNotifier {
 
         val notification = NotificationCompat.Builder(context, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_notification)
-            .setContentTitle("Heute noch nichts getrackt")
-            .setContentText("Du hast bis jetzt keine Mahlzeit eingetragen. Tippe, um es nachzuholen.")
+            .setContentTitle(context.getString(R.string.meal_reminder_notification_title))
+            .setContentText(context.getString(R.string.meal_reminder_notification_text))
             .setPriority(NotificationCompat.PRIORITY_LOW)
             .setCategory(NotificationCompat.CATEGORY_REMINDER)
             .setContentIntent(pendingIntent)
@@ -61,10 +61,10 @@ object MealReminderNotifier {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val channel = NotificationChannel(
                 CHANNEL_ID,
-                "Tägliche Erinnerung",
+                context.getString(R.string.meal_reminder_channel_name),
                 NotificationManager.IMPORTANCE_LOW,
             ).apply {
-                description = "Erinnert dich, wenn du bis 17 Uhr noch nichts eingetragen hast."
+                description = context.getString(R.string.meal_reminder_channel_description)
             }
             context.getSystemService(NotificationManager::class.java)
                 .createNotificationChannel(channel)

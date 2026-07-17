@@ -11,7 +11,9 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import dev.antonlammers.trainist.R
 
 /**
  * The monochrome personal-record marker (spec §3.5/§6): an accent trophy glyph + mono "PR" label.
@@ -26,10 +28,14 @@ internal fun PrBadge(modifier: Modifier = Modifier) {
     ) {
         Icon(
             Icons.Rounded.EmojiEvents,
-            contentDescription = "Persönlicher Rekord",
+            contentDescription = stringResource(R.string.workout_pr_content_description),
             tint = MaterialTheme.colorScheme.primary,
             modifier = Modifier.size(16.dp),
         )
-        Text("PR", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
+        Text(
+            stringResource(R.string.workout_pr_label),
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.primary,
+        )
     }
 }

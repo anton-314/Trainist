@@ -1,3 +1,45 @@
 <resources>
     <string name="app_name">Trainist</string>
+
+    <!-- common_* — app-wide reused labels -->
+    <string name="common_stop">Stop</string>
+
+    <!-- Food tags (ui/components/FoodTagUi.kt) -->
+    <string name="food_tag_healthy">Healthy</string>
+    <string name="food_tag_neutral">Neutral</string>
+    <string name="food_tag_unhealthy">Unhealthy</string>
+    <string name="food_tag_none">No tag</string>
+    <string name="food_tag_selector_label">TAG</string>
+
+    <!-- Workout set types (ui/workout/SetTypeUi.kt) -->
+    <string name="workout_set_type_normal">Normal</string>
+    <string name="workout_set_type_warmup">Warm-up</string>
+    <string name="workout_set_type_drop">Drop set</string>
+    <string name="workout_set_type_failure">Failure</string>
+
+    <!-- Exercise metadata formatting (ui/workout/ExerciseFormat.kt) -->
+    <string name="workout_exercise_type_weight_reps">Weight × reps</string>
+    <string name="workout_exercise_type_bodyweight">Bodyweight</string>
+    <string name="workout_mechanic_compound">Compound</string>
+    <string name="workout_mechanic_isolation">Isolation</string>
+
+    <!-- Personal-record badge (ui/workout/PrBadge.kt) -->
+    <string name="workout_pr_content_description">Personal record</string>
+    <string name="workout_pr_label">PR</string>
+
+    <!-- Daily meal reminder (notification/MealReminderNotifier.kt) -->
+    <string name="meal_reminder_channel_name">Daily reminder</string>
+    <string name="meal_reminder_channel_description">Reminds you if you haven\'t logged anything by 5 PM.</string>
+    <string name="meal_reminder_notification_title">Nothing tracked yet today</string>
+    <string name="meal_reminder_notification_text">You haven\'t logged a meal yet. Tap to catch up.</string>
+
+    <!-- Rest timer (notification/RestTimerNotifier.kt) -->
+    <string name="rest_timer_ongoing_title">Resting · %1$s</string>
+    <string name="rest_timer_paused_title">Paused · %1$s</string>
+    <string name="rest_timer_channel_ongoing_name">Rest timer (status)</string>
+    <string name="rest_timer_channel_ongoing_description">Shows the running rest timer for as long as it\'s active.</string>
+    <string name="rest_timer_channel_alert_name">Rest timer</string>
+    <string name="rest_timer_channel_alert_description">Alerts you when the rest timer has run out.</string>
+    <string name="rest_timer_expired_title">Rest over</string>
+    <string name="rest_timer_expired_text">Time for the next set.</string>
 </resources>

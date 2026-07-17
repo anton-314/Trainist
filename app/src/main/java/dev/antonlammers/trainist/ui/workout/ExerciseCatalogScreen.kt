@@ -508,6 +508,7 @@ private fun ExerciseEditorSheet(
 // Display helpers
 // ─────────────────────────────────────────────────────────────────────────────
 
+@Composable
 private fun Exercise.detailLine(): String {
     val muscles = primaryMuscles.joinToString(", ") { it.titleCase() }
     return listOfNotNull(
