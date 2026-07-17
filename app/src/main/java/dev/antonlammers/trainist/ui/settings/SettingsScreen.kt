@@ -2,10 +2,12 @@ package dev.antonlammers.trainist.ui.settings
 
 import android.content.Intent
 import android.net.Uri
+import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
@@ -14,7 +16,9 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -33,7 +37,9 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -42,6 +48,7 @@ import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -73,6 +80,7 @@ import dev.antonlammers.trainist.ui.theme.CalorieColor
 import dev.antonlammers.trainist.ui.theme.CarbsColor
 import dev.antonlammers.trainist.ui.theme.FatColor
 import dev.antonlammers.trainist.ui.theme.ProteinColor
+import dev.antonlammers.trainist.ui.util.findActivity
 import dev.antonlammers.trainist.util.normalizeDecimal
 import kotlinx.coroutines.launch
 
@@ -87,6 +95,7 @@ fun SettingsScreen(
     @Suppress("UNUSED_PARAMETER") navController: NavController,
     goalsViewModel: GoalsViewModel = hiltViewModel(),
     dataViewModel: DataViewModel = hiltViewModel(),
+    languageViewModel: LanguageViewModel = hiltViewModel(),
 ) {
     val snackbar = remember { SnackbarHostState() }
 
@@ -107,6 +116,10 @@ fun SettingsScreen(
             HorizontalDivider()
             SectionHeader(stringResource(R.string.settings_data_section_header))
             DataSection(dataViewModel, snackbar)
+
+            HorizontalDivider()
+            SectionHeader(stringResource(R.string.settings_language_section_header))
+            LanguageSection(languageViewModel)
 
             HorizontalDivider()
             SectionHeader(stringResource(R.string.settings_support_section_header))
@@ -420,6 +433,116 @@ private fun ColumnScope.DataSection(
                 ),
             )
         }
+    }
+}
+
+/**
+ * Language picker: a flat card showing the current selection, tapping opens a bottom sheet with
+ * Systemsprache/Deutsch/English (Phase 3 of I18N_PLAN.md). [LanguageViewModel] delegates to
+ * `AppCompatDelegate`, which recreates any *registered* `AppCompatActivity` automatically on API
+ * 33+; `MainActivity` is a plain `ComponentActivity` (see CLAUDE.md's i18n bullet), so below API 33
+ * the activity is recreated explicitly here after a pick, mirroring `attachBaseContext`'s own
+ * `SDK_INT < TIRAMISU` condition.
+ */
+@Composable
+private fun ColumnScope.LanguageSection(viewModel: LanguageViewModel) {
+    val currentTag by viewModel.language.collectAsStateWithLifecycle()
+    var showPicker by remember { mutableStateOf(false) }
+    val context = LocalContext.current
+
+    if (showPicker) {
+        LanguagePickerSheet(
+            selected = currentTag,
+            onSelect = { tag ->
+                viewModel.setLanguage(tag)
+                showPicker = false
+                if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
+                    context.findActivity()?.recreate()
+                }
+            },
+            onDismiss = { showPicker = false },
+        )
+    }
+
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { showPicker = true },
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(stringResource(R.string.settings_language_section_header), style = MaterialTheme.typography.titleMedium)
+            Text(
+                currentTag.languageDisplayName(),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
+}
+
+@Composable
+private fun String?.languageDisplayName(): String = when (this) {
+    null -> stringResource(R.string.settings_language_system)
+    "de" -> stringResource(R.string.settings_language_german)
+    "en" -> stringResource(R.string.settings_language_english)
+    else -> this
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun LanguagePickerSheet(
+    selected: String?,
+    onSelect: (String?) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val sheetState = rememberModalBottomSheetState()
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        modifier = Modifier.statusBarsPadding(),
+        sheetState = sheetState,
+        shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
+        containerColor = MaterialTheme.colorScheme.surface,
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .navigationBarsPadding()
+                .padding(bottom = 8.dp),
+        ) {
+            Text(
+                stringResource(R.string.settings_language_picker_title),
+                style = MaterialTheme.typography.titleLarge,
+                modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp),
+            )
+            LanguageOptionRow(null, selected, stringResource(R.string.settings_language_system), onSelect)
+            LanguageOptionRow("de", selected, stringResource(R.string.settings_language_german), onSelect)
+            LanguageOptionRow("en", selected, stringResource(R.string.settings_language_english), onSelect)
+        }
+    }
+}
+
+@Composable
+private fun LanguageOptionRow(tag: String?, selected: String?, label: String, onSelect: (String?) -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onSelect(tag) }
+            .padding(horizontal = 20.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        RadioButton(selected = tag == selected, onClick = { onSelect(tag) })
+        Text(label, style = MaterialTheme.typography.bodyLarge)
     }
 }
 

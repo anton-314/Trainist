@@ -311,4 +311,11 @@
     <string name="widget_macro_protein_letter">P</string>
     <string name="widget_macro_carbs_letter">K</string>
     <string name="widget_macro_fat_letter">F</string>
+
+    <!-- Language picker (ui/settings/SettingsScreen.kt, ui/settings/LanguageViewModel.kt) -->
+    <string name="settings_language_section_header">Sprache</string>
+    <string name="settings_language_system">Systemsprache</string>
+    <string name="settings_language_german">Deutsch</string>
+    <string name="settings_language_english">English</string>
+    <string name="settings_language_picker_title">Sprache wählen</string>
 </resources>

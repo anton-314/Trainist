@@ -311,4 +311,14 @@
     <string name="widget_macro_protein_letter">P</string>
     <string name="widget_macro_carbs_letter">C</string>
     <string name="widget_macro_fat_letter">F</string>
+
+    <!-- Language picker (ui/settings/SettingsScreen.kt, ui/settings/LanguageViewModel.kt).
+         The language names themselves are native endonyms ("Deutsch"/"English") and stay
+         identical across locales by design — a language picker traditionally shows each
+         language's own name, not a translated one, per I18N_PLAN.md's own wording. -->
+    <string name="settings_language_section_header">Language</string>
+    <string name="settings_language_system">System language</string>
+    <string name="settings_language_german">Deutsch</string>
+    <string name="settings_language_english">English</string>
+    <string name="settings_language_picker_title">Choose language</string>
 </resources>

@@ -1,9 +1,6 @@
 package dev.antonlammers.trainist.ui.addfood
 
 import android.Manifest
-import android.app.Activity
-import android.content.Context
-import android.content.ContextWrapper
 import android.content.pm.PackageManager
 import android.view.WindowManager
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -78,6 +75,7 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.navigation.NavController
 import dev.antonlammers.trainist.R
+import dev.antonlammers.trainist.ui.util.findActivity
 import java.util.concurrent.atomic.AtomicBoolean
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -233,13 +231,6 @@ fun BarcodeScannerScreen(navController: NavController) {
 
 /** Translucent scrim behind the round camera-overlay controls (torch, close). */
 private val TranslucentControl = Color(0x55000000)
-
-/** Unwraps a (possibly wrapped) Compose [Context] to the hosting [Activity], or null. */
-private tailrec fun Context.findActivity(): Activity? = when (this) {
-    is Activity -> this
-    is ContextWrapper -> baseContext.findActivity()
-    else -> null
-}
 
 @ExperimentalGetImage
 @Composable
