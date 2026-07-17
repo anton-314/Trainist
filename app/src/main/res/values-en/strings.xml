@@ -233,4 +233,14 @@
     <string name="exercise_editor_equipment_field">Equipment</string>
     <string name="exercise_editor_mechanic_label">MECHANIC</string>
     <string name="exercise_editor_instructions_field">Instructions (one line per step)</string>
+
+    <!-- TemplateEditorScreen (ui/workout/TemplateEditorScreen.kt) -->
+    <string name="template_editor_title_new">New template</string>
+    <string name="template_editor_title_edit">Edit template</string>
+    <string name="template_editor_name_label">Name</string>
+    <string name="template_editor_name_placeholder">e.g. Push Day</string>
+    <string name="template_editor_exercises_header">EXERCISES</string>
+    <string name="template_editor_empty_hint">No exercises yet — add some from the catalog.</string>
+    <string name="template_editor_remove_set_content_description">Remove set</string>
+    <string name="template_editor_add_set_short_label">Set</string>
 </resources>

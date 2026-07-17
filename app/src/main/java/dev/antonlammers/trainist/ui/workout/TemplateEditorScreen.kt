@@ -41,10 +41,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
+import dev.antonlammers.trainist.R
 import dev.antonlammers.trainist.domain.model.SetType
 import dev.antonlammers.trainist.ui.components.DragReorderColumn
 
@@ -88,17 +90,17 @@ fun TemplateEditorScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(if (viewModel.isNewTemplate) "Neue Vorlage" else "Vorlage bearbeiten") },
+                title = { Text(stringResource(if (viewModel.isNewTemplate) R.string.template_editor_title_new else R.string.template_editor_title_edit)) },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Zurück")
+                        Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = stringResource(R.string.common_back))
                     }
                 },
                 actions = {
                     IconButton(onClick = viewModel::save, enabled = state.canSave) {
                         Icon(
                             Icons.Rounded.Check,
-                            contentDescription = "Speichern",
+                            contentDescription = stringResource(R.string.common_save),
                             tint = if (state.canSave) MaterialTheme.colorScheme.primary
                             else MaterialTheme.colorScheme.outline,
                         )
@@ -116,8 +118,8 @@ fun TemplateEditorScreen(
                 OutlinedTextField(
                     value = state.name,
                     onValueChange = viewModel::onNameChange,
-                    label = { Text("Name") },
-                    placeholder = { Text("z. B. Push Day") },
+                    label = { Text(stringResource(R.string.template_editor_name_label)) },
+                    placeholder = { Text(stringResource(R.string.template_editor_name_placeholder)) },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(14.dp),
@@ -130,7 +132,7 @@ fun TemplateEditorScreen(
 
             item {
                 Text(
-                    "ÜBUNGEN",
+                    stringResource(R.string.template_editor_exercises_header),
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -139,7 +141,7 @@ fun TemplateEditorScreen(
             if (state.slots.isEmpty()) {
                 item {
                     Text(
-                        "Noch keine Übungen — füge welche aus dem Katalog hinzu.",
+                        stringResource(R.string.template_editor_empty_hint),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -175,7 +177,7 @@ fun TemplateEditorScreen(
                 ) {
                     Icon(Icons.Rounded.Add, contentDescription = null, modifier = Modifier.size(18.dp))
                     Text(
-                        "Übung hinzufügen",
+                        stringResource(R.string.workout_add_exercise_button),
                         style = MaterialTheme.typography.labelLarge,
                         modifier = Modifier.padding(start = 8.dp),
                     )
@@ -211,7 +213,7 @@ private fun SlotCard(
         Row(verticalAlignment = Alignment.CenterVertically) {
             Icon(
                 Icons.Rounded.DragIndicator,
-                contentDescription = "Ziehen zum Verschieben",
+                contentDescription = stringResource(R.string.workout_session_drag_handle_content_description),
                 tint = MaterialTheme.colorScheme.outline,
                 modifier = dragHandleModifier.size(28.dp),
             )
@@ -227,7 +229,7 @@ private fun SlotCard(
             IconButton(onClick = onRemove) {
                 Icon(
                     Icons.Rounded.Close,
-                    contentDescription = "Übung entfernen",
+                    contentDescription = stringResource(R.string.workout_session_remove_exercise_content_description),
                     tint = MaterialTheme.colorScheme.outline,
                 )
             }
@@ -253,7 +255,7 @@ private fun SlotCard(
                     ) {
                         Icon(
                             Icons.Rounded.Close,
-                            contentDescription = "Satz entfernen",
+                            contentDescription = stringResource(R.string.template_editor_remove_set_content_description),
                             tint = MaterialTheme.colorScheme.outline,
                             modifier = Modifier.size(14.dp),
                         )
@@ -264,7 +266,7 @@ private fun SlotCard(
                 TextButton(onClick = onAddSet, enabled = slot.setTypes.size < 20) {
                     Icon(Icons.Rounded.Add, contentDescription = null, modifier = Modifier.size(16.dp))
                     Text(
-                        "Satz",
+                        stringResource(R.string.template_editor_add_set_short_label),
                         style = MaterialTheme.typography.labelMedium,
                         modifier = Modifier.padding(start = 4.dp),
                     )
