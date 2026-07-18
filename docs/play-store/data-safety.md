@@ -54,10 +54,10 @@ Zweckbindung der Produktsuche.
 
 - **Kamera**: ausschließlich für die On-Device-Barcode-Erkennung (ML Kit), keine
   Bildspeicherung/-übertragung.
-- **Genaue Alarme** (`USE_EXACT_ALARM` / `SCHEDULE_EXACT_ALARM`): für den pünktlichen
-  Trainings-Pausen-Timer, auch im Ruhezustand des Geräts — rein lokale Zeitsteuerung, keine
-  Datenerfassung.
-- **Benachrichtigungen**: tägliche Ernährungs-Erinnerung + Pausen-Timer-Alarm, beide lokal.
+- **Benachrichtigungen**: tägliche Ernährungs-Erinnerung + Pausen-Timer-Alarm, beide lokal. Der
+  Pausen-Timer-Alarm nutzt bewusst **keine** genauen Alarme (`USE_EXACT_ALARM`/
+  `SCHEDULE_EXACT_ALARM` sind nicht deklariert) — der Ablauf wird primär in-app erkannt, ein
+  inexakter `AlarmManager`-Fallback deckt den Hintergrundfall ab.
 
 ## Referenz
 
