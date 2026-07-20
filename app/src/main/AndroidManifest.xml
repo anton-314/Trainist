@@ -6,16 +6,14 @@
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <!-- Deliberately NO exact-alarm permissions (USE_EXACT_ALARM / SCHEDULE_EXACT_ALARM): Play policy
-         restricts them to apps whose core functionality is an alarm clock/timer/calendar. The rest-over
-         alert is instead fired in-app when the foreground countdown reaches zero (the dominant case),
-         with an inexact allow-while-idle alarm as background fallback — see RestTimerScheduler. -->
-    <!-- The in-app/foreground rest-over alert plays media-stream audio + vibrates directly
-         (RestTimerAlertService); the background fallback relies on the alert channel's own
-         notification sound. -->
+         restricts them to apps whose core functionality is an alarm clock/timer/calendar. The rest
+         timer needs none — RestTimerService runs as a foreground service for the whole rest and fires
+         the alert itself, on the second, holding a partial wake lock so the countdown keeps running
+         with the screen off. -->
     <uses-permission android:name="android.permission.VIBRATE" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
     <uses-feature android:name="android.hardware.camera" android:required="false" />
 
     <application
@@ -51,14 +49,17 @@
                 android:resource="@xml/macro_widget_info" />
         </receiver>
 
-        <receiver
-            android:name=".notification.RestTimerAlarmReceiver"
-            android:exported="false" />
-
+        <!-- "specialUse" is the honest type for a rest-between-sets countdown: it is neither media
+             playback nor any other predefined category. The subtype below is what the Play Console
+             foreground-service declaration is justified against. -->
         <service
-            android:name=".notification.RestTimerAlertService"
+            android:name=".notification.RestTimerService"
             android:exported="false"
-            android:foregroundServiceType="mediaPlayback" />
+            android:foregroundServiceType="specialUse">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="rest_timer_between_sets" />
+        </service>
 
         <provider
             android:name="androidx.core.content.FileProvider"

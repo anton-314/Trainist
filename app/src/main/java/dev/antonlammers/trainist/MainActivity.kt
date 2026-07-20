@@ -53,10 +53,10 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         requestNotificationPermissionIfNeeded()
+        // Nothing is cancelled here on purpose: the same extra is carried by the *ongoing* countdown
+        // notification, so tearing anything down would kill a rest that is still running. The alert
+        // notification auto-cancels on tap, and its ~2 s tone has all but finished by then anyway.
         val openWorkoutSession = intent.getBooleanExtra(RestTimerNotifier.EXTRA_OPEN_WORKOUT_SESSION, false)
-        // Tapping the rest-over alert notification to open the app should silence it immediately —
-        // otherwise the alert sound/vibration keeps running until its own short cap elapses.
-        if (openWorkoutSession) RestTimerNotifier.cancel(this)
         @OptIn(ExperimentalGetImage::class)
         setContent {
             TrainistTheme {

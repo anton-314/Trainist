@@ -63,9 +63,7 @@ import dev.antonlammers.trainist.R
 import dev.antonlammers.trainist.domain.model.ExerciseType
 import dev.antonlammers.trainist.domain.model.SetEntry
 import dev.antonlammers.trainist.domain.model.SetType
-import dev.antonlammers.trainist.notification.RestTimerAlertService
-import dev.antonlammers.trainist.notification.RestTimerNotifier
-import dev.antonlammers.trainist.notification.RestTimerScheduler
+import dev.antonlammers.trainist.notification.RestTimerService
 import dev.antonlammers.trainist.ui.components.DragReorderColumn
 import dev.antonlammers.trainist.ui.components.NumericTextField
 import dev.antonlammers.trainist.ui.navigation.Screen
@@ -95,33 +93,20 @@ fun WorkoutSessionScreen(
         if (finished) navController.popBackStack()
     }
 
-    // The VM stays Android-free: it emits schedule/cancel commands, executed here against AlarmManager.
+    // The VM stays Android-free: it emits the timer state, mirrored here into RestTimerService, which
+    // owns the countdown for its whole duration and fires the alert itself.
     val context = LocalContext.current
     LaunchedEffect(Unit) {
         viewModel.restCommands.collect { command ->
             when (command) {
-                is RestCommand.Start -> {
-                    // Defensively stop a still-sounding alert from a previous rest (e.g. the next set is
-                    // checked off before the prior alarm finished playing) before starting the new one.
-                    RestTimerNotifier.cancel(context)
-                    RestTimerScheduler.schedule(context, command.delayMs)
-                    RestTimerNotifier.showOngoing(context, command.exerciseName, command.endAtMs)
-                }
-                is RestCommand.Pause -> {
-                    RestTimerScheduler.cancel(context)
-                    RestTimerNotifier.showPaused(context, command.exerciseName, command.remainingSeconds)
-                }
-                RestCommand.Cancel -> {
-                    RestTimerScheduler.cancel(context)
-                    RestTimerNotifier.cancel(context)
-                }
-                RestCommand.Expired -> {
-                    // The countdown crossed zero while visible: play the alert now (a foreground app may
-                    // always start the service) and drop the redundant background alarm. If the start is
-                    // rejected (app just left the foreground), keep the alarm — the receiver's fallback
-                    // path still delivers the alert.
-                    if (RestTimerAlertService.tryStart(context)) RestTimerScheduler.cancel(context)
-                }
+                is RestCommand.Sync -> RestTimerService.sync(
+                    context = context,
+                    exerciseName = command.exerciseName,
+                    totalSeconds = command.totalSeconds,
+                    endAtMs = command.endAtMs,
+                    pausedRemainingMs = command.pausedRemainingMs,
+                )
+                RestCommand.Stop -> RestTimerService.stop(context)
             }
         }
     }

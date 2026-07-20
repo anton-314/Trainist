@@ -327,13 +327,16 @@ class WorkoutSessionViewModelTest {
         scope.advanceUntilIdle()
     }
 
+    private fun runningSync(name: String, totalSeconds: Int, endAtMs: Long) =
+        RestCommand.Sync(name, totalSeconds, endAtMs, pausedRemainingMs = null)
+
     @Test
-    fun `checking a set off starts the rest timer and schedules the notification`() = runTest {
+    fun `checking a set off starts the rest timer and syncs it to the service`() = runTest {
         val vm = viewModel()
         vm.startedWithOneExercise(this)
         vm.restCommands.test {
             vm.toggleSetCompleted(0, 0)
-            assertEquals(RestCommand.Start("bench", 180, 180_000, FIXED_CLOCK + 180_000), awaitItem())
+            assertEquals(runningSync("bench", 180, FIXED_CLOCK + 180_000), awaitItem())
             cancelAndIgnoreRemainingEvents()
         }
     }
@@ -345,65 +348,84 @@ class WorkoutSessionViewModelTest {
         vm.startedWithOneExercise(this)
         vm.restCommands.test {
             vm.toggleSetCompleted(0, 0)
-            assertEquals(RestCommand.Start("Bench Press", 120, 120_000, FIXED_CLOCK + 120_000), awaitItem())
+            assertEquals(runningSync("Bench Press", 120, FIXED_CLOCK + 120_000), awaitItem())
             cancelAndIgnoreRemainingEvents()
         }
     }
 
     @Test
-    fun `pause cancels the pending alert and shows a paused notification, resume reschedules`() = runTest {
+    fun `pause syncs the frozen remaining time, resume re-anchors the end instant`() = runTest {
         val vm = viewModel()
         vm.startedWithOneExercise(this)
         vm.restCommands.test {
             vm.toggleSetCompleted(0, 0)
-            assertEquals(RestCommand.Start("bench", 180, 180_000, FIXED_CLOCK + 180_000), awaitItem())
+            assertEquals(runningSync("bench", 180, FIXED_CLOCK + 180_000), awaitItem())
             vm.pauseRest()
-            assertEquals(RestCommand.Pause("bench", 180), awaitItem())
+            assertEquals(RestCommand.Sync("bench", 180, FIXED_CLOCK + 180_000, 180_000L), awaitItem())
             vm.resumeRest()
-            assertEquals(RestCommand.Start("bench", 180, 180_000, FIXED_CLOCK + 180_000), awaitItem())
+            assertEquals(runningSync("bench", 180, FIXED_CLOCK + 180_000), awaitItem())
             cancelAndIgnoreRemainingEvents()
         }
     }
 
     @Test
-    fun `adjusting reschedules with the new remaining time`() = runTest {
+    fun `adjusting a running timer moves the synced end instant`() = runTest {
         val vm = viewModel()
         vm.startedWithOneExercise(this)
         vm.restCommands.test {
             vm.toggleSetCompleted(0, 0)
-            assertEquals(RestCommand.Start("bench", 180, 180_000, FIXED_CLOCK + 180_000), awaitItem())
+            assertEquals(runningSync("bench", 180, FIXED_CLOCK + 180_000), awaitItem())
             vm.adjustRest(15)
-            assertEquals(RestCommand.Start("bench", 195, 195_000, FIXED_CLOCK + 195_000), awaitItem())
+            assertEquals(runningSync("bench", 195, FIXED_CLOCK + 195_000), awaitItem())
+            vm.adjustRest(-15)
+            assertEquals(runningSync("bench", 180, FIXED_CLOCK + 180_000), awaitItem())
             cancelAndIgnoreRemainingEvents()
         }
     }
 
     @Test
-    fun `skipping cancels the timer`() = runTest {
+    fun `adjusting a paused timer moves the synced remaining time`() = runTest {
         val vm = viewModel()
         vm.startedWithOneExercise(this)
         vm.restCommands.test {
             vm.toggleSetCompleted(0, 0)
-            assertEquals(RestCommand.Start("bench", 180, 180_000, FIXED_CLOCK + 180_000), awaitItem())
-            vm.skipRest()
-            assertEquals(RestCommand.Cancel, awaitItem())
+            assertEquals(runningSync("bench", 180, FIXED_CLOCK + 180_000), awaitItem())
+            vm.pauseRest()
+            assertEquals(RestCommand.Sync("bench", 180, FIXED_CLOCK + 180_000, 180_000L), awaitItem())
+            vm.adjustRest(15)
+            assertEquals(RestCommand.Sync("bench", 195, FIXED_CLOCK + 180_000, 195_000L), awaitItem())
             cancelAndIgnoreRemainingEvents()
         }
     }
 
     @Test
-    fun `a countdown observed crossing zero emits Expired and clears the timer`() = runTest {
+    fun `skipping stops the timer`() = runTest {
+        val vm = viewModel()
+        vm.startedWithOneExercise(this)
+        vm.restCommands.test {
+            vm.toggleSetCompleted(0, 0)
+            assertEquals(runningSync("bench", 180, FIXED_CLOCK + 180_000), awaitItem())
+            vm.skipRest()
+            assertEquals(RestCommand.Stop, awaitItem())
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `a countdown reaching zero clears the timer and its anchor without a command`() = runTest {
         var now = FIXED_CLOCK
         val vm = WorkoutSessionViewModel(sessions, templates, catalog, weight, 0L) { now }
         vm.startedWithOneExercise(this)
         subscribe(vm.restTimer)
         vm.restCommands.test {
             vm.toggleSetCompleted(0, 0)
-            assertEquals(RestCommand.Start("bench", 180, 180_000, FIXED_CLOCK + 180_000), awaitItem())
+            assertEquals(runningSync("bench", 180, FIXED_CLOCK + 180_000), awaitItem())
             runCurrent() // first tick observes the countdown still running
             now = FIXED_CLOCK + 181_000 // wall clock passes the end...
             advanceTimeBy(1_100) // ...and the next tick sees the expiry
-            assertEquals(RestCommand.Expired, awaitItem())
+            // The alert belongs to RestTimerService, which was handed the end instant with the Sync
+            // above — the lifecycle-bound countdown here only clears the UI state.
+            expectNoEvents()
             cancelAndIgnoreRemainingEvents()
         }
         assertNull(vm.restTimer.value)
@@ -411,17 +433,17 @@ class WorkoutSessionViewModelTest {
     }
 
     @Test
-    fun `a timer already expired when the countdown becomes visible emits no Expired`() = runTest {
+    fun `a timer already expired when the countdown becomes visible is dropped silently`() = runTest {
         var now = FIXED_CLOCK
         val vm = WorkoutSessionViewModel(sessions, templates, catalog, weight, 0L) { now }
         vm.startedWithOneExercise(this)
         vm.restCommands.test {
             vm.toggleSetCompleted(0, 0)
-            assertEquals(RestCommand.Start("bench", 180, 180_000, FIXED_CLOCK + 180_000), awaitItem())
-            now = FIXED_CLOCK + 181_000 // expires before anyone observes the countdown...
-            subscribe(vm.restTimer) // ...then the ticking starts: first value is already <= 0
+            assertEquals(runningSync("bench", 180, FIXED_CLOCK + 180_000), awaitItem())
+            now = FIXED_CLOCK + 181_000 // expires while the screen is away...
+            subscribe(vm.restTimer) // ...then the ticking starts: the first value is already <= 0
             advanceTimeBy(2_000)
-            expectNoEvents() // the background alarm owns this expiry — no in-app alert
+            expectNoEvents()
             cancelAndIgnoreRemainingEvents()
         }
         assertNull(vm.restTimer.value)
@@ -463,6 +485,31 @@ class WorkoutSessionViewModelTest {
         assertEquals(180, restored.totalSeconds)
         assertEquals(45, restored.remainingSeconds)
         assertTrue(restored.isPaused)
+    }
+
+    @Test
+    fun `resuming a still-running rest re-syncs it, so the service is running even after a process death`() = runTest {
+        catalog.upsertAll(listOf(exercise("bench", "Bench Press")))
+        sessions.save(
+            WorkoutSession(
+                stableId = "running",
+                date = java.time.LocalDate.now(),
+                isActive = true,
+                startedAtMs = 500L,
+                restExerciseStableId = "bench",
+                restTotalSeconds = 180,
+                restEndAtMs = FIXED_CLOCK + 60_000,
+            ),
+        )
+
+        val vm = viewModel()
+        subscribe(vm.uiState)
+        advanceUntilIdle()
+
+        vm.restCommands.test {
+            assertEquals(runningSync("Bench Press", 180, FIXED_CLOCK + 60_000), awaitItem())
+            cancelAndIgnoreRemainingEvents()
+        }
     }
 
     @Test

@@ -20,22 +20,19 @@ import dev.antonlammers.trainist.R
 import dev.antonlammers.trainist.ui.util.currentAppLocale
 
 /**
- * Builds and posts the rest-timer notifications, all under one notification id so each state
- * (running / paused / over) replaces the previous one:
- * - [showOngoing] / [showPaused]: a low-importance, silent, ongoing (`setOngoing`) notification that
- *   is visible for as long as a rest is running or paused. Both use a **custom content view**
- *   (`notification_rest_timer.xml`) that shows the remaining time LARGE — [showOngoing] via an
- *   embedded [android.widget.Chronometer] counting down to the end instant (which Android keeps live
- *   itself, even after the app process is gone, so no per-second re-posting is needed), [showPaused]
- *   via the frozen mm:ss text.
- * - [buildExpiredNotification]: the alerting "rest over" notification, posted by
- *   [RestTimerAlertService] via `startForeground` rather than here directly — the actual alert
- *   sound + vibration are played by that service on the media stream (see its doc), so this
- *   notification itself is posted silent.
- * - [postExpiredFallback]: the same "rest over" notification for the background-alarm path when the
- *   service may not be started (Android 12+); audible via the alert channel's own sound + vibration.
+ * Builds the rest-timer notifications. It only *builds* them — [RestTimerService] posts them, since
+ * they double as its foreground-service notification.
  *
- * Tapping any of them opens the app straight into the live workout session (spec addendum).
+ * - [buildOngoing] / [buildPaused]: low-importance, silent, ongoing notification shown for as long as
+ *   a rest is running or paused, both using the **custom content view** (`notification_rest_timer.xml`)
+ *   that shows the remaining time LARGE — [buildOngoing] via an embedded
+ *   [android.widget.Chronometer] counting down to the end instant (Android keeps it live itself, so
+ *   no per-second re-posting), [buildPaused] via the frozen mm:ss text.
+ * - [buildExpired]: the alerting "rest over" notification. It is posted **silent by channel** — the
+ *   service plays the tone on the alarm stream and vibrates directly, so the channel must never add
+ *   sound or vibration of its own on top.
+ *
+ * Tapping any of them opens the app straight into the live workout session.
  */
 object RestTimerNotifier {
 
@@ -43,19 +40,17 @@ object RestTimerNotifier {
     const val EXTRA_OPEN_WORKOUT_SESSION = "open_workout_session"
 
     private const val CHANNEL_ONGOING_ID = "rest_timer_ongoing"
-    // Bumped from "rest_timer" → "rest_timer_alert" → "..._v2" → "..._v3": a notification channel's
+    // Bumped from "rest_timer" → "rest_timer_alert" → "..._v2" → "..._v3" → "..._v4": a channel's
     // importance/sound/vibration are immutable once created, so every sound-config change needs a
-    // fresh id. v3 carries the default notification sound + vibration again — needed by the
-    // background fallback path (postExpiredFallback), which has no service playing audio for it.
-    // The foreground path posts on the same channel but per-notification silent (setSilent), because
-    // there RestTimerAlertService plays sound + vibration itself on the media stream.
-    private const val CHANNEL_ALERT_ID = "rest_timer_alert_v3"
+    // fresh id. v4 is fully silent — RestTimerService now plays the tone and vibration itself on the
+    // alarm stream (audible with the ringer off, unlike a channel sound), and a channel sound would
+    // only double it. IMPORTANCE_HIGH is kept so the notification still pops as a heads-up.
+    private const val CHANNEL_ALERT_ID = "rest_timer_alert_v4"
     // The ongoing/paused countdown and the "rest over" alert use SEPARATE notification ids on purpose:
     // Android will not move an already-posted notification to a different channel on update, so posting
     // the HIGH-channel alert under the ongoing notification's id would leave it stuck on the silent LOW
     // channel. A distinct id makes the alert a fresh notification that actually alerts.
-    // buildExpiredNotification cancels the ongoing one so only the alert remains.
-    private const val NOTIFICATION_ID_ONGOING = 2002
+    internal const val NOTIFICATION_ID_ONGOING = 2002
     internal const val NOTIFICATION_ID_ALERT = 2003
 
     // Notification-shade text colours (the custom RemoteViews text can't rely on ?android:textColorPrimary
@@ -64,7 +59,8 @@ object RestTimerNotifier {
     private const val TEXT_COLOR_DARK = 0xFFECECEC.toInt()
 
     /** Running countdown: ongoing, silent, big live chronometer counting down to [endAtMs]. */
-    fun showOngoing(context: Context, exerciseName: String, endAtMs: Long) {
+    fun buildOngoing(context: Context, exerciseName: String, endAtMs: Long): android.app.Notification {
+        ensureChannels(context)
         // Chronometer.setBase expects the SystemClock.elapsedRealtime() timebase; endAtMs is wall-clock.
         val chronometerBase = SystemClock.elapsedRealtime() + (endAtMs - System.currentTimeMillis())
         val textColor = notificationTextColor(context)
@@ -80,11 +76,12 @@ object RestTimerNotifier {
             setTextColor(R.id.rest_title, textColor)
             setTextColor(R.id.rest_chronometer, textColor)
         }
-        post(context, NOTIFICATION_ID_ONGOING, ongoingBuilder(context, content).build())
+        return ongoingBuilder(context, content).build()
     }
 
     /** Paused countdown: ongoing, silent, big static remaining time (no chronometer while frozen). */
-    fun showPaused(context: Context, exerciseName: String, remainingSeconds: Int) {
+    fun buildPaused(context: Context, exerciseName: String, remainingSeconds: Int): android.app.Notification {
+        ensureChannels(context)
         val textColor = notificationTextColor(context)
         val content = RemoteViews(context.packageName, R.layout.notification_rest_timer).apply {
             setTextViewText(
@@ -97,7 +94,7 @@ object RestTimerNotifier {
             setTextColor(R.id.rest_title, textColor)
             setTextColor(R.id.rest_time_static, textColor)
         }
-        post(context, NOTIFICATION_ID_ONGOING, ongoingBuilder(context, content).build())
+        return ongoingBuilder(context, content).build()
     }
 
     /** Near-black on the light shade, near-white on the dark shade (readable in both). */
@@ -118,53 +115,10 @@ object RestTimerNotifier {
             .setPriority(NotificationCompat.PRIORITY_LOW)
             .setContentIntent(openWorkoutPendingIntent(context))
 
-    /**
-     * Rest is over: dismisses the ongoing countdown and builds the alerting notification for
-     * [RestTimerAlertService] to post via `startForeground` (ensures channels exist first). Posted
-     * per-notification silent ([NotificationCompat.Builder.setSilent]) — the service plays sound +
-     * vibration itself on the media stream, and the channel's own sound must not double it.
-     */
-    fun buildExpiredNotification(context: Context): android.app.Notification {
+    /** Rest is over: the alerting heads-up, silent by channel (the service makes the noise itself). */
+    fun buildExpired(context: Context): android.app.Notification {
         ensureChannels(context)
-        // Cancel the silent ongoing notification first; the alert is a NEW notification (own id) so it
-        // lands on the HIGH channel and shows a heads-up instead of inheriting the LOW channel.
-        NotificationManagerCompat.from(context).cancel(NOTIFICATION_ID_ONGOING)
-        return expiredBuilder(context)
-            .setSilent(true)
-            // Explicit "Stoppen"/"Stop" action + swipe-to-dismiss both silence the alert immediately —
-            // the sound/vibration otherwise only stop on their own after RestTimerAlertService's short cap.
-            .addAction(
-                NotificationCompat.Action.Builder(
-                    R.drawable.ic_notification,
-                    context.getString(R.string.common_stop),
-                    stopAlertPendingIntent(context),
-                ).build(),
-            )
-            .setDeleteIntent(stopAlertPendingIntent(context))
-            .build()
-    }
-
-    /**
-     * Background fallback when [RestTimerAlertService] may not be started (foreground-service start
-     * from the background, Android 12+): posts the same "rest over" notification, but audible via
-     * the channel's own sound + vibration instead of the service's media-stream playback. No
-     * "Stoppen" action — there is no playing service to stop; the channel sound ends on its own.
-     */
-    fun postExpiredFallback(context: Context) {
-        ensureChannels(context)
-        NotificationManagerCompat.from(context).cancel(NOTIFICATION_ID_ONGOING)
-        post(
-            context,
-            NOTIFICATION_ID_ALERT,
-            expiredBuilder(context)
-                // Pre-O fallback for the channel's sound/vibration config (channels exist from O on).
-                .setDefaults(NotificationCompat.DEFAULT_SOUND or NotificationCompat.DEFAULT_VIBRATE)
-                .build(),
-        )
-    }
-
-    private fun expiredBuilder(context: Context) =
-        NotificationCompat.Builder(context, CHANNEL_ALERT_ID)
+        return NotificationCompat.Builder(context, CHANNEL_ALERT_ID)
             .setSmallIcon(R.drawable.ic_notification)
             .setContentTitle(context.getString(R.string.rest_timer_expired_title))
             .setContentText(context.getString(R.string.rest_timer_expired_text))
@@ -172,19 +126,18 @@ object RestTimerNotifier {
             .setCategory(NotificationCompat.CATEGORY_ALARM)
             .setContentIntent(openWorkoutPendingIntent(context))
             .setAutoCancel(true)
-
-    /** Dismisses whichever rest-timer notification is currently showing and stops any playing alert
-     * (skip/finish/discard/pause, or a new rest starting while a previous alert is still sounding). */
-    fun cancel(context: Context) {
-        NotificationManagerCompat.from(context).apply {
-            cancel(NOTIFICATION_ID_ONGOING)
-            cancel(NOTIFICATION_ID_ALERT)
-        }
-        context.stopService(Intent(context, RestTimerAlertService::class.java))
+            .build()
     }
 
-    private fun post(context: Context, id: Int, notification: android.app.Notification) {
-        ensureChannels(context)
+    /**
+     * Re-posts the alert once its service has detached it, so it becomes swipe-dismissible.
+     *
+     * A notification handed to `startForeground` gains `FLAG_NO_CLEAR`, and `STOP_FOREGROUND_DETACH`
+     * leaves that flag on the posted record — without this re-post the "rest over" notification could
+     * only be cleared by tapping through into the app. Re-notifying under the same id replaces the
+     * record (and its flags) with this plain, `setAutoCancel` one.
+     */
+    fun repostExpiredDismissible(context: Context) {
         // On Android 13+ posting silently no-ops without the runtime permission — guard to avoid noise.
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
             ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS)
@@ -192,7 +145,15 @@ object RestTimerNotifier {
         ) {
             return
         }
-        NotificationManagerCompat.from(context).notify(id, notification)
+        NotificationManagerCompat.from(context).notify(NOTIFICATION_ID_ALERT, buildExpired(context))
+    }
+
+    /** Dismisses both rest-timer notifications (the alert one outlives its service via DETACH). */
+    fun cancelAll(context: Context) {
+        NotificationManagerCompat.from(context).apply {
+            cancel(NOTIFICATION_ID_ONGOING)
+            cancel(NOTIFICATION_ID_ALERT)
+        }
     }
 
     private fun openWorkoutPendingIntent(context: Context): PendingIntent {
@@ -201,14 +162,6 @@ object RestTimerNotifier {
             putExtra(EXTRA_OPEN_WORKOUT_SESSION, true)
         }
         return PendingIntent.getActivity(context, 0, intent, PendingIntent.FLAG_IMMUTABLE)
-    }
-
-    /** Targets [RestTimerAlertService] directly with [RestTimerAlertService.ACTION_STOP]. */
-    private fun stopAlertPendingIntent(context: Context): PendingIntent {
-        val intent = Intent(context, RestTimerAlertService::class.java).apply {
-            action = RestTimerAlertService.ACTION_STOP
-        }
-        return PendingIntent.getService(context, 0, intent, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
     }
 
     private fun formatMmSs(totalSeconds: Int): String {
@@ -237,10 +190,8 @@ object RestTimerNotifier {
                     NotificationManager.IMPORTANCE_HIGH,
                 ).apply {
                     description = context.getString(R.string.rest_timer_channel_alert_description)
-                    // Default sound + vibration stay ON: the background fallback notification relies
-                    // on them. The foreground path suppresses them per-notification via setSilent
-                    // (RestTimerAlertService plays its own media-stream sound + vibration there).
-                    enableVibration(true)
+                    enableVibration(false)
+                    setSound(null, null)
                 },
             )
         }

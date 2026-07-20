@@ -83,21 +83,24 @@ data class RestTimerUiState(
 private data class ActiveRest(val exerciseStableId: String, val exerciseName: String, val timer: RestTimer)
 
 /**
- * One-shot command the screen turns into alarm scheduling + the Android notification (keeps
- * the VM Android-free). [Start] covers both starting and resuming a running countdown: the screen
- * (re)schedules the background-fallback alarm for [delayMs] from now and shows/updates the
- * ongoing "still resting" notification counting down to [endAtMs]. [Pause] freezes both: the pending
- * alarm is cancelled and the ongoing notification switches to a static "paused" display. [Cancel]
- * stops everything (skip/finish/discard) — cancels the pending alarm and dismisses the notification.
- * [Expired] fires when the ticking countdown is *observed* crossing zero (screen in the foreground):
- * the screen plays the full alert immediately (foreground-service start is allowed there) and, on
- * success, cancels the now-redundant background alarm.
+ * One-shot command the screen mirrors into `RestTimerService` (keeps the VM Android-free).
+ *
+ * [Sync] carries the **complete** timer state and is emitted on every transition — start, resume,
+ * pause, ±15 s — so the service never reconstructs anything and an adjustment always moves the real
+ * alert instant. [Stop] ends the rest (skip/finish/discard). There is deliberately no "expired"
+ * command: the service owns the moment the countdown hits zero, because the VM's ticking flow is
+ * bound to the screen's lifecycle and stops running once the app is backgrounded.
  */
 sealed interface RestCommand {
-    data class Start(val exerciseName: String, val totalSeconds: Int, val delayMs: Long, val endAtMs: Long) : RestCommand
-    data class Pause(val exerciseName: String, val remainingSeconds: Int) : RestCommand
-    data object Cancel : RestCommand
-    data object Expired : RestCommand
+    data class Sync(
+        val exerciseName: String,
+        val totalSeconds: Int,
+        val endAtMs: Long,
+        /** Frozen remaining time while paused; null while the countdown runs. */
+        val pausedRemainingMs: Long?,
+    ) : RestCommand
+
+    data object Stop : RestCommand
 }
 
 /**
@@ -162,11 +165,10 @@ class WorkoutSessionViewModel(
     val restCommands: Flow<RestCommand> = restCommandChannel.receiveAsFlow()
 
     /**
-     * The running rest timer, ticked once a second from the wall clock. Emits null when idle and
-     * auto-clears itself when the countdown reaches zero. A countdown *observed* crossing zero (a
-     * previous tick was still positive) additionally emits [RestCommand.Expired], which the screen
-     * turns into the immediate in-app alert. A timer that is already expired on (re)subscription
-     * emits no alert — that expiry happened out of sight and belongs to the background alarm.
+     * The running rest timer as the in-app bar renders it, ticked once a second from the wall clock.
+     * Emits null when idle and drops a countdown that has reached zero — including one that ran out
+     * while the screen was away, which is why this flow is display-only: it is bound to the screen's
+     * lifecycle and must never be responsible for the alert (that is `RestTimerService`'s job).
      */
     @OptIn(ExperimentalCoroutinesApi::class)
     val restTimer: StateFlow<RestTimerUiState?> = _rest.flatMapLatest { active ->
@@ -174,17 +176,14 @@ class WorkoutSessionViewModel(
             active == null -> flowOf(null)
             active.timer.isPaused -> flowOf(active.toUi(active.timer.remainingMs(clock())))
             else -> flow {
-                var observedRunning = false
                 while (true) {
                     val remainingMs = active.timer.remainingMs(clock())
+                    if (remainingMs <= 0L) break
                     emit(active.toUi(remainingMs))
-                    if (remainingMs <= 0L) {
-                        if (observedRunning) restCommandChannel.trySend(RestCommand.Expired)
-                        break
-                    }
-                    observedRunning = true
-                    delay(TICK_MS)
+                    // Trimmed to the remainder on the last pass, so the bar clears right at zero.
+                    delay(remainingMs.coerceAtMost(TICK_MS))
                 }
+                emit(null)
                 _rest.value = null
                 persistRest(null, null)
             }
@@ -382,61 +381,50 @@ class WorkoutSessionViewModel(
             val seconds = exercise?.restSeconds ?: RestTimer.DEFAULT_REST_SECONDS
             val timer = RestTimer.start(clock(), seconds)
             val name = exercise?.name ?: exerciseStableId
-            _rest.value = ActiveRest(exerciseStableId, name, timer)
-            persistRest(exerciseStableId, timer)
-            restCommandChannel.send(startCommand(name, timer))
+            applyRest(ActiveRest(exerciseStableId, name, timer))
         }
     }
 
     fun pauseRest() {
         val active = _rest.value ?: return
         if (active.timer.isPaused) return
-        val paused = active.timer.paused(clock())
-        _rest.value = active.copy(timer = paused)
-        persistRest(active.exerciseStableId, paused)
-        restCommandChannel.trySend(RestCommand.Pause(active.exerciseName, remainingSeconds(paused)))
+        applyRest(active.copy(timer = active.timer.paused(clock())))
     }
 
     fun resumeRest() {
         val active = _rest.value ?: return
         if (!active.timer.isPaused) return
-        val resumed = active.timer.resumed(clock())
-        _rest.value = active.copy(timer = resumed)
-        persistRest(active.exerciseStableId, resumed)
-        restCommandChannel.trySend(startCommand(active.exerciseName, resumed))
+        applyRest(active.copy(timer = active.timer.resumed(clock())))
     }
 
     /** Add/subtract rest time on the running (or paused) countdown, e.g. ±15 s. */
     fun adjustRest(deltaSeconds: Int) {
         val active = _rest.value ?: return
-        val adjusted = active.timer.adjusted(clock(), deltaSeconds)
-        _rest.value = active.copy(timer = adjusted)
-        persistRest(active.exerciseStableId, adjusted)
-        val command = if (adjusted.isPaused) {
-            RestCommand.Pause(active.exerciseName, remainingSeconds(adjusted))
-        } else {
-            startCommand(active.exerciseName, adjusted)
-        }
-        restCommandChannel.trySend(command)
+        applyRest(active.copy(timer = active.timer.adjusted(clock(), deltaSeconds)))
     }
 
     fun skipRest() = cancelRest()
+
+    /** The one write path for a rest transition: hold it, persist the anchor, mirror it to the service. */
+    private fun applyRest(active: ActiveRest) {
+        _rest.value = active
+        persistRest(active.exerciseStableId, active.timer)
+        restCommandChannel.trySend(
+            RestCommand.Sync(
+                exerciseName = active.exerciseName,
+                totalSeconds = active.timer.totalSeconds,
+                endAtMs = active.timer.endAtMs,
+                pausedRemainingMs = active.timer.pausedRemainingMs,
+            ),
+        )
+    }
 
     private fun cancelRest() {
         if (_rest.value == null) return
         _rest.value = null
         persistRest(null, null)
-        restCommandChannel.trySend(RestCommand.Cancel)
+        restCommandChannel.trySend(RestCommand.Stop)
     }
-
-    private fun startCommand(exerciseName: String, timer: RestTimer) = RestCommand.Start(
-        exerciseName = exerciseName,
-        totalSeconds = timer.totalSeconds,
-        delayMs = timer.remainingMs(clock()),
-        endAtMs = timer.endAtMs,
-    )
-
-    private fun remainingSeconds(timer: RestTimer) = ceil(timer.remainingMs(clock()) / 1000.0).toInt()
 
     /** Persists the rest-timer anchor onto the session so it survives leaving/resuming (spec addendum). */
     private fun persistRest(exerciseStableId: String?, timer: RestTimer?) = mutate { session ->
@@ -449,9 +437,10 @@ class WorkoutSessionViewModel(
     }
 
     /**
-     * Reconstructs [_rest] from a resumed session's persisted anchor. If the countdown already ran
-     * out while the screen was away, the anchor is simply cleared — the background notification (if
-     * any) already fired or is about to, independent of this VM instance.
+     * Reconstructs [_rest] from a resumed session's persisted anchor. A countdown that already ran out
+     * while the screen was away is simply cleared (its alert has fired). A still-running one is
+     * re-[applyRest]ed rather than just restored, so the service is running again even if the process
+     * was killed and restarted in the meantime.
      */
     private fun restoreRestTimer(session: WorkoutSession) {
         val exerciseStableId = session.restExerciseStableId ?: return
@@ -464,7 +453,7 @@ class WorkoutSessionViewModel(
         }
         viewModelScope.launch {
             val exercise = catalog.exercise(exerciseStableId).first()
-            _rest.value = ActiveRest(exerciseStableId, exercise?.name ?: exerciseStableId, timer)
+            applyRest(ActiveRest(exerciseStableId, exercise?.name ?: exerciseStableId, timer))
         }
     }
 
