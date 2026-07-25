@@ -190,5 +190,34 @@ class BmrCalculatorViewModelTest {
         assertEquals(expectedProtein, result.proteinG, 0.001)
         assertEquals(expectedCarbs, result.carbsG, 0.001)
         assertEquals(expectedFat, result.fatG, 0.001)
+        assertEquals(
+            BmrCalculator.weeklyWeightChangeKg(expectedTdee, expectedKcal),
+            result.weeklyWeightChangeKg,
+            0.001,
+        )
+    }
+
+    @Test
+    fun `the weekly rate follows the chosen goal in sign and stays moderate`() = runTest {
+        val viewModel = BmrCalculatorViewModel(FakeGoalRepository(), FakeWeightRepository())
+        advanceUntilIdle()
+        viewModel.setSex(BiologicalSex.FEMALE)
+        viewModel.setAgeInput("25")
+        viewModel.setHeightInput("165")
+        viewModel.setWeightInput("60")
+        viewModel.setActivityLevel(ActivityLevel.MODERATE)
+
+        viewModel.setGoal(WeightGoal.LOSE)
+        val losing = viewModel.result()!!.weeklyWeightChangeKg
+        viewModel.setGoal(WeightGoal.MAINTAIN)
+        val maintaining = viewModel.result()!!.weeklyWeightChangeKg
+        viewModel.setGoal(WeightGoal.GAIN)
+        val gaining = viewModel.result()!!.weeklyWeightChangeKg
+
+        assertTrue(losing < 0.0)
+        assertEquals(0.0, maintaining, 0.001)
+        assertTrue(gaining > 0.0)
+        // A 60 kg user: 0.75 % of body weight per week is the upper end worth recommending.
+        assertTrue("$losing kg/week is too aggressive", losing > -0.45)
     }
 }

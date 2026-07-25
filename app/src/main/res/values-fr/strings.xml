@@ -342,6 +342,7 @@
     <string name="bmr_goal_gain_label">Prendre du poids</string>
     <string name="bmr_goal_gain_description">Surplus calorique pour la prise de muscle</string>
     <string name="bmr_result_kcal_label">Calories recommandées</string>
+    <string name="bmr_result_weekly_rate">env. %1$s kg par semaine</string>
     <string name="bmr_result_macros">%1$dg protéines · %2$dg glucides · %3$dg lipides</string>
 
 

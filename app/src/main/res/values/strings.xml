@@ -342,6 +342,7 @@
     <string name="bmr_goal_gain_label">Zunehmen</string>
     <string name="bmr_goal_gain_description">Kalorienüberschuss für Muskelaufbau</string>
     <string name="bmr_result_kcal_label">Empfohlene Kalorien</string>
+    <string name="bmr_result_weekly_rate">ca. %1$s kg pro Woche</string>
     <string name="bmr_result_macros">%1$dg Protein · %2$dg Kohlenhydrate · %3$dg Fett</string>
 
     <!-- WorkoutHistoryScreen (ui/workout/WorkoutHistoryScreen.kt) -->

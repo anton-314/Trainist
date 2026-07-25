@@ -42,6 +42,8 @@ data class BmrResult(
     val proteinG: Double,
     val carbsG: Double,
     val fatG: Double,
+    /** Signed kg/week the recommendation implies — what the kcal number means in practice. */
+    val weeklyWeightChangeKg: Double,
 )
 
 /**
@@ -130,7 +132,8 @@ class BmrCalculatorViewModel @Inject constructor(
         val protein = MacroCalculator.recommendedProteinG(weight)
         val fat = MacroCalculator.recommendedFatG(weight)
         val carbs = MacroCalculator.carbsFromKcalAndMacros(kcal, protein, fat)
-        return BmrResult(bmr, tdee, kcal, protein, carbs, fat)
+        val weeklyChange = BmrCalculator.weeklyWeightChangeKg(tdee, kcal)
+        return BmrResult(bmr, tdee, kcal, protein, carbs, fat, weeklyChange)
     }
 
     private fun persistProfile(state: BmrCalculatorUiState) {

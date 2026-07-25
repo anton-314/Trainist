@@ -342,6 +342,7 @@
     <string name="bmr_goal_gain_label">Ganar peso</string>
     <string name="bmr_goal_gain_description">Superávit calórico para ganar músculo</string>
     <string name="bmr_result_kcal_label">Calorías recomendadas</string>
+    <string name="bmr_result_weekly_rate">aprox. %1$s kg por semana</string>
     <string name="bmr_result_macros">%1$dg proteína · %2$dg carbohidratos · %3$dg grasa</string>
 
 

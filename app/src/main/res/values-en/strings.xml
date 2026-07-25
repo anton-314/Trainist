@@ -342,6 +342,7 @@
     <string name="bmr_goal_gain_label">Gain weight</string>
     <string name="bmr_goal_gain_description">Calorie surplus for muscle gain</string>
     <string name="bmr_result_kcal_label">Recommended calories</string>
+    <string name="bmr_result_weekly_rate">approx. %1$s kg per week</string>
     <string name="bmr_result_macros">%1$dg protein · %2$dg carbs · %3$dg fat</string>
 
 

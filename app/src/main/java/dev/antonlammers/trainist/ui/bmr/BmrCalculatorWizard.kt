@@ -41,6 +41,8 @@ import dev.antonlammers.trainist.domain.model.ActivityLevel
 import dev.antonlammers.trainist.domain.model.BiologicalSex
 import dev.antonlammers.trainist.domain.model.WeightGoal
 import dev.antonlammers.trainist.ui.goals.GoalField
+import dev.antonlammers.trainist.ui.util.currentAppLocale
+import kotlin.math.abs
 
 /**
  * The BMR/TDEE step machine's UI, shared by both hosts (onboarding's local step machine and the
@@ -228,6 +230,19 @@ private fun BmrResultPreview(result: BmrResult) {
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             Text("${result.goalKcal.toInt()} kcal", style = MaterialTheme.typography.headlineMedium)
+            // What the number means in practice. Hidden below 0.05 kg/week — for MAINTAIN, and for
+            // a target the BMR/safety floor has raised back to (almost) maintenance, a rate that
+            // rounds to 0.0 would read as a promise of nothing rather than as information.
+            if (abs(result.weeklyWeightChangeKg) >= MIN_SHOWN_WEEKLY_CHANGE_KG) {
+                Text(
+                    stringResource(
+                        R.string.bmr_result_weekly_rate,
+                        String.format(currentAppLocale(), "%+.1f", result.weeklyWeightChangeKg),
+                    ),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
             Text(
                 stringResource(
                     R.string.bmr_result_macros,
@@ -241,6 +256,9 @@ private fun BmrResultPreview(result: BmrResult) {
         }
     }
 }
+
+/** Below this the weekly rate rounds to 0.0 kg and says nothing worth reading. */
+private const val MIN_SHOWN_WEEKLY_CHANGE_KG = 0.05
 
 /** A tappable choice card used by the sex/activity/goal steps: title + optional subtitle + a
  * check mark when selected, accent border/background while selected. */
