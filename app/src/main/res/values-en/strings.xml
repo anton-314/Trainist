@@ -175,6 +175,7 @@
 
     <!-- Shared goal-editor fields (ui/goals/GoalFields.kt content, used by SettingsScreen + OnboardingScreen) -->
     <string name="goals_section_header">Daily goals</string>
+    <string name="goals_bmr_calculator_button">Calculate calorie needs</string>
     <string name="goals_body_weight_label">Body weight (kg)</string>
     <string name="goals_body_weight_apply_button">Apply</string>
     <string name="goals_recommendation">Recommendation: %1$dg protein · %2$dg fat · fill the rest with carbs</string>
@@ -287,10 +288,47 @@
     <string name="onboarding_start_empty_title">Just get started</string>
     <string name="onboarding_start_empty_subtitle">Start with an empty app — you can set goals anytime later.</string>
     <string name="onboarding_setup_goals_title">Set up goals</string>
-    <string name="onboarding_setup_goals_subtitle">A short guide: set your target weight and daily goals.</string>
+    <string name="onboarding_setup_goals_subtitle">Calculate your personal calorie needs — recommended</string>
+    <string name="onboarding_setup_goals_recommended_badge">RECOMMENDED</string>
     <string name="onboarding_guide_skip_button">Skip</string>
     <string name="onboarding_guide_hint">You can adjust these values anytime in settings.</string>
     <string name="onboarding_guide_save_button">Save &amp; get started</string>
+
+    <!-- BMR/TDEE calculator (ui/bmr/) -->
+    <string name="bmr_wizard_title">Calorie calculator</string>
+    <string name="bmr_next_button">Next</string>
+    <string name="bmr_calculate_button">Calculate</string>
+    <string name="bmr_step_sex_title">What\'s your biological sex?</string>
+    <string name="bmr_sex_male">Male</string>
+    <string name="bmr_sex_female">Female</string>
+    <string name="bmr_step_age_title">How old are you?</string>
+    <string name="bmr_field_age_label">Age</string>
+    <string name="bmr_field_age_suffix">years</string>
+    <string name="bmr_step_height_title">How tall are you?</string>
+    <string name="bmr_field_height_label">Height</string>
+    <string name="bmr_step_weight_title">How much do you weigh?</string>
+    <string name="bmr_field_weight_label">Weight</string>
+    <string name="bmr_step_activity_title">How active are you?</string>
+    <string name="bmr_activity_sedentary_label">Sedentary</string>
+    <string name="bmr_activity_sedentary_description">Little to no exercise</string>
+    <string name="bmr_activity_light_label">Lightly active</string>
+    <string name="bmr_activity_light_description">Light exercise 1–3 days/week</string>
+    <string name="bmr_activity_moderate_label">Moderately active</string>
+    <string name="bmr_activity_moderate_description">Moderate exercise 3–5 days/week</string>
+    <string name="bmr_activity_active_label">Very active</string>
+    <string name="bmr_activity_active_description">Hard exercise 6–7 days/week</string>
+    <string name="bmr_activity_very_active_label">Extremely active</string>
+    <string name="bmr_activity_very_active_description">Very hard exercise or a physical job</string>
+    <string name="bmr_step_goal_title">What\'s your goal?</string>
+    <string name="bmr_goal_lose_label">Lose weight</string>
+    <string name="bmr_goal_lose_description">Calorie deficit for weight loss</string>
+    <string name="bmr_goal_maintain_label">Maintain</string>
+    <string name="bmr_goal_maintain_description">Keep your weight stable</string>
+    <string name="bmr_goal_gain_label">Gain weight</string>
+    <string name="bmr_goal_gain_description">Calorie surplus for muscle gain</string>
+    <string name="bmr_result_kcal_label">Recommended calories</string>
+    <string name="bmr_result_macros">%1$dg protein · %2$dg carbs · %3$dg fat</string>
+
 
     <!-- WorkoutHistoryScreen (ui/workout/WorkoutHistoryScreen.kt) -->
     <string name="workout_history_title">History</string>

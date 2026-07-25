@@ -3,7 +3,6 @@ package dev.antonlammers.trainist.ui.onboarding
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -23,17 +22,14 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Calculate
 import androidx.compose.material.icons.rounded.ChevronLeft
 import androidx.compose.material.icons.rounded.ChevronRight
 import androidx.compose.material.icons.rounded.FileUpload
-import androidx.compose.material.icons.rounded.Flag
 import androidx.compose.material.icons.rounded.RocketLaunch
-import androidx.compose.material.icons.rounded.Warning
-import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
@@ -64,48 +60,55 @@ import androidx.core.graphics.drawable.toBitmap
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.antonlammers.trainist.R
-import dev.antonlammers.trainist.domain.MacroCalculator
-import dev.antonlammers.trainist.domain.model.DailyGoal
-import dev.antonlammers.trainist.ui.components.NumericTextField
+import dev.antonlammers.trainist.ui.bmr.BmrCalculatorViewModel
+import dev.antonlammers.trainist.ui.bmr.BmrCalculatorWizard
 import dev.antonlammers.trainist.ui.data.DataViewModel
 import dev.antonlammers.trainist.ui.data.toDisplayString
-import dev.antonlammers.trainist.ui.goals.FieldLabel
-import dev.antonlammers.trainist.ui.goals.GoalField
+import dev.antonlammers.trainist.ui.goals.MacroGoalsEditor
+import dev.antonlammers.trainist.ui.goals.MacroGoalsPrefill
 import dev.antonlammers.trainist.ui.goals.GoalsViewModel
-import dev.antonlammers.trainist.ui.goals.formatWeight
-import dev.antonlammers.trainist.ui.theme.CalorieColor
-import dev.antonlammers.trainist.ui.theme.CarbsColor
-import dev.antonlammers.trainist.ui.theme.FatColor
-import dev.antonlammers.trainist.ui.theme.ProteinColor
-import dev.antonlammers.trainist.util.normalizeDecimal
 
-/** The two steps of the first-run flow: the welcome chooser and the optional goals guide. */
-private enum class OnboardingStep { Welcome, Guide }
+/** The three steps of the first-run flow: the welcome chooser, the BMR wizard, and the review form. */
+private enum class OnboardingStep { Welcome, BmrWizard, GoalsReview }
 
 /**
- * First-launch welcome flow. Shows the app name + logo and three ways in (spec: quick-start via
- * backup import, start empty, or a short goals guide). Every path calls [onFinished] to leave the
- * flow. The goals guide is the designated home for future setup steps (height, kcal calculator).
+ * First-launch welcome flow. Shows the app name + logo and three ways in: quick-start via backup
+ * import, start empty, or the featured "set up goals" path — a mandatory walk through the
+ * Mifflin-St Jeor calculator ([BmrCalculatorWizard]) that lands on an editable goals-review form
+ * ([MacroGoalsEditor]) pre-filled with the calculator's result. Every path calls [onFinished].
  */
 @Composable
 fun OnboardingScreen(
     onFinished: () -> Unit,
     dataViewModel: DataViewModel = hiltViewModel(),
     goalsViewModel: GoalsViewModel = hiltViewModel(),
+    bmrViewModel: BmrCalculatorViewModel = hiltViewModel(),
 ) {
     var step by rememberSaveable { mutableStateOf(OnboardingStep.Welcome) }
+    var pendingPrefill by remember { mutableStateOf<MacroGoalsPrefill?>(null) }
 
     when (step) {
         OnboardingStep.Welcome -> WelcomeStep(
             dataViewModel = dataViewModel,
             onImported = onFinished,
             onStartEmpty = onFinished,
-            onOpenGuide = { step = OnboardingStep.Guide },
+            onOpenGuide = { step = OnboardingStep.BmrWizard },
         )
 
-        OnboardingStep.Guide -> GuideStep(
+        OnboardingStep.BmrWizard -> BmrCalculatorWizard(
+            viewModel = bmrViewModel,
+            onExitToStart = { step = OnboardingStep.Welcome },
+            onComplete = { result ->
+                pendingPrefill = MacroGoalsPrefill(result.goalKcal, result.proteinG, result.carbsG, result.fatG)
+                step = OnboardingStep.GoalsReview
+            },
+        )
+
+        OnboardingStep.GoalsReview -> GoalsReviewStep(
             goalsViewModel = goalsViewModel,
+            prefill = pendingPrefill,
             onBack = { step = OnboardingStep.Welcome },
+            onOpenBmrCalculator = { step = OnboardingStep.BmrWizard },
             onDone = onFinished,
         )
     }
@@ -201,8 +204,9 @@ private fun WelcomeStep(
                 onClick = onStartEmpty,
             )
             Spacer(Modifier.height(12.dp))
-            OptionCard(
-                icon = Icons.Rounded.Flag,
+            FeaturedOptionCard(
+                icon = Icons.Rounded.Calculate,
+                badge = stringResource(R.string.onboarding_setup_goals_recommended_badge),
                 title = stringResource(R.string.onboarding_setup_goals_title),
                 subtitle = stringResource(R.string.onboarding_setup_goals_subtitle),
                 enabled = !dataState.isLoading,
@@ -214,7 +218,7 @@ private fun WelcomeStep(
     }
 }
 
-/** A tappable option: accent icon chip + title + one-line explanation + chevron. */
+/** A tappable option: neutral icon chip + title + one-line explanation + chevron. */
 @Composable
 private fun OptionCard(
     icon: ImageVector,
@@ -243,13 +247,13 @@ private fun OptionCard(
                 modifier = Modifier
                     .size(44.dp)
                     .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.primary),
+                    .background(MaterialTheme.colorScheme.surfaceVariant),
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(
                     icon,
                     contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onPrimary,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
             Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
@@ -270,57 +274,80 @@ private fun OptionCard(
 }
 
 /**
- * The goals guide: body-weight-driven recommendations, macro/kcal goals and an optional target
- * weight. Mirrors the Settings goal editor's logic (shared [GoalField]/[MacroCalculator]) but as a
- * friendly first-run step ending in "Speichern & loslegen". Persists via [GoalsViewModel.save].
+ * The promoted option: filled accent card with a mono-uppercase "recommended" badge, so new users
+ * instinctively pick the featured path (the BMR calculator) over the two neutral [OptionCard]s.
+ */
+@Composable
+private fun FeaturedOptionCard(
+    icon: ImageVector,
+    badge: String,
+    title: String,
+    subtitle: String,
+    enabled: Boolean,
+    onClick: () -> Unit,
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(enabled = enabled, onClick = onClick),
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primary),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text(
+                badge,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onPrimary,
+            )
+            Spacer(Modifier.height(8.dp))
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(44.dp)
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.16f)),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.onPrimary)
+                }
+                Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    Text(title, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onPrimary)
+                    Text(
+                        subtitle,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.85f),
+                    )
+                }
+                Icon(
+                    Icons.Rounded.ChevronRight,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onPrimary,
+                )
+            }
+        }
+    }
+}
+
+/**
+ * The goals-review step: reached only once the BMR wizard has produced a result. Hosts the shared
+ * [MacroGoalsEditor] pre-filled with that result, so it's reviewable/editable before saving —
+ * mirrors the Settings goals editor's shell (title + back + skip + scrollable form).
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun GuideStep(
+private fun GoalsReviewStep(
     goalsViewModel: GoalsViewModel,
+    prefill: MacroGoalsPrefill?,
     onBack: () -> Unit,
+    onOpenBmrCalculator: () -> Unit,
     onDone: () -> Unit,
 ) {
     BackHandler(onBack = onBack)
-
     val goal by goalsViewModel.goal.collectAsStateWithLifecycle()
-
-    var bodyWeight by remember { mutableStateOf("") }
-    var kcal by remember(goal) { mutableStateOf(goal.kcal.toInt().toString()) }
-    var protein by remember(goal) { mutableStateOf(goal.proteinG.toInt().toString()) }
-    var carbs by remember(goal) { mutableStateOf(goal.carbsG.toInt().toString()) }
-    var fat by remember(goal) { mutableStateOf(goal.fatG.toInt().toString()) }
-    var targetWeight by remember(goal) {
-        mutableStateOf(goal.targetWeightKg?.let { formatWeight(it) } ?: "")
-    }
-
-    val bodyWeightKg = bodyWeight.normalizeDecimal().toDoubleOrNull()
-    val kcalValue = kcal.normalizeDecimal().toDoubleOrNull()
-    val proteinValue = protein.normalizeDecimal().toDoubleOrNull()
-    val carbsValue = carbs.normalizeDecimal().toDoubleOrNull()
-    val fatValue = fat.normalizeDecimal().toDoubleOrNull()
-
-    val calculatedKcal = if (proteinValue != null && carbsValue != null && fatValue != null)
-        MacroCalculator.kcalFromMacros(proteinValue, carbsValue, fatValue) else null
-    val calculatedCarbs = if (kcalValue != null && proteinValue != null && fatValue != null)
-        MacroCalculator.carbsFromKcalAndMacros(kcalValue, proteinValue, fatValue) else null
-    val showWarning = kcalValue != null && calculatedKcal != null &&
-        !MacroCalculator.isConsistent(kcalValue, proteinValue!!, carbsValue!!, fatValue!!)
-    val kcalDelta = if (kcalValue != null && calculatedKcal != null)
-        MacroCalculator.kcalDelta(kcalValue, proteinValue!!, carbsValue!!, fatValue!!) else null
-
-    fun persistAndFinish() {
-        goalsViewModel.save(
-            DailyGoal(
-                kcal = kcalValue ?: goal.kcal,
-                proteinG = proteinValue ?: goal.proteinG,
-                carbsG = carbsValue ?: goal.carbsG,
-                fatG = fatValue ?: goal.fatG,
-                targetWeightKg = targetWeight.normalizeDecimal().toDoubleOrNull(),
-            )
-        )
-        onDone()
-    }
 
     Scaffold(
         topBar = {
@@ -345,150 +372,20 @@ private fun GuideStep(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            Text(
-                stringResource(R.string.onboarding_guide_hint),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-
-            // Body weight — drives the protein/fat recommendations (not a goal itself).
-            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                FieldLabel(stringResource(R.string.goals_body_weight_label))
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    NumericTextField(
-                        value = bodyWeight,
-                        onValueChange = { bodyWeight = it },
-                        label = null,
-                        suffix = "kg",
-                        textStyle = MaterialTheme.typography.titleMedium,
-                        modifier = Modifier.weight(1f),
+            MacroGoalsEditor(
+                goal = goal,
+                onSave = { goalsViewModel.save(it); onDone() },
+                onOpenBmrCalculator = onOpenBmrCalculator,
+                saveButtonLabel = stringResource(R.string.onboarding_guide_save_button),
+                prefill = prefill,
+                headerContent = {
+                    Text(
+                        stringResource(R.string.onboarding_guide_hint),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
-                    if (bodyWeightKg != null) {
-                        TextButton(onClick = {
-                            protein = MacroCalculator.recommendedProteinG(bodyWeightKg).toInt().toString()
-                            fat = MacroCalculator.recommendedFatG(bodyWeightKg).toInt().toString()
-                        }) {
-                            Text(stringResource(R.string.goals_body_weight_apply_button))
-                        }
-                    }
-                }
-            }
-            if (bodyWeightKg != null) {
-                val recProtein = MacroCalculator.recommendedProteinG(bodyWeightKg).toInt()
-                val recFat = MacroCalculator.recommendedFatG(bodyWeightKg).toInt()
-                Text(
-                    stringResource(R.string.goals_recommendation, recProtein, recFat),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-
-            HorizontalDivider()
-            Text(stringResource(R.string.goals_macros_calories_header), style = MaterialTheme.typography.titleMedium)
-
-            GoalField(
-                label = stringResource(R.string.goals_protein_label),
-                value = protein,
-                onValueChange = { protein = it },
-                accentColor = ProteinColor,
-                supportingText = stringResource(R.string.goals_protein_supporting_text),
+                },
             )
-            GoalField(
-                label = stringResource(R.string.goals_fat_label),
-                value = fat,
-                onValueChange = { fat = it },
-                accentColor = FatColor,
-                supportingText = stringResource(R.string.goals_fat_supporting_text),
-            )
-            GoalField(
-                label = stringResource(R.string.goals_carbs_label),
-                value = carbs,
-                onValueChange = { carbs = it },
-                accentColor = CarbsColor,
-            )
-            if (calculatedCarbs != null) {
-                TextButton(
-                    onClick = { carbs = calculatedCarbs.toInt().toString() },
-                    modifier = Modifier.align(Alignment.End),
-                ) {
-                    Text(stringResource(R.string.goals_carbs_calc_button, calculatedCarbs.toInt()))
-                }
-            }
-            GoalField(
-                label = stringResource(R.string.goals_kcal_label),
-                value = kcal,
-                onValueChange = { kcal = it },
-                accentColor = CalorieColor,
-            )
-            if (calculatedKcal != null) {
-                TextButton(
-                    onClick = { kcal = calculatedKcal.toInt().toString() },
-                    modifier = Modifier.align(Alignment.End),
-                ) {
-                    Text(stringResource(R.string.goals_kcal_calc_button, calculatedKcal.toInt()))
-                }
-            }
-
-            AnimatedVisibility(visible = showWarning) {
-                if (kcalDelta != null && calculatedKcal != null) {
-                    Card(
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.error),
-                        shape = RoundedCornerShape(16.dp),
-                        modifier = Modifier.fillMaxWidth(),
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(12.dp),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            Icon(
-                                Icons.Rounded.Warning,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.error,
-                            )
-                            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                                Text(
-                                    stringResource(R.string.goals_warning_title),
-                                    style = MaterialTheme.typography.labelMedium,
-                                    color = MaterialTheme.colorScheme.error,
-                                )
-                                val sign = if (kcalDelta > 0) "+" else ""
-                                Text(
-                                    stringResource(R.string.goals_warning_detail, calculatedKcal.toInt(), sign, kcalDelta.toInt()),
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                )
-                            }
-                        }
-                    }
-                }
-            }
-
-            HorizontalDivider()
-            GoalField(
-                label = stringResource(R.string.goals_target_weight_label),
-                value = targetWeight,
-                onValueChange = { targetWeight = it },
-                decimal = true,
-                suffix = "kg",
-                supportingText = stringResource(R.string.goals_target_weight_supporting_text),
-            )
-
-            Spacer(Modifier.height(4.dp))
-            Button(
-                onClick = { persistAndFinish() },
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(14.dp),
-            ) {
-                Text(stringResource(R.string.onboarding_guide_save_button), style = MaterialTheme.typography.labelLarge)
-            }
-            Spacer(Modifier.height(16.dp))
         }
     }
 }

@@ -1,5 +1,8 @@
 package dev.antonlammers.trainist.data.backup
 
+import dev.antonlammers.trainist.domain.model.ActivityLevel
+import dev.antonlammers.trainist.domain.model.BiologicalSex
+import dev.antonlammers.trainist.domain.model.BmrProfile
 import dev.antonlammers.trainist.domain.model.DailyGoal
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
@@ -60,6 +63,27 @@ class GoalCsvFormatTest {
     fun `fromRow leaves target null when value is blank`() {
         val parsed = GoalCsvFormat.fromRow("2000.0,150.0,250.0,70.0,", headers)!!
         assertNull(parsed.targetWeightKg)
+    }
+
+    @Test
+    fun `toRow and fromRow round-trip preserves the bmr profile`() {
+        val profile = BmrProfile(BiologicalSex.FEMALE, ageYears = 28, heightCm = 168.0, activityLevel = ActivityLevel.LIGHT)
+        val goal = DailyGoal(bmrProfile = profile)
+        val parsed = GoalCsvFormat.fromRow(GoalCsvFormat.toRow(goal), headers)!!
+        assertEquals(profile, parsed.bmrProfile)
+    }
+
+    @Test
+    fun `fromRow leaves bmr profile null when columns absent (old export)`() {
+        val legacyHeaders = CsvFormat.parseHeaders("kcal,protein_g,carbs_g,fat_g")
+        val parsed = GoalCsvFormat.fromRow("2000.0,150.0,250.0,70.0", legacyHeaders)!!
+        assertNull(parsed.bmrProfile)
+    }
+
+    @Test
+    fun `fromRow leaves bmr profile null when a value is blank`() {
+        val parsed = GoalCsvFormat.fromRow("2000.0,150.0,250.0,70.0,,,,,", headers)!!
+        assertNull(parsed.bmrProfile)
     }
 
     @Test

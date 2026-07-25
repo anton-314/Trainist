@@ -36,6 +36,7 @@ import androidx.navigation.navArgument
 import dev.antonlammers.trainist.R
 import dev.antonlammers.trainist.ui.addfood.AddFoodScreen
 import dev.antonlammers.trainist.ui.addfood.BarcodeScannerScreen
+import dev.antonlammers.trainist.ui.bmr.BmrCalculatorScreen
 import dev.antonlammers.trainist.ui.overview.OverviewScreen
 import dev.antonlammers.trainist.ui.goals.GoalsScreen
 import dev.antonlammers.trainist.ui.settings.SettingsScreen
@@ -74,6 +75,10 @@ sealed class Screen(val route: String) {
     // Settings sub-screen — absent from bottomNavItems, so the bar hides itself. Backup and
     // support are bottom sheets on the hub instead; only the goal editor is a real form.
     object Goals : Screen("goals")
+
+    // Reached from GoalsScreen ("Kalorienbedarf berechnen") and hosted inline by onboarding's
+    // local step machine — this route exists only for the Settings-triggered entry point.
+    object BmrCalculator : Screen("bmr_calculator")
 }
 
 private data class BottomNavItem(
@@ -144,6 +149,7 @@ fun AppNavigation(
             composable(Screen.Stats.route) { StatsScreen(navController) }
             composable(Screen.Settings.route) { SettingsScreen(navController) }
             composable(Screen.Goals.route) { GoalsScreen(navController) }
+            composable(Screen.BmrCalculator.route) { BmrCalculatorScreen(navController) }
         }
         if (showBottomNav) {
             // Flat nav bar: hairline top border replaces Material's tonal elevation.

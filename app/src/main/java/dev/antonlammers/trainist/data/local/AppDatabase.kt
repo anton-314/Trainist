@@ -28,7 +28,7 @@ import dev.antonlammers.trainist.data.local.entity.WorkoutTemplateEntity
         ExerciseEntity::class, WorkoutTemplateEntity::class, TemplateExerciseEntity::class,
         WorkoutSessionEntity::class, SessionExerciseEntity::class, SetEntryEntity::class,
     ],
-    version = 11,
+    version = 12,
     exportSchema = true,
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -169,6 +169,21 @@ abstract class AppDatabase : RoomDatabase() {
         val MIGRATION_10_11 = object : Migration(10, 11) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL("ALTER TABLE template_exercises ADD COLUMN setTypes TEXT")
+            }
+        }
+
+        /**
+         * Persists the BMR-calculator profile inputs (sex/age/height/activity level) on the
+         * daily_goal singleton row, so reopening the calculator later prefills the previous
+         * answers. Body weight is deliberately excluded — it prefills live from the most recent
+         * WeightEntry instead. All four nullable: absence means "the calculator has never been run".
+         */
+        val MIGRATION_11_12 = object : Migration(11, 12) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE daily_goal ADD COLUMN bmrSex TEXT")
+                db.execSQL("ALTER TABLE daily_goal ADD COLUMN bmrAgeYears INTEGER")
+                db.execSQL("ALTER TABLE daily_goal ADD COLUMN bmrHeightCm REAL")
+                db.execSQL("ALTER TABLE daily_goal ADD COLUMN bmrActivityLevel TEXT")
             }
         }
     }

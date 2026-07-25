@@ -7,4 +7,6 @@ data class DailyGoal(
     val fatG: Double = 70.0,
     /** Optional target body weight in kg; `null` means no target set. */
     val targetWeightKg: Double? = null,
+    /** Persisted BMR-calculator inputs; `null` means the calculator has never been run. */
+    val bmrProfile: BmrProfile? = null,
 )

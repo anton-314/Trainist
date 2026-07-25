@@ -11,4 +11,10 @@ data class DailyGoalEntity(
     val carbsG: Double,
     val fatG: Double,
     val targetWeightKg: Double? = null,
+    // BMR-calculator profile — all nullable, absence means "the calculator has never been run".
+    // Body weight is deliberately not stored here; it prefills live from the latest WeightEntry.
+    val bmrSex: String? = null,
+    val bmrAgeYears: Int? = null,
+    val bmrHeightCm: Double? = null,
+    val bmrActivityLevel: String? = null,
 )

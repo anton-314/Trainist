@@ -175,6 +175,7 @@
 
     <!-- Shared goal-editor fields (ui/goals/GoalFields.kt content, used by SettingsScreen + OnboardingScreen) -->
     <string name="goals_section_header">Objectifs quotidiens</string>
+    <string name="goals_bmr_calculator_button">Calculer les besoins caloriques</string>
     <string name="goals_body_weight_label">Poids corporel (kg)</string>
     <string name="goals_body_weight_apply_button">Appliquer</string>
     <string name="goals_recommendation">Recommandation : %1$dg de protéines · %2$dg de lipides · complète le reste avec des glucides</string>
@@ -287,10 +288,47 @@
     <string name="onboarding_start_empty_title">Commencer simplement</string>
     <string name="onboarding_start_empty_subtitle">Commencer avec une app vide — tu pourras définir des objectifs plus tard.</string>
     <string name="onboarding_setup_goals_title">Configurer les objectifs</string>
-    <string name="onboarding_setup_goals_subtitle">Un guide rapide : définis ton poids cible et tes objectifs quotidiens.</string>
+    <string name="onboarding_setup_goals_subtitle">Calculer tes besoins caloriques personnels — recommandé</string>
+    <string name="onboarding_setup_goals_recommended_badge">RECOMMANDÉ</string>
     <string name="onboarding_guide_skip_button">Passer</string>
     <string name="onboarding_guide_hint">Tu peux ajuster ces valeurs à tout moment dans les paramètres.</string>
     <string name="onboarding_guide_save_button">Enregistrer et commencer</string>
+
+    <!-- BMR/TDEE calculator (ui/bmr/) -->
+    <string name="bmr_wizard_title">Calculateur de calories</string>
+    <string name="bmr_next_button">Suivant</string>
+    <string name="bmr_calculate_button">Calculer</string>
+    <string name="bmr_step_sex_title">Quel est ton sexe biologique ?</string>
+    <string name="bmr_sex_male">Homme</string>
+    <string name="bmr_sex_female">Femme</string>
+    <string name="bmr_step_age_title">Quel âge as-tu ?</string>
+    <string name="bmr_field_age_label">Âge</string>
+    <string name="bmr_field_age_suffix">ans</string>
+    <string name="bmr_step_height_title">Quelle est ta taille ?</string>
+    <string name="bmr_field_height_label">Taille</string>
+    <string name="bmr_step_weight_title">Quel est ton poids ?</string>
+    <string name="bmr_field_weight_label">Poids</string>
+    <string name="bmr_step_activity_title">Quel est ton niveau d\'activité ?</string>
+    <string name="bmr_activity_sedentary_label">Sédentaire</string>
+    <string name="bmr_activity_sedentary_description">Peu ou pas d\'exercice</string>
+    <string name="bmr_activity_light_label">Légèrement actif</string>
+    <string name="bmr_activity_light_description">Exercice léger 1 à 3 jours/semaine</string>
+    <string name="bmr_activity_moderate_label">Modérément actif</string>
+    <string name="bmr_activity_moderate_description">Exercice modéré 3 à 5 jours/semaine</string>
+    <string name="bmr_activity_active_label">Très actif</string>
+    <string name="bmr_activity_active_description">Exercice intense 6 à 7 jours/semaine</string>
+    <string name="bmr_activity_very_active_label">Extrêmement actif</string>
+    <string name="bmr_activity_very_active_description">Exercice très intense ou travail physique</string>
+    <string name="bmr_step_goal_title">Quel est ton objectif ?</string>
+    <string name="bmr_goal_lose_label">Perdre du poids</string>
+    <string name="bmr_goal_lose_description">Déficit calorique pour perdre du poids</string>
+    <string name="bmr_goal_maintain_label">Maintenir</string>
+    <string name="bmr_goal_maintain_description">Garder un poids stable</string>
+    <string name="bmr_goal_gain_label">Prendre du poids</string>
+    <string name="bmr_goal_gain_description">Surplus calorique pour la prise de muscle</string>
+    <string name="bmr_result_kcal_label">Calories recommandées</string>
+    <string name="bmr_result_macros">%1$dg protéines · %2$dg glucides · %3$dg lipides</string>
+
 
     <!-- WorkoutHistoryScreen (ui/workout/WorkoutHistoryScreen.kt) -->
     <string name="workout_history_title">Historique</string>

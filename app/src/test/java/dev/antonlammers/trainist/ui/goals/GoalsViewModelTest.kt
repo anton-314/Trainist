@@ -1,6 +1,9 @@
 package dev.antonlammers.trainist.ui.goals
 
 import app.cash.turbine.test
+import dev.antonlammers.trainist.domain.model.ActivityLevel
+import dev.antonlammers.trainist.domain.model.BiologicalSex
+import dev.antonlammers.trainist.domain.model.BmrProfile
 import dev.antonlammers.trainist.domain.model.DailyGoal
 import dev.antonlammers.trainist.fake.FakeGoalRepository
 import kotlinx.coroutines.Dispatchers
@@ -51,6 +54,21 @@ class GoalsViewModelTest {
 
             assertEquals(1600.0, updated.kcal, 0.001)
             assertEquals(130.0, updated.proteinG, 0.001)
+        }
+    }
+
+    @Test
+    fun `save round-trips a bmr profile through the repository`() = runTest {
+        val profile = BmrProfile(BiologicalSex.MALE, ageYears = 30, heightCm = 180.0, activityLevel = ActivityLevel.MODERATE)
+        val newGoal = DailyGoal(bmrProfile = profile)
+
+        viewModel.goal.test {
+            awaitItem() // default
+
+            viewModel.save(newGoal)
+            val updated = awaitItem()
+
+            assertEquals(profile, updated.bmrProfile)
         }
     }
 
