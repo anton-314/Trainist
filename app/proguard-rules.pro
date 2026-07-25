@@ -19,3 +19,11 @@
 # If you keep the line number information, uncomment this to
 # hide the original source file name.
 #-renamesourcefileattribute SourceFile
+
+# WorkManager instantiates custom Workers by looking up the class name (persisted in its own
+# database) via reflection, at a point R8 cannot trace statically from the reified
+# OneTimeWorkRequestBuilder<T>() call site — without this, R8 renames the class/constructor and the
+# reminder work fails at runtime with a ClassNotFoundException/NoSuchMethodException.
+-keep class * extends androidx.work.ListenableWorker {
+    public <init>(android.content.Context, androidx.work.WorkerParameters);
+}
