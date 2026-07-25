@@ -205,8 +205,6 @@
     <string name="settings_donation_title">Enjoying Trainist?</string>
     <string name="settings_donation_body">The app is developed by a single person in their spare time. If it helps you, I\'d appreciate a coffee.</string>
     <string name="settings_donation_cta">Buy me a coffee</string>
-    <string name="settings_contact_title">Feedback &amp; suggestions</string>
-    <string name="settings_contact_prompt">Missing a feature? Something bugging you? Tell me what you\'d like to see — every message feeds into the next version.</string>
     <string name="settings_contact_developer_button">Send feedback</string>
     <string name="settings_contact_email_subject">Trainist — Feedback &amp; suggestions</string>
     <string name="settings_contact_email_body">What do you like, what don\'t you?\n\n\nWhich feature would you like to see?\n\n\n---\nTrainist %1$s</string>
@@ -214,7 +212,6 @@
     <string name="settings_group_notifications">NOTIFICATIONS</string>
     <string name="settings_group_app">APP</string>
     <string name="settings_goals_row_value">%1$d kcal</string>
-    <string name="settings_support_row_title">Support Trainist</string>
     <string name="settings_data_row_title">Data &amp; Backup</string>
     <string name="settings_data_description">Back up all your data — nutrition and training — as a ZIP file, or restore it from a backup.</string>
 
@@ -400,4 +397,94 @@
     <string name="settings_theme_system">System setting</string>
     <string name="settings_theme_light">Light</string>
     <string name="settings_theme_dark">Dark</string>
+
+    <!-- Help Center (ui/help/HelpScreen.kt, ui/help/HelpContent.kt) -->
+    <string name="settings_help_row_title">Help &amp; support</string>
+    <string name="settings_help_row_description">Getting started, FAQ, contact</string>
+    <string name="help_intro">Short answers to the most common questions. If yours isn\'t here, just write to me — you\'ll find out how at the bottom.</string>
+
+    <string name="help_section_start">GETTING STARTED</string>
+    <string name="help_start_goals_title">Set your goals</string>
+    <string name="help_start_goals_body">Under Settings › Goals you set your calorie and macro targets. Tap “Calculate calorie needs” and Trainist suggests both from your sex, age, height, weight and activity level — you can adjust everything afterwards.</string>
+    <string name="help_start_nutrition_title">Track your food</string>
+    <string name="help_start_nutrition_body">In the Nutrition tab, tap + on a meal, search for your food or scan its barcode, and enter the amount. The calorie ring shows where you stand right away.</string>
+    <string name="help_start_training_title">Log your training</string>
+    <string name="help_start_training_body">In the Training tab you create templates for your training days. Tapping a template starts the session; the weight and reps from your last session are already there in grey as a suggestion.</string>
+    <string name="help_start_progress_title">Watch your progress</string>
+    <string name="help_start_progress_body">The Stats tab shows weight, calories, clean share and your strength development. Drag the cards by their handle into the order you prefer.</string>
+
+    <string name="help_section_nutrition">NUTRITION</string>
+    <string name="help_nutrition_q_add">How do I add a food?</string>
+    <string name="help_nutrition_a_add">In the Nutrition tab, tap the + on the meal you want. From there you can search by name, pick one of your own foods, or open the barcode scanner at the top. Then choose the amount, the meal and optionally a clean tag, and confirm.</string>
+    <string name="help_nutrition_q_search">Why doesn\'t search find every product?</string>
+    <string name="help_nutrition_a_search">Search deliberately covers only your own history and your own foods — that keeps it offline and instant. The only online lookup is the barcode scan. For anything without a barcode, create it once as a custom food; it will stay in your search from then on.</string>
+    <string name="help_nutrition_q_edit">How do I edit or delete an entry?</string>
+    <string name="help_nutrition_a_edit">Swipe the entry right to edit it, left to delete it. Deleted something by accident? The message that appears offers “Undo”.</string>
+    <string name="help_nutrition_q_tags">What do the coloured dots mean?</string>
+    <string name="help_nutrition_a_tags">Those are the clean tags. Green counts fully towards your clean share, amber counts half, red not at all. You\'ll see the share as a percentage on the calorie ring and as its own stats card. A tag applies from the moment you set it — older entries stay as they were.</string>
+    <string name="help_nutrition_q_copy">Can I reuse a meal from yesterday?</string>
+    <string name="help_nutrition_a_copy">Yes. If a main meal is still empty today but had entries yesterday, a copy button appears in its place. Snacks deliberately don\'t offer this.</string>
+
+    <string name="help_section_training">TRAINING</string>
+    <string name="help_training_q_start">How do I start a workout?</string>
+    <string name="help_training_a_start">Tap a template in the Training tab — the session starts right away with its planned exercises and sets. The button at the bottom right starts a free workout without a template instead. If you leave a session it keeps running and can be resumed from the top of the list.</string>
+    <string name="help_training_q_templates">What are templates for?</string>
+    <string name="help_training_a_templates">A template is your plan for one training day: exercises in a fixed order, with a planned set type per set. Weights deliberately aren\'t part of it — those come as suggestions from your last session.</string>
+    <string name="help_training_q_hints">Where do the grey numbers in the fields come from?</string>
+    <string name="help_training_a_hints">They\'re what you last managed on that exercise. If you check a set off without entering anything, the suggestion is adopted. It never overwrites a value you typed yourself.</string>
+    <string name="help_training_q_timer">How does the rest timer work?</string>
+    <string name="help_training_a_timer">As soon as you check a set off, the rest starts automatically — 3 minutes by default, adjustable per exercise in the header of its card. It keeps running when you leave the app or the screen turns off, and alerts you with sound and vibration. The bar at the bottom lets you pause it, add 15 seconds or skip it.</string>
+    <string name="help_training_q_timer_killed">Why does the timer sometimes not alert me?</string>
+    <string name="help_training_a_timer_killed">If you swipe Trainist away from your recent apps, Android kills the process and the timer with it, so that one alert is lost. The running rest is restored the next time you open the app. Simply leave the app in the background while you train.</string>
+    <string name="help_training_q_template_sync">What happens to my template if I change something during a session?</string>
+    <string name="help_training_a_template_sync">When you finish, Trainist asks whether to fold the changes back into the template — extra sets, new exercises, changed set types. Exercises you skipped are left untouched. Sessions without any volume aren\'t saved at all.</string>
+    <string name="help_training_q_history_edit">Can I correct a past workout?</string>
+    <string name="help_training_a_history_edit">Yes. Open the calendar at the top of the Training tab, tap the day, and change weight, reps or set type right in the row. You can also delete whole sessions there.</string>
+
+    <string name="help_section_stats">GOALS &amp; STATS</string>
+    <string name="help_stats_q_calories">How does Trainist calculate my calorie needs?</string>
+    <string name="help_stats_a_calories">With the Mifflin-St Jeor equation: your sex, age, height and weight give your basal metabolic rate, multiplied by your activity level that becomes your total daily expenditure. Depending on your goal, Trainist subtracts 500 kcal (losing) or adds 350 kcal (gaining) — never dropping below your basal rate.</string>
+    <string name="help_stats_q_macros">Do I have to set the macros myself?</string>
+    <string name="help_stats_a_macros">No. Trainist suggests protein, fat and carbs from your calorie target and body weight. Every value stays editable in the goals form — the suggestion is only a starting point.</string>
+    <string name="help_stats_q_overload">What does the “Progressive overload” card tell me?</string>
+    <string name="help_stats_a_overload">It condenses your strength development over the last 12 weeks into one number (starting at 100). Every exercise is only ever compared with itself, so a changing training plan can\'t distort the result. Alongside it you get concrete pointers based on your data — about protein, calories or training volume, for instance.</string>
+    <string name="help_stats_q_too_little_data">Why does it say there\'s not enough data?</string>
+    <string name="help_stats_a_too_little_data">Calling a trend takes at least three training weeks and six sessions. Anything before that would be guesswork — so Trainist would rather say nothing than something wrong.</string>
+    <string name="help_stats_q_reorder">Can I reorder the stats cards?</string>
+    <string name="help_stats_a_reorder">Yes — press and hold a card\'s drag handle and move it into place. The order is saved. The selector at the top also switches the time range.</string>
+
+    <string name="help_section_data">DATA &amp; BACKUP</string>
+    <string name="help_data_q_where">Where is my data stored?</string>
+    <string name="help_data_a_where">On your device only. There is no account and no server that Trainist uploads your entries to. The app goes online just for the barcode scan (a product lookup at Open Food Facts) and to load its fonts.</string>
+    <string name="help_data_q_backup">How do I back up my data?</string>
+    <string name="help_data_a_backup">Under Settings › Data &amp; backup you export everything into a ZIP file you can store or send: nutrition, weight, goals, custom exercises, templates and sessions. On top of that, Android backs the database up to your Google Drive automatically, as long as that\'s enabled in your system settings.</string>
+    <string name="help_data_q_new_phone">How do I move to a new phone?</string>
+    <string name="help_data_a_new_phone">Export a backup on the old device, then pick “Quick start” on the welcome screen of the new one — or later Settings › Data &amp; backup › Import backup. The links between sessions, exercises and templates are preserved.</string>
+    <string name="help_data_q_import_merge">What happens to existing data on import?</string>
+    <string name="help_data_a_import_merge">An import adds rather than replaces. Custom foods and exercises are updated by their identifier; nutrition and training entries are added. Import the same backup twice and those entries will be in the app twice.</string>
+    <string name="help_data_q_partial_import">Can I import individual sections?</string>
+    <string name="help_data_a_partial_import">Yes — besides the full ZIP, the import also accepts single CSV files, for example just your weight entries. The interlinked training data (templates and sessions) only works as a complete ZIP, though.</string>
+
+    <string name="help_section_glossary">GLOSSARY</string>
+    <string name="help_glossary_bmr_term">Basal metabolic rate (BMR)</string>
+    <string name="help_glossary_bmr_def">The energy your body burns in a day at complete rest — purely for breathing, circulation and organs.</string>
+    <string name="help_glossary_tdee_term">Total daily expenditure (TDEE)</string>
+    <string name="help_glossary_tdee_def">Your basal rate plus everyday activity and sport. It\'s the calorie intake at which your weight stays roughly the same.</string>
+    <string name="help_glossary_macros_term">Macronutrients</string>
+    <string name="help_glossary_macros_def">Protein, carbs and fat — the nutrients that carry the calories. 1 g of protein and 1 g of carbs hold about 4 kcal, 1 g of fat about 9 kcal.</string>
+    <string name="help_glossary_clean_term">Clean share</string>
+    <string name="help_glossary_clean_def">The share of your calories that comes from foods tagged green. Amber counts half, red and untagged not at all.</string>
+    <string name="help_glossary_volume_term">Volume</string>
+    <string name="help_glossary_volume_def">Weight × reps, summed over all work sets (warm-ups don\'t count). A simple measure of how much work a session was.</string>
+    <string name="help_glossary_e1rm_term">Estimated 1RM (e1RM)</string>
+    <string name="help_glossary_e1rm_def">The weight you could lift exactly once on paper — estimated from weight and reps. It makes sets with different rep counts comparable.</string>
+    <string name="help_glossary_pr_term">PR (personal record)</string>
+    <string name="help_glossary_pr_def">The heaviest weight you\'ve moved on an exercise in a work set. Matching that weight again isn\'t a new record.</string>
+    <string name="help_glossary_set_types_term">Set types</string>
+    <string name="help_glossary_set_types_def">Warm-up sets don\'t count towards volume. Normal is the regular work set. Drop means reducing the weight right after the set and carrying on. Failure means going to muscular failure.</string>
+    <string name="help_glossary_overload_term">Progressive overload</string>
+    <string name="help_glossary_overload_def">The principle of increasing the demand over time — more weight, more reps or more sets. Without that increase, your body eventually has no reason to adapt.</string>
+
+    <string name="help_section_contact">CONTACT</string>
+    <string name="help_contact_body">Didn\'t find the right answer, something not working, or missing a feature? Write to me — I read and answer every message myself.</string>
 </resources>

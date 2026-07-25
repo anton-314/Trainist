@@ -2,8 +2,6 @@ package dev.antonlammers.trainist.ui.settings
 
 import android.content.Intent
 import android.net.Uri
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -12,7 +10,6 @@ import androidx.compose.material.icons.rounded.MailOutline
 import androidx.compose.material.icons.rounded.VolunteerActivism
 import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -24,45 +21,15 @@ import dev.antonlammers.trainist.BuildConfig
 import dev.antonlammers.trainist.R
 
 /**
- * Donation + feedback, opened as a sheet from the settings hub. Static UI, no ViewModel.
+ * The two ways to support Trainist — donate, or write to the developer.
  *
- * [DonateButton] is deliberately also placed on the hub itself: a donation the user has to go
- * looking for is a donation that doesn't happen.
+ * Both live at the end of the Help Center (`ui/help/HelpScreen`): a question the FAQ doesn't answer
+ * should lead straight to a mail draft, so support isn't a destination of its own. [DonateButton] is
+ * deliberately *also* placed on the settings hub itself: a donation the user has to go looking for
+ * is a donation that doesn't happen.
  */
-@Composable
-fun SupportSheet(onDismiss: () -> Unit) {
-    SettingsSheet(
-        title = stringResource(R.string.settings_support_row_title),
-        onDismiss = onDismiss,
-    ) {
-        Column(
-            modifier = Modifier.padding(horizontal = SHEET_CONTENT_PADDING),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            Text(stringResource(R.string.settings_donation_title), style = MaterialTheme.typography.titleMedium)
-            Text(
-                stringResource(R.string.settings_donation_body),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            DonateButton()
 
-            Text(
-                stringResource(R.string.settings_contact_title),
-                style = MaterialTheme.typography.titleMedium,
-                modifier = Modifier.padding(top = 8.dp),
-            )
-            Text(
-                stringResource(R.string.settings_contact_prompt),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            FeedbackButton()
-        }
-    }
-}
-
-/** PayPal donation — used both in [SupportSheet] and directly on the settings hub. */
+/** PayPal donation — used both in the Help Center and directly on the settings hub. */
 @Composable
 fun DonateButton(modifier: Modifier = Modifier) {
     val context = LocalContext.current
@@ -86,7 +53,7 @@ fun DonateButton(modifier: Modifier = Modifier) {
  * the body also carries [BuildConfig.VERSION_NAME] so a report arrives with its version attached.
  */
 @Composable
-private fun FeedbackButton() {
+fun FeedbackButton() {
     val context = LocalContext.current
     // Resolved here (not inside the onClick lambda below, which isn't a @Composable context).
     val subject = stringResource(R.string.settings_contact_email_subject)

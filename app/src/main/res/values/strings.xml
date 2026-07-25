@@ -205,8 +205,6 @@
     <string name="settings_donation_title">Gefällt dir Trainist?</string>
     <string name="settings_donation_body">Die App wird von einer einzelnen Person in der Freizeit entwickelt. Wenn sie dir hilft, freue ich mich über einen Kaffee.</string>
     <string name="settings_donation_cta">Kaffee spendieren</string>
-    <string name="settings_contact_title">Feedback &amp; Verbesserungsvorschläge</string>
-    <string name="settings_contact_prompt">Fehlt dir eine Funktion? Nervt dich etwas? Schreib mir, was du dir wünschst — jede Rückmeldung fließt in die nächste Version ein.</string>
     <string name="settings_contact_developer_button">Feedback senden</string>
     <string name="settings_contact_email_subject">Trainist — Feedback &amp; Verbesserungsvorschläge</string>
     <string name="settings_contact_email_body">Was gefällt dir, was nicht?\n\n\nWelche Funktion wünschst du dir?\n\n\n---\nTrainist %1$s</string>
@@ -214,7 +212,6 @@
     <string name="settings_group_notifications">BENACHRICHTIGUNGEN</string>
     <string name="settings_group_app">APP</string>
     <string name="settings_goals_row_value">%1$d kcal</string>
-    <string name="settings_support_row_title">Trainist unterstützen</string>
     <string name="settings_data_row_title">Daten &amp; Backup</string>
     <string name="settings_data_description">Sichere alle Daten — Ernährung und Training — als ZIP-Datei oder stelle sie aus einem Backup wieder her.</string>
 
@@ -396,4 +393,94 @@
     <string name="settings_theme_system">Systemeinstellung</string>
     <string name="settings_theme_light">Hell</string>
     <string name="settings_theme_dark">Dunkel</string>
+
+    <!-- Help Center (ui/help/HelpScreen.kt, ui/help/HelpContent.kt) -->
+    <string name="settings_help_row_title">Hilfe &amp; Support</string>
+    <string name="settings_help_row_description">Erste Schritte, häufige Fragen, Kontakt</string>
+    <string name="help_intro">Kurze Antworten auf die häufigsten Fragen. Ist deine Frage nicht dabei, schreib mir einfach — ganz unten steht, wie.</string>
+
+    <string name="help_section_start">ERSTE SCHRITTE</string>
+    <string name="help_start_goals_title">Ziele festlegen</string>
+    <string name="help_start_goals_body">Unter Einstellungen › Ziele legst du dein Kalorien- und Makroziel fest. Über „Kalorienbedarf berechnen“ schlägt Trainist beides aus Geschlecht, Alter, Größe, Gewicht und Aktivität vor — anpassen kannst du es danach jederzeit.</string>
+    <string name="help_start_nutrition_title">Ernährung tracken</string>
+    <string name="help_start_nutrition_body">Im Tab Ernährung tippst du bei einer Mahlzeit auf +, suchst dein Lebensmittel oder scannst den Barcode und gibst die Menge ein. Der Kalorienring zeigt sofort, wo du stehst.</string>
+    <string name="help_start_training_title">Training loggen</string>
+    <string name="help_start_training_body">Im Tab Training legst du Vorlagen für deine Trainingstage an. Ein Tap auf eine Vorlage startet die Einheit; Gewicht und Wiederholungen der letzten Einheit stehen bereits grau als Vorschlag in den Feldern.</string>
+    <string name="help_start_progress_title">Fortschritt sehen</string>
+    <string name="help_start_progress_body">Der Tab Statistik zeigt Gewicht, Kalorien, Clean-Anteil und deine Kraftentwicklung. Die Karten lassen sich am Ziehgriff in deine Wunschreihenfolge bringen.</string>
+
+    <string name="help_section_nutrition">ERNÄHRUNG</string>
+    <string name="help_nutrition_q_add">Wie füge ich ein Lebensmittel hinzu?</string>
+    <string name="help_nutrition_a_add">Tippe im Tab Ernährung auf das + der passenden Mahlzeit. Dort suchst du nach dem Namen, wählst eines deiner eigenen Lebensmittel oder öffnest oben den Barcode-Scanner. Danach Menge, Mahlzeit und optional ein Clean-Tag wählen und bestätigen.</string>
+    <string name="help_nutrition_q_search">Warum findet die Suche nicht jedes Produkt?</string>
+    <string name="help_nutrition_a_search">Die Suche durchsucht bewusst nur deinen eigenen Verlauf und deine eigenen Lebensmittel — das ist offline und ohne Wartezeit. Online nachgeschlagen wird ausschließlich beim Barcode-Scan. Was keinen Barcode hat, legst du am besten einmal als eigenes Lebensmittel an; danach steht es dauerhaft in der Suche.</string>
+    <string name="help_nutrition_q_edit">Wie bearbeite oder lösche ich einen Eintrag?</string>
+    <string name="help_nutrition_a_edit">Wische den Eintrag nach rechts, um ihn zu bearbeiten, und nach links, um ihn zu löschen. Versehentlich gelöscht? Die eingeblendete Meldung bietet „Rückgängig“ an.</string>
+    <string name="help_nutrition_q_tags">Was bedeuten die farbigen Punkte?</string>
+    <string name="help_nutrition_a_tags">Das sind die Clean-Tags. Grün zählt voll in deinen Clean-Anteil, gelb zur Hälfte, rot gar nicht. Den Anteil siehst du als Prozentwert am Kalorienring und als eigene Statistik-Karte. Ein Tag gilt ab dem Moment, in dem du ihn setzt — ältere Einträge bleiben unverändert.</string>
+    <string name="help_nutrition_q_copy">Kann ich eine Mahlzeit von gestern übernehmen?</string>
+    <string name="help_nutrition_a_copy">Ja. Ist eine Hauptmahlzeit heute noch leer und war sie gestern gefüllt, erscheint an ihrer Stelle ein Knopf zum Kopieren. Für Snacks gibt es das bewusst nicht.</string>
+
+    <string name="help_section_training">TRAINING</string>
+    <string name="help_training_q_start">Wie starte ich ein Training?</string>
+    <string name="help_training_a_start">Tippe im Tab Training auf eine Vorlage — die Einheit startet sofort mit den geplanten Übungen und Sätzen. Über den Knopf unten rechts startest du stattdessen ein freies Training ohne Vorlage. Verlässt du die Einheit, läuft sie weiter und lässt sich oben in der Liste fortsetzen.</string>
+    <string name="help_training_q_templates">Wozu dienen Vorlagen?</string>
+    <string name="help_training_a_templates">Eine Vorlage ist dein Plan für einen Trainingstag: Übungen in fester Reihenfolge und je Satz ein vorgeplanter Satztyp. Gewichte stehen bewusst nicht darin — die kommen als Vorschlag aus deiner letzten Einheit.</string>
+    <string name="help_training_q_hints">Woher kommen die grauen Zahlen in den Feldern?</string>
+    <string name="help_training_a_hints">Das sind die Werte, die du bei dieser Übung zuletzt geschafft hast. Hakst du einen Satz ab, ohne etwas einzutragen, wird der Vorschlag übernommen. Selbst getippte Werte überschreibt er nie.</string>
+    <string name="help_training_q_timer">Wie funktioniert der Pausentimer?</string>
+    <string name="help_training_a_timer">Sobald du einen Satz abhakst, läuft die Pause automatisch — standardmäßig 3 Minuten, je Übung im Kopf der Übungskarte änderbar. Er läuft weiter, wenn du die App verlässt oder der Bildschirm ausgeht, und meldet sich mit Ton und Vibration. Über die Leiste unten kannst du ihn anhalten, um 15 Sekunden verlängern oder überspringen.</string>
+    <string name="help_training_q_timer_killed">Warum meldet sich der Timer manchmal nicht?</string>
+    <string name="help_training_a_timer_killed">Wenn du Trainist aus den zuletzt geöffneten Apps wischst, beendet Android den Prozess samt Timer — dieser eine Alarm entfällt dann. Beim nächsten Start wird die laufende Pause wiederhergestellt. Lass die App während des Trainings also einfach im Hintergrund liegen.</string>
+    <string name="help_training_q_template_sync">Was passiert mit meiner Vorlage, wenn ich in der Einheit etwas ändere?</string>
+    <string name="help_training_a_template_sync">Beim Beenden fragt Trainist, ob die Änderungen in die Vorlage übernommen werden sollen — zusätzliche Sätze, neue Übungen, geänderte Satztypen. Übersprungene Übungen bleiben dabei unangetastet. Einheiten ganz ohne Volumen werden nicht gespeichert.</string>
+    <string name="help_training_q_history_edit">Kann ich ein vergangenes Training korrigieren?</string>
+    <string name="help_training_a_history_edit">Ja. Öffne im Tab Training oben den Kalender, tippe den Tag an und ändere Gewicht, Wiederholungen oder Satztyp direkt in der Zeile. Ganze Einheiten kannst du dort ebenfalls löschen.</string>
+
+    <string name="help_section_stats">ZIELE &amp; STATISTIK</string>
+    <string name="help_stats_q_calories">Wie berechnet Trainist meinen Kalorienbedarf?</string>
+    <string name="help_stats_a_calories">Nach der Mifflin-St-Jeor-Formel: Aus Geschlecht, Alter, Größe und Gewicht ergibt sich dein Grundumsatz, multipliziert mit deinem Aktivitätsniveau der Gesamtumsatz. Je nach Ziel zieht Trainist davon 500 kcal ab (abnehmen) oder rechnet 350 kcal hinzu (aufbauen) — nie unter deinen Grundumsatz.</string>
+    <string name="help_stats_q_macros">Muss ich die Makros selbst festlegen?</string>
+    <string name="help_stats_a_macros">Nein. Aus Kalorienziel und Körpergewicht schlägt Trainist Eiweiß, Fett und Kohlenhydrate vor. Jeder Wert bleibt im Zielformular frei änderbar — der Vorschlag ist nur ein Startpunkt.</string>
+    <string name="help_stats_q_overload">Was sagt mir die Karte „Progressive Überladung“?</string>
+    <string name="help_stats_a_overload">Sie fasst deine Kraftentwicklung der letzten 12 Wochen zu einer Zahl zusammen (Start = 100). Verglichen wird dabei jede Übung nur mit sich selbst, damit ein wechselnder Trainingsplan das Ergebnis nicht verfälscht. Dazu gibt es je nach Datenlage konkrete Hinweise, etwa zu Eiweiß, Kalorien oder Trainingsumfang.</string>
+    <string name="help_stats_q_too_little_data">Warum heißt es dort „zu wenige Daten“?</string>
+    <string name="help_stats_a_too_little_data">Für eine Aussage über einen Trend braucht es mindestens drei Trainingswochen und sechs Einheiten. Alles davor wäre geraten — deshalb sagt Trainist lieber nichts, als etwas Falsches.</string>
+    <string name="help_stats_q_reorder">Kann ich die Statistik-Karten umsortieren?</string>
+    <string name="help_stats_a_reorder">Ja, halte den Ziehgriff einer Karte gedrückt und schiebe sie an ihren Platz. Die Reihenfolge wird gespeichert. Über die Auswahl oben stellst du außerdem den Zeitraum um.</string>
+
+    <string name="help_section_data">DATEN &amp; BACKUP</string>
+    <string name="help_data_q_where">Wo werden meine Daten gespeichert?</string>
+    <string name="help_data_a_where">Ausschließlich auf deinem Gerät. Es gibt kein Benutzerkonto und keinen Server, auf den Trainist deine Einträge lädt. Ins Internet geht die App nur für den Barcode-Scan (Produktabfrage bei Open Food Facts) und zum Laden der Schriftarten.</string>
+    <string name="help_data_q_backup">Wie sichere ich meine Daten?</string>
+    <string name="help_data_a_backup">Unter Einstellungen › Daten &amp; Backup exportierst du alles in eine ZIP-Datei, die du speichern oder verschicken kannst: Ernährung, Gewicht, Ziele, eigene Übungen, Vorlagen und Einheiten. Zusätzlich sichert Android die Datenbank automatisch in dein Google-Drive-Backup, sofern das in den Systemeinstellungen aktiviert ist.</string>
+    <string name="help_data_q_new_phone">Wie ziehe ich auf ein neues Handy um?</string>
+    <string name="help_data_a_new_phone">Exportiere auf dem alten Gerät ein Backup und wähle auf dem neuen beim Willkommensbildschirm „Schnellstart“ — oder später Einstellungen › Daten &amp; Backup › Backup importieren. Die Verknüpfungen zwischen Einheiten, Übungen und Vorlagen bleiben dabei erhalten.</string>
+    <string name="help_data_q_import_merge">Was passiert beim Import mit vorhandenen Daten?</string>
+    <string name="help_data_a_import_merge">Der Import ergänzt, statt zu ersetzen. Eigene Lebensmittel und Übungen werden anhand ihrer Kennung aktualisiert; Ernährungs- und Trainingseinträge kommen hinzu. Importierst du dasselbe Backup zweimal, stehen diese Einträge doppelt in der App.</string>
+    <string name="help_data_q_partial_import">Kann ich einzelne Bereiche importieren?</string>
+    <string name="help_data_a_partial_import">Ja, der Import akzeptiert neben der kompletten ZIP-Datei auch einzelne CSV-Dateien, etwa nur die Gewichtseinträge. Die miteinander verknüpften Trainingsdaten — Vorlagen und Einheiten — funktionieren allerdings nur als vollständiges ZIP.</string>
+
+    <string name="help_section_glossary">GLOSSAR</string>
+    <string name="help_glossary_bmr_term">Grundumsatz (BMR)</string>
+    <string name="help_glossary_bmr_def">Die Energie, die dein Körper an einem Tag in völliger Ruhe verbraucht — allein für Atmung, Kreislauf und Organe.</string>
+    <string name="help_glossary_tdee_term">Gesamtumsatz (TDEE)</string>
+    <string name="help_glossary_tdee_def">Grundumsatz plus Alltag und Sport. Das ist die Kalorienmenge, bei der dein Gewicht ungefähr gleich bleibt.</string>
+    <string name="help_glossary_macros_term">Makronährstoffe</string>
+    <string name="help_glossary_macros_def">Eiweiß, Kohlenhydrate und Fett — sie liefern die Kalorien. 1 g Eiweiß und 1 g Kohlenhydrate haben rund 4 kcal, 1 g Fett rund 9 kcal.</string>
+    <string name="help_glossary_clean_term">Clean-Anteil</string>
+    <string name="help_glossary_clean_def">Der Anteil deiner Kalorien aus grün getaggten Lebensmitteln. Gelb zählt zur Hälfte mit, rot und ungetaggt gar nicht.</string>
+    <string name="help_glossary_volume_term">Volumen</string>
+    <string name="help_glossary_volume_def">Gewicht × Wiederholungen, aufsummiert über alle Arbeitssätze (Aufwärmsätze zählen nicht mit). Ein einfaches Maß dafür, wie viel Arbeit eine Einheit war.</string>
+    <string name="help_glossary_e1rm_term">Geschätztes 1RM (e1RM)</string>
+    <string name="help_glossary_e1rm_def">Das Gewicht, das du rechnerisch genau einmal schaffen würdest — geschätzt aus Gewicht und Wiederholungen. Es macht Sätze mit unterschiedlichen Wiederholungszahlen vergleichbar.</string>
+    <string name="help_glossary_pr_term">PR (persönlicher Rekord)</string>
+    <string name="help_glossary_pr_def">Das höchste Gewicht, das du bei einer Übung in einem Arbeitssatz bewegt hast. Dasselbe Gewicht noch einmal ist kein neuer Rekord.</string>
+    <string name="help_glossary_set_types_term">Satztypen</string>
+    <string name="help_glossary_set_types_def">Aufwärmen zählt nicht ins Volumen. Normal ist der reguläre Arbeitssatz. Drop heißt: direkt nach dem Satz Gewicht reduzieren und weitermachen. Failure bedeutet, bis zum Muskelversagen zu gehen.</string>
+    <string name="help_glossary_overload_term">Progressive Überladung</string>
+    <string name="help_glossary_overload_def">Das Prinzip, die Belastung mit der Zeit zu steigern — mehr Gewicht, mehr Wiederholungen oder mehr Sätze. Ohne Steigerung fehlt dem Körper auf Dauer der Reiz, sich anzupassen.</string>
+
+    <string name="help_section_contact">KONTAKT</string>
+    <string name="help_contact_body">Keine passende Antwort gefunden, etwas funktioniert nicht oder dir fehlt eine Funktion? Schreib mir — ich lese und beantworte jede Nachricht selbst.</string>
 </resources>

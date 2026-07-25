@@ -11,10 +11,10 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Backup
 import androidx.compose.material.icons.rounded.ChevronRight
 import androidx.compose.material.icons.rounded.DarkMode
+import androidx.compose.material.icons.rounded.HelpOutline
 import androidx.compose.material.icons.rounded.Language
 import androidx.compose.material.icons.rounded.Notifications
 import androidx.compose.material.icons.rounded.TrackChanges
-import androidx.compose.material.icons.rounded.VolunteerActivism
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -55,8 +55,8 @@ import dev.antonlammers.trainist.ui.util.findActivity
  * Settings hub — a short list of grouped rows, not a scroll of inline forms.
  *
  * Rows report their current value inline (the calorie goal, the picked language) so the common case
- * needs no tap at all. Tapping one opens a [SettingsSheet] over the hub; only the goal editor, a
- * real form, is a pushed screen of its own.
+ * needs no tap at all. Tapping one opens a [SettingsSheet] over the hub; a pushed screen is reserved
+ * for a real form (the goal editor) or long-form reading (the Help Center).
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -71,7 +71,6 @@ fun SettingsScreen(
     val dataState by dataViewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
     var showDataSheet by remember { mutableStateOf(false) }
-    var showSupportSheet by remember { mutableStateOf(false) }
 
     // A finished export/import closes the sheet and reports here: a snackbar shown while the modal
     // sheet is up would render behind it.
@@ -86,10 +85,6 @@ fun SettingsScreen(
     if (showDataSheet) {
         DataSheet(viewModel = dataViewModel, onDismiss = { showDataSheet = false })
     }
-    if (showSupportSheet) {
-        SupportSheet(onDismiss = { showSupportSheet = false })
-    }
-
     Scaffold(
         topBar = { TopAppBar(title = { Text(stringResource(R.string.settings_title)) }) },
         snackbarHost = { SnackbarHost(snackbar) },
@@ -121,14 +116,15 @@ fun SettingsScreen(
                 )
                 SettingsRowDivider()
                 SettingsRow(
-                    icon = Icons.Rounded.VolunteerActivism,
-                    title = stringResource(R.string.settings_support_row_title),
-                    onClick = { showSupportSheet = true },
+                    icon = Icons.Rounded.HelpOutline,
+                    title = stringResource(R.string.settings_help_row_title),
+                    supportingText = stringResource(R.string.settings_help_row_description),
+                    onClick = { navController.navigate(Screen.Help.route) },
                     trailing = { Chevron() },
                 )
             }
 
-            // Also on the support sheet, but repeated here on purpose: a donation the user has to go
+            // Also in the Help Center, but repeated here on purpose: a donation the user has to go
             // looking for is a donation that doesn't happen.
             DonateButton(modifier = Modifier.padding(top = 20.dp))
 

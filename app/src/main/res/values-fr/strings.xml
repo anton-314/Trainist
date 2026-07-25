@@ -205,8 +205,6 @@
     <string name="settings_donation_title">Tu aimes Trainist ?</string>
     <string name="settings_donation_body">L\'app est développée par une seule personne sur son temps libre. Si elle t\'est utile, un café me ferait plaisir.</string>
     <string name="settings_donation_cta">M\'offrir un café</string>
-    <string name="settings_contact_title">Retours et suggestions</string>
-    <string name="settings_contact_prompt">Une fonctionnalité te manque ? Quelque chose t\'agace ? Dis-moi ce que tu souhaiterais — chaque retour est pris en compte pour la prochaine version.</string>
     <string name="settings_contact_developer_button">Envoyer un retour</string>
     <string name="settings_contact_email_subject">Trainist — Retours et suggestions</string>
     <string name="settings_contact_email_body">Qu\'est-ce que tu aimes, qu\'est-ce que tu n\'aimes pas ?\n\n\nQuelle fonctionnalité aimerais-tu voir ?\n\n\n---\nTrainist %1$s</string>
@@ -214,7 +212,6 @@
     <string name="settings_group_notifications">NOTIFICATIONS</string>
     <string name="settings_group_app">APP</string>
     <string name="settings_goals_row_value">%1$d kcal</string>
-    <string name="settings_support_row_title">Soutenir Trainist</string>
     <string name="settings_data_row_title">Données et sauvegarde</string>
     <string name="settings_data_description">Sauvegarde toutes tes données — nutrition et entraînement — dans un fichier ZIP, ou restaure-les depuis une sauvegarde.</string>
 
@@ -400,4 +397,94 @@
     <string name="settings_theme_system">Réglage du système</string>
     <string name="settings_theme_light">Clair</string>
     <string name="settings_theme_dark">Sombre</string>
+
+    <!-- Help Center (ui/help/HelpScreen.kt, ui/help/HelpContent.kt) -->
+    <string name="settings_help_row_title">Aide &amp; assistance</string>
+    <string name="settings_help_row_description">Premiers pas, questions fréquentes, contact</string>
+    <string name="help_intro">Des réponses courtes aux questions les plus fréquentes. Si la tienne n\'y figure pas, écris-moi — tu verras comment tout en bas.</string>
+
+    <string name="help_section_start">PREMIERS PAS</string>
+    <string name="help_start_goals_title">Définir tes objectifs</string>
+    <string name="help_start_goals_body">Dans Paramètres › Objectifs, tu fixes tes objectifs de calories et de macros. Avec « Calculer les besoins caloriques », Trainist te les propose à partir du sexe, de l\'âge, de la taille, du poids et de l\'activité — tout reste modifiable ensuite.</string>
+    <string name="help_start_nutrition_title">Suivre ton alimentation</string>
+    <string name="help_start_nutrition_body">Dans l\'onglet Nutrition, appuie sur + au niveau d\'un repas, cherche ton aliment ou scanne son code-barres, puis saisis la quantité. L\'anneau de calories montre aussitôt où tu en es.</string>
+    <string name="help_start_training_title">Enregistrer tes séances</string>
+    <string name="help_start_training_body">Dans l\'onglet Entraînement, tu crées des modèles pour tes jours d\'entraînement. Un appui sur un modèle lance la séance ; le poids et les répétitions de la dernière fois apparaissent déjà en gris comme suggestion.</string>
+    <string name="help_start_progress_title">Suivre tes progrès</string>
+    <string name="help_start_progress_body">L\'onglet Statistiques montre le poids, les calories, la part « clean » et l\'évolution de ta force. Les cartes se réorganisent en les faisant glisser par leur poignée.</string>
+
+    <string name="help_section_nutrition">NUTRITION</string>
+    <string name="help_nutrition_q_add">Comment ajouter un aliment ?</string>
+    <string name="help_nutrition_a_add">Dans l\'onglet Nutrition, appuie sur le + du repas concerné. Tu peux y chercher par nom, choisir l\'un de tes aliments personnels ou ouvrir le scanner de code-barres en haut. Choisis ensuite la quantité, le repas et éventuellement une étiquette « clean », puis valide.</string>
+    <string name="help_nutrition_q_search">Pourquoi la recherche ne trouve-t-elle pas tous les produits ?</string>
+    <string name="help_nutrition_a_search">La recherche ne parcourt volontairement que ton historique et tes propres aliments — c\'est hors ligne et instantané. La seule recherche en ligne est le scan de code-barres. Ce qui n\'a pas de code-barres, crée-le une fois comme aliment personnel : il restera ensuite dans la recherche.</string>
+    <string name="help_nutrition_q_edit">Comment modifier ou supprimer une entrée ?</string>
+    <string name="help_nutrition_a_edit">Balaie l\'entrée vers la droite pour la modifier, vers la gauche pour la supprimer. Supprimée par erreur ? Le message qui apparaît propose « Annuler ».</string>
+    <string name="help_nutrition_q_tags">Que signifient les points de couleur ?</string>
+    <string name="help_nutrition_a_tags">Ce sont les étiquettes « clean ». Le vert compte entièrement dans ta part clean, le jaune pour moitié, le rouge pas du tout. Cette part s\'affiche en pourcentage sur l\'anneau de calories et comme carte de statistiques. Une étiquette s\'applique à partir du moment où tu la poses — les entrées plus anciennes ne changent pas.</string>
+    <string name="help_nutrition_q_copy">Puis-je reprendre un repas d\'hier ?</string>
+    <string name="help_nutrition_a_copy">Oui. Si un repas principal est encore vide aujourd\'hui alors qu\'il était rempli hier, un bouton de copie apparaît à sa place. Ce n\'est volontairement pas proposé pour les snacks.</string>
+
+    <string name="help_section_training">ENTRAÎNEMENT</string>
+    <string name="help_training_q_start">Comment démarrer une séance ?</string>
+    <string name="help_training_a_start">Appuie sur un modèle dans l\'onglet Entraînement — la séance démarre aussitôt avec ses exercices et ses séries prévus. Le bouton en bas à droite lance à la place une séance libre, sans modèle. Si tu quittes une séance, elle continue et se reprend depuis le haut de la liste.</string>
+    <string name="help_training_q_templates">À quoi servent les modèles ?</string>
+    <string name="help_training_a_templates">Un modèle est ton plan pour une journée d\'entraînement : des exercices dans un ordre fixe et un type de série prévu pour chaque série. Les poids n\'y figurent volontairement pas — ils viennent en suggestion de ta dernière séance.</string>
+    <string name="help_training_q_hints">D\'où viennent les chiffres gris dans les champs ?</string>
+    <string name="help_training_a_hints">Ce sont les valeurs que tu as réalisées la dernière fois sur cet exercice. Si tu valides une série sans rien saisir, la suggestion est reprise. Elle n\'écrase jamais une valeur que tu as tapée toi-même.</string>
+    <string name="help_training_q_timer">Comment fonctionne le minuteur de repos ?</string>
+    <string name="help_training_a_timer">Dès que tu valides une série, le repos démarre automatiquement — 3 minutes par défaut, modifiable par exercice en haut de sa carte. Il continue si tu quittes l\'application ou si l\'écran s\'éteint, et te prévient par un son et une vibration. La barre en bas permet de le mettre en pause, d\'ajouter 15 secondes ou de le passer.</string>
+    <string name="help_training_q_timer_killed">Pourquoi le minuteur ne sonne-t-il parfois pas ?</string>
+    <string name="help_training_a_timer_killed">Si tu balaies Trainist hors des applications récentes, Android arrête le processus et le minuteur avec lui : cette alerte-là est perdue. Le repos en cours est restauré à la prochaine ouverture. Laisse donc simplement l\'application en arrière-plan pendant l\'entraînement.</string>
+    <string name="help_training_q_template_sync">Qu\'advient-il de mon modèle si je change quelque chose pendant la séance ?</string>
+    <string name="help_training_a_template_sync">À la fin, Trainist demande si les changements doivent être repris dans le modèle — séries ajoutées, nouveaux exercices, types de série modifiés. Les exercices sautés restent intacts. Les séances sans aucun volume ne sont pas enregistrées.</string>
+    <string name="help_training_q_history_edit">Puis-je corriger une séance passée ?</string>
+    <string name="help_training_a_history_edit">Oui. Ouvre le calendrier en haut de l\'onglet Entraînement, appuie sur le jour, puis modifie le poids, les répétitions ou le type de série directement dans la ligne. Tu peux aussi y supprimer des séances entières.</string>
+
+    <string name="help_section_stats">OBJECTIFS &amp; STATISTIQUES</string>
+    <string name="help_stats_q_calories">Comment Trainist calcule-t-il mes besoins caloriques ?</string>
+    <string name="help_stats_a_calories">Avec la formule de Mifflin-St Jeor : le sexe, l\'âge, la taille et le poids donnent ton métabolisme de base, multiplié par ton niveau d\'activité il devient ta dépense totale. Selon l\'objectif, Trainist retire 500 kcal (perdre) ou ajoute 350 kcal (prendre) — jamais en dessous de ton métabolisme de base.</string>
+    <string name="help_stats_q_macros">Dois-je définir les macros moi-même ?</string>
+    <string name="help_stats_a_macros">Non. À partir de ton objectif calorique et de ton poids, Trainist propose protéines, lipides et glucides. Chaque valeur reste modifiable dans le formulaire d\'objectifs — la proposition n\'est qu\'un point de départ.</string>
+    <string name="help_stats_q_overload">Que m\'indique la carte « Surcharge progressive » ?</string>
+    <string name="help_stats_a_overload">Elle résume l\'évolution de ta force sur les 12 dernières semaines en un seul chiffre (départ à 100). Chaque exercice n\'est comparé qu\'à lui-même, pour qu\'un plan d\'entraînement changeant ne fausse pas le résultat. S\'y ajoutent des conseils concrets selon tes données : protéines, calories ou volume d\'entraînement, par exemple.</string>
+    <string name="help_stats_q_too_little_data">Pourquoi affiche-t-elle « trop peu de données » ?</string>
+    <string name="help_stats_a_too_little_data">Conclure à une tendance demande au moins trois semaines d\'entraînement et six séances. Avant cela, ce serait deviner — Trainist préfère donc ne rien dire plutôt que dire faux.</string>
+    <string name="help_stats_q_reorder">Puis-je réorganiser les cartes de statistiques ?</string>
+    <string name="help_stats_a_reorder">Oui : maintiens la poignée d\'une carte et fais-la glisser à sa place. L\'ordre est enregistré. Le sélecteur en haut change par ailleurs la période affichée.</string>
+
+    <string name="help_section_data">DONNÉES &amp; SAUVEGARDE</string>
+    <string name="help_data_q_where">Où mes données sont-elles stockées ?</string>
+    <string name="help_data_a_where">Uniquement sur ton appareil. Il n\'y a ni compte ni serveur vers lequel Trainist enverrait tes entrées. L\'application se connecte seulement pour le scan de code-barres (une recherche produit chez Open Food Facts) et pour charger ses polices.</string>
+    <string name="help_data_q_backup">Comment sauvegarder mes données ?</string>
+    <string name="help_data_a_backup">Dans Paramètres › Données et sauvegarde, tu exportes tout dans un fichier ZIP que tu peux conserver ou envoyer : nutrition, poids, objectifs, exercices personnels, modèles et séances. En plus, Android sauvegarde automatiquement la base de données dans ton Google Drive, si cette option est activée dans les réglages du système.</string>
+    <string name="help_data_q_new_phone">Comment passer à un nouveau téléphone ?</string>
+    <string name="help_data_a_new_phone">Exporte une sauvegarde sur l\'ancien appareil, puis choisis « Démarrage rapide » sur l\'écran d\'accueil du nouveau — ou plus tard Paramètres › Données et sauvegarde › Importer une sauvegarde. Les liens entre séances, exercices et modèles sont conservés.</string>
+    <string name="help_data_q_import_merge">Que deviennent les données existantes lors d\'un import ?</string>
+    <string name="help_data_a_import_merge">L\'import complète au lieu de remplacer. Les aliments et exercices personnels sont mis à jour via leur identifiant ; les entrées de nutrition et d\'entraînement s\'ajoutent. Si tu importes deux fois la même sauvegarde, ces entrées apparaîtront en double.</string>
+    <string name="help_data_q_partial_import">Puis-je importer certaines parties seulement ?</string>
+    <string name="help_data_a_partial_import">Oui : en plus du ZIP complet, l\'import accepte aussi des fichiers CSV isolés, par exemple seulement les entrées de poids. Les données d\'entraînement liées entre elles — modèles et séances — ne fonctionnent en revanche qu\'en ZIP complet.</string>
+
+    <string name="help_section_glossary">GLOSSAIRE</string>
+    <string name="help_glossary_bmr_term">Métabolisme de base (BMR)</string>
+    <string name="help_glossary_bmr_def">L\'énergie que ton corps dépense en une journée au repos complet — uniquement pour la respiration, la circulation et les organes.</string>
+    <string name="help_glossary_tdee_term">Dépense totale (TDEE)</string>
+    <string name="help_glossary_tdee_def">Le métabolisme de base plus le quotidien et le sport. C\'est l\'apport calorique auquel ton poids reste à peu près stable.</string>
+    <string name="help_glossary_macros_term">Macronutriments</string>
+    <string name="help_glossary_macros_def">Protéines, glucides et lipides — ce sont eux qui apportent les calories. 1 g de protéines et 1 g de glucides valent environ 4 kcal, 1 g de lipides environ 9 kcal.</string>
+    <string name="help_glossary_clean_term">Part « clean »</string>
+    <string name="help_glossary_clean_def">La part de tes calories provenant d\'aliments étiquetés en vert. Le jaune compte pour moitié, le rouge et les aliments sans étiquette pas du tout.</string>
+    <string name="help_glossary_volume_term">Volume</string>
+    <string name="help_glossary_volume_def">Poids × répétitions, cumulé sur toutes les séries de travail (l\'échauffement ne compte pas). Une mesure simple du travail accompli dans une séance.</string>
+    <string name="help_glossary_e1rm_term">1RM estimé (e1RM)</string>
+    <string name="help_glossary_e1rm_def">Le poids que tu soulèverais théoriquement une seule fois — estimé à partir du poids et des répétitions. Il rend comparables des séries au nombre de répétitions différent.</string>
+    <string name="help_glossary_pr_term">PR (record personnel)</string>
+    <string name="help_glossary_pr_def">Le poids le plus lourd que tu aies soulevé sur un exercice dans une série de travail. Refaire le même poids n\'est pas un nouveau record.</string>
+    <string name="help_glossary_set_types_term">Types de série</string>
+    <string name="help_glossary_set_types_def">L\'échauffement ne compte pas dans le volume. Normal est la série de travail habituelle. Descendante signifie réduire le poids juste après la série et continuer. Échec veut dire aller jusqu\'à l\'échec musculaire.</string>
+    <string name="help_glossary_overload_term">Surcharge progressive</string>
+    <string name="help_glossary_overload_def">Le principe d\'augmenter la charge avec le temps — plus de poids, plus de répétitions ou plus de séries. Sans cette progression, le corps finit par ne plus avoir de raison de s\'adapter.</string>
+
+    <string name="help_section_contact">CONTACT</string>
+    <string name="help_contact_body">Pas trouvé la bonne réponse, quelque chose ne fonctionne pas ou une fonction te manque ? Écris-moi — je lis et réponds moi-même à chaque message.</string>
 </resources>
