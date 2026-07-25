@@ -393,4 +393,11 @@
     <string name="settings_language_french">Français</string>
     <string name="settings_language_spanish">Español</string>
     <string name="settings_language_picker_title">Choose language</string>
+
+    <!-- Appearance picker (ui/settings/SettingsScreen.kt, ui/theme/ThemeViewModel.kt) -->
+    <string name="settings_theme_row_title">Appearance</string>
+    <string name="settings_theme_picker_title">Choose appearance</string>
+    <string name="settings_theme_system">System setting</string>
+    <string name="settings_theme_light">Light</string>
+    <string name="settings_theme_dark">Dark</string>
 </resources>

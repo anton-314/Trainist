@@ -1,19 +1,16 @@
 package dev.antonlammers.trainist.ui.settings
 
 import android.os.Build
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Backup
 import androidx.compose.material.icons.rounded.ChevronRight
+import androidx.compose.material.icons.rounded.DarkMode
 import androidx.compose.material.icons.rounded.Language
 import androidx.compose.material.icons.rounded.Notifications
 import androidx.compose.material.icons.rounded.TrackChanges
@@ -21,7 +18,6 @@ import androidx.compose.material.icons.rounded.VolunteerActivism
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -46,11 +42,13 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import dev.antonlammers.trainist.BuildConfig
 import dev.antonlammers.trainist.R
+import dev.antonlammers.trainist.domain.model.ThemeMode
 import dev.antonlammers.trainist.ui.data.DataSheet
 import dev.antonlammers.trainist.ui.data.DataViewModel
 import dev.antonlammers.trainist.ui.data.toDisplayString
 import dev.antonlammers.trainist.ui.goals.GoalsViewModel
 import dev.antonlammers.trainist.ui.navigation.Screen
+import dev.antonlammers.trainist.ui.theme.ThemeViewModel
 import dev.antonlammers.trainist.ui.util.findActivity
 
 /**
@@ -67,6 +65,7 @@ fun SettingsScreen(
     goalsViewModel: GoalsViewModel = hiltViewModel(),
     dataViewModel: DataViewModel = hiltViewModel(),
     languageViewModel: LanguageViewModel = hiltViewModel(),
+    themeViewModel: ThemeViewModel = hiltViewModel(),
 ) {
     val snackbar = remember { SnackbarHostState() }
     val dataState by dataViewModel.uiState.collectAsStateWithLifecycle()
@@ -110,6 +109,8 @@ fun SettingsScreen(
 
             SettingsGroupLabel(stringResource(R.string.settings_group_app))
             SettingsGroup {
+                ThemeRow(themeViewModel)
+                SettingsRowDivider()
                 LanguageRow(languageViewModel)
                 SettingsRowDivider()
                 SettingsRow(
@@ -217,6 +218,50 @@ private fun LanguageRow(viewModel: LanguageViewModel) {
     )
 }
 
+/**
+ * App appearance: light, dark, or whatever the system is set to. Picking applies immediately — the
+ * whole app is composed inside a `TrainistTheme` reading the same repository-backed flow, so no
+ * recreation is needed (unlike the language row below).
+ */
+@Composable
+private fun ThemeRow(viewModel: ThemeViewModel) {
+    val mode by viewModel.themeMode.collectAsStateWithLifecycle()
+    var showPicker by remember { mutableStateOf(false) }
+
+    if (showPicker) {
+        SettingsSheet(
+            title = stringResource(R.string.settings_theme_picker_title),
+            onDismiss = { showPicker = false },
+        ) {
+            ThemeMode.entries.forEach { option ->
+                SettingsOptionRow(
+                    label = option.displayName(),
+                    selected = option == mode,
+                    onSelect = {
+                        viewModel.setThemeMode(option)
+                        showPicker = false
+                    },
+                )
+            }
+        }
+    }
+
+    SettingsRow(
+        icon = Icons.Rounded.DarkMode,
+        title = stringResource(R.string.settings_theme_row_title),
+        value = mode.displayName(),
+        onClick = { showPicker = true },
+        trailing = { Chevron() },
+    )
+}
+
+@Composable
+private fun ThemeMode.displayName(): String = when (this) {
+    ThemeMode.SYSTEM -> stringResource(R.string.settings_theme_system)
+    ThemeMode.LIGHT -> stringResource(R.string.settings_theme_light)
+    ThemeMode.DARK -> stringResource(R.string.settings_theme_dark)
+}
+
 /** Affordance marking a row that opens a sub-screen or a picker sheet. */
 @Composable
 private fun Chevron() {
@@ -260,25 +305,12 @@ private fun LanguagePickerSheet(
         title = stringResource(R.string.settings_language_picker_title),
         onDismiss = onDismiss,
     ) {
-        LanguageOptionRow(null, selected, stringResource(R.string.settings_language_system), onSelect)
-        LanguageOptionRow("de", selected, stringResource(R.string.settings_language_german), onSelect)
-        LanguageOptionRow("en", selected, stringResource(R.string.settings_language_english), onSelect)
-        LanguageOptionRow("fr", selected, stringResource(R.string.settings_language_french), onSelect)
-        LanguageOptionRow("es", selected, stringResource(R.string.settings_language_spanish), onSelect)
-    }
-}
-
-@Composable
-private fun LanguageOptionRow(tag: String?, selected: String?, label: String, onSelect: (String?) -> Unit) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable { onSelect(tag) }
-            .padding(horizontal = SHEET_CONTENT_PADDING, vertical = 12.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
-        RadioButton(selected = tag == selected, onClick = { onSelect(tag) })
-        Text(label, style = MaterialTheme.typography.bodyLarge)
+        listOf(null, "de", "en", "fr", "es").forEach { tag ->
+            SettingsOptionRow(
+                label = tag.languageDisplayName(),
+                selected = tag == selected,
+                onSelect = { onSelect(tag) },
+            )
+        }
     }
 }

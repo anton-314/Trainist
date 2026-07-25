@@ -17,6 +17,7 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -118,6 +119,26 @@ fun SettingsRow(
             Spacer(Modifier.width(8.dp))
             it()
         }
+    }
+}
+
+/**
+ * One radio choice inside a [SettingsSheet] picker — the shared shape behind every "pick exactly
+ * one" settings sheet (language, appearance), so they can't drift apart row by row. The whole row
+ * is the tap target, not just the button.
+ */
+@Composable
+fun SettingsOptionRow(label: String, selected: Boolean, onSelect: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onSelect)
+            .padding(horizontal = SHEET_CONTENT_PADDING, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        RadioButton(selected = selected, onClick = onSelect)
+        Text(label, style = MaterialTheme.typography.bodyLarge)
     }
 }
 

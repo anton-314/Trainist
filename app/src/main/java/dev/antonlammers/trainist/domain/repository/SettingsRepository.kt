@@ -1,6 +1,8 @@
 package dev.antonlammers.trainist.domain.repository
 
 import dev.antonlammers.trainist.domain.model.StatCardType
+import dev.antonlammers.trainist.domain.model.ThemeMode
+import kotlinx.coroutines.flow.StateFlow
 
 /**
  * Lightweight key/value app settings. Kept Android-free so ViewModels and the reminder worker
@@ -34,4 +36,15 @@ interface SettingsRepository {
     suspend fun getAppLanguage(): String?
 
     suspend fun setAppLanguage(tag: String?)
+
+    /**
+     * The user's chosen app appearance. Unlike every other setting here this is a [StateFlow], not a
+     * suspend getter: two independent surfaces read it (the settings row and the `MainActivity`
+     * composition wrapping the *whole* app), so a change made in one has to reach the other live —
+     * and its current value must be readable synchronously, or the app would render one frame in the
+     * wrong shade on every cold start.
+     */
+    val themeMode: StateFlow<ThemeMode>
+
+    suspend fun setThemeMode(mode: ThemeMode)
 }

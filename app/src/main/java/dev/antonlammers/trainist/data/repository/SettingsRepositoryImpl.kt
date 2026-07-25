@@ -9,7 +9,11 @@ import androidx.core.content.edit
 import androidx.core.os.LocaleListCompat
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dev.antonlammers.trainist.domain.model.StatCardType
+import dev.antonlammers.trainist.domain.model.ThemeMode
 import dev.antonlammers.trainist.domain.repository.SettingsRepository
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import javax.inject.Inject
 
 class SettingsRepositoryImpl @Inject constructor(
@@ -84,12 +88,23 @@ class SettingsRepositoryImpl @Inject constructor(
         }
     }
 
+    // Read once here (the binding is a @Singleton) and kept hot, so the theme is known synchronously
+    // from the very first composition and a change reaches every observer at once.
+    private val _themeMode = MutableStateFlow(ThemeMode.parse(prefs.getString(KEY_THEME_MODE, null)))
+    override val themeMode: StateFlow<ThemeMode> = _themeMode.asStateFlow()
+
+    override suspend fun setThemeMode(mode: ThemeMode) {
+        prefs.edit { putString(KEY_THEME_MODE, mode.name) }
+        _themeMode.value = mode
+    }
+
     companion object {
         private const val PREFS_NAME = "trainist_settings"
         private const val KEY_REMINDER_ENABLED = "meal_reminder_enabled"
         private const val KEY_STATS_CARD_ORDER = "stats_card_order"
         private const val KEY_ONBOARDING_COMPLETED = "onboarding_completed"
         private const val KEY_APP_LANGUAGE = "app_language"
+        private const val KEY_THEME_MODE = "theme_mode"
 
         /**
          * Re-applies the persisted per-app language on startup for API < 33, where nothing else
