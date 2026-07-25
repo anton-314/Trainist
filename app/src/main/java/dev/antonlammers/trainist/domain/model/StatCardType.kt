@@ -7,11 +7,22 @@ package dev.antonlammers.trainist.domain.model
  * dropped rather than crashing.
  */
 enum class StatCardType {
-    CALORIES, CLEAN_EATING, WEIGHT, TRAINING_FREQUENCY, STRENGTH;
+    CALORIES, CLEAN_EATING, WEIGHT, TRAINING_FREQUENCY, STRENGTH, PROGRESSIVE_OVERLOAD;
 
     companion object {
-        /** Shown the first time the app runs, before any custom order has been saved. */
-        val DEFAULT_ORDER: List<StatCardType> = entries.toList()
+        /**
+         * Shown the first time the app runs, before any custom order has been saved — deliberately
+         * spelled out instead of derived from [entries], so the display order stays a product
+         * decision independent of the declaration order (which the persisted names depend on).
+         */
+        val DEFAULT_ORDER: List<StatCardType> = listOf(
+            WEIGHT,
+            PROGRESSIVE_OVERLOAD,
+            CALORIES,
+            CLEAN_EATING,
+            STRENGTH,
+            TRAINING_FREQUENCY,
+        )
 
         fun parse(raw: String?): StatCardType? =
             raw?.trim()?.uppercase()?.let { v -> entries.firstOrNull { it.name == v } }

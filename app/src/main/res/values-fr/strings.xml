@@ -279,6 +279,24 @@
     <string name="stats_weight_current">Actuel</string>
     <string name="stats_weight_change">Évolution</string>
     <string name="stats_weight_target">Objectif</string>
+    <string name="stats_card_progressive_overload">Surcharge progressive</string>
+    <string name="stats_overload_window">12 dernières semaines</string>
+    <string name="stats_overload_empty">Pas encore de données d\'entraînement</string>
+    <string name="stats_overload_meta">%1$d exercices · %2$d séances · %3$d semaines</string>
+    <string name="stats_overload_trend_insufficient_data">Données insuffisantes</string>
+    <string name="stats_overload_trend_progressing">Progression</string>
+    <string name="stats_overload_trend_maintaining">Stable</string>
+    <string name="stats_overload_trend_declining">Recul</string>
+    <string name="stats_overload_advice_collect_more_data">La fenêtre d\'observation est encore trop courte pour conclure. À partir d\'environ 3 semaines d\'entraînement et 6 séances, une vraie tendance se distingue des variations quotidiennes normales (environ ±5 %%).</string>
+    <string name="stats_overload_advice_keep_going">Ton indice de force augmente : ton entraînement fonctionne. Continue par petits paliers : complète d\'abord les répétitions dans ta fourchette cible, puis augmente la charge (double progression).</string>
+    <string name="stats_overload_advice_recent_stall">Les gains s\'aplatissent ces dernières semaines. C\'est normal à mesure que tu approches de ton potentiel : change de levier de progression — une série de plus, des pauses un peu plus longues ou une nouvelle variante d\'exercice.</string>
+    <string name="stats_overload_advice_expected_in_deficit">Tu perds du poids en ce moment. Maintenir sa force en déficit calorique est une réussite, pas une stagnation : garde l\'intensité élevée et n\'attends pas de nouveaux records durant cette phase.</string>
+    <string name="stats_overload_advice_energy_deficit">Ton poids baisse et ta force avec lui. Un déficit trop important coûte de la force : ne perds pas plus d\'environ 0,5–0,75 %% de ton poids de corps par semaine, sinon augmente les calories.</string>
+    <string name="stats_overload_advice_protein_low">Ton apport en protéines est inférieur à 1,6 g par kg de poids de corps. Pour la force et la masse musculaire, la fourchette cible est de 1,6–2,2 g/kg — en dessous, tu laisses du potentiel de côté.</string>
+    <string name="stats_overload_advice_recovery_frequency">Tu t\'entraînes très souvent et sans pauses visibles. La force se construit pendant la récupération : prévois au moins un jour de repos par semaine et vise 7 à 9 heures de sommeil.</string>
+    <string name="stats_overload_advice_consistency">Tes séances sont trop irrégulières pour un stimulus constant. Chaque groupe musculaire devrait être entraîné environ 2× par semaine — la régularité pèse plus que n\'importe quel détail de programme.</string>
+    <string name="stats_overload_advice_deload">Tu t\'entraînes depuis plus de 8 semaines sans décharge. Une semaine de deload (volume réduit de moitié, charges maintenues) évacue la fatigue et rend le bloc suivant à nouveau progressif.</string>
+    <string name="stats_overload_advice_progression_scheme">L\'alimentation et la récupération semblent correctes : c\'est donc la programmation. Amène tes dernières séries plus près de l\'échec (1–3 répétitions en réserve) et tiens environ 10–20 séries efficaces par groupe musculaire et par semaine.</string>
 
     <!-- OnboardingScreen (ui/onboarding/OnboardingScreen.kt) -->
     <string name="onboarding_welcome_prefix">Bienvenue sur</string>

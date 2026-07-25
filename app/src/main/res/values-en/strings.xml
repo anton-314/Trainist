@@ -279,6 +279,24 @@
     <string name="stats_weight_current">Current</string>
     <string name="stats_weight_change">Change</string>
     <string name="stats_weight_target">Target</string>
+    <string name="stats_card_progressive_overload">Progressive overload</string>
+    <string name="stats_overload_window">Last 12 weeks</string>
+    <string name="stats_overload_empty">No training data yet</string>
+    <string name="stats_overload_meta">%1$d exercises · %2$d sessions · %3$d weeks</string>
+    <string name="stats_overload_trend_insufficient_data">Not enough data</string>
+    <string name="stats_overload_trend_progressing">Progressing</string>
+    <string name="stats_overload_trend_maintaining">Holding steady</string>
+    <string name="stats_overload_trend_declining">Declining</string>
+    <string name="stats_overload_advice_collect_more_data">The observation window is still too small to draw a conclusion. From roughly 3 training weeks and 6 sessions on, a real trend can be told apart from normal day-to-day variation (about ±5 %%).</string>
+    <string name="stats_overload_advice_keep_going">Your strength index is rising — your training is working. Keep adding in small steps: fill up the reps in your target range first, then increase the weight (double progression).</string>
+    <string name="stats_overload_advice_recent_stall">Gains have flattened out over the last few weeks. That is normal the closer you get to your potential — switch how you progress: one more set, slightly longer rests, or a new exercise variation.</string>
+    <string name="stats_overload_advice_expected_in_deficit">You are losing weight right now. Holding your strength in a calorie deficit is a win, not a plateau — keep the intensity high and don\'t expect new personal bests during this phase.</string>
+    <string name="stats_overload_advice_energy_deficit">Your weight is dropping and your strength with it. Too steep a deficit costs strength: losing more than about 0.5–0.75 %% of body weight per week is too fast — otherwise raise your calories.</string>
+    <string name="stats_overload_advice_protein_low">Your protein intake is below 1.6 g per kg of body weight. For strength and muscle growth, 1.6–2.2 g/kg is the target range — below that you leave progress on the table.</string>
+    <string name="stats_overload_advice_recovery_frequency">You train very often and without noticeable breaks. Strength is built during recovery: schedule at least one rest day per week and aim for 7–9 hours of sleep.</string>
+    <string name="stats_overload_advice_consistency">Your sessions are too irregular for a steady stimulus. Each muscle group should be trained about twice a week — consistency matters more than any programme detail.</string>
+    <string name="stats_overload_advice_deload">You have trained for more than 8 weeks without a break. A deload week (roughly halve the volume, keep the weights) sheds fatigue and makes the next block progressive again.</string>
+    <string name="stats_overload_advice_progression_scheme">Nutrition and recovery look fine — so it comes down to your programming. Take your last sets closer to failure (1–3 reps in reserve) and keep about 10–20 hard sets per muscle group per week.</string>
 
     <!-- OnboardingScreen (ui/onboarding/OnboardingScreen.kt) -->
     <string name="onboarding_welcome_prefix">Welcome to</string>

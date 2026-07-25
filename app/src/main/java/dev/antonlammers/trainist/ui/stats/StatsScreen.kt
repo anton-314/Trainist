@@ -198,6 +198,23 @@ fun StatsScreen(
                                 )
                             }
                         }
+                        StatCardType.PROGRESSIVE_OVERLOAD -> ChartCard(
+                            title = stringResource(R.string.stats_card_progressive_overload),
+                            rowModifier = rowModifier,
+                            dragHandleModifier = dragHandleModifier,
+                            isDragging = isDragging,
+                            // The window is fixed (see OverloadCardState) — spelling it out keeps the
+                            // card honest about ignoring the time-range chips above.
+                            trailing = {
+                                Text(
+                                    stringResource(R.string.stats_overload_window).uppercase(currentAppLocale()),
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            },
+                        ) {
+                            OverloadCard(state.overload)
+                        }
                         StatCardType.STRENGTH -> ChartCard(stringResource(R.string.stats_card_strength), rowModifier, dragHandleModifier, isDragging) {
                             if (state.strengthExercises.isEmpty()) {
                                 ChartEmptyHint(stringResource(R.string.stats_empty_strength))
@@ -493,7 +510,7 @@ private fun ChartCard(
 }
 
 @Composable
-private fun ChartEmptyHint(text: String) {
+internal fun ChartEmptyHint(text: String) {
     Box(modifier = Modifier.fillMaxWidth().height(80.dp), contentAlignment = Alignment.Center) {
         Text(text, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }

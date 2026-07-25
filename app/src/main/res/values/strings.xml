@@ -279,6 +279,24 @@
     <string name="stats_weight_current">Aktuell</string>
     <string name="stats_weight_change">Veränderung</string>
     <string name="stats_weight_target">Ziel</string>
+    <string name="stats_card_progressive_overload">Progressive Überladung</string>
+    <string name="stats_overload_window">Letzte 12 Wochen</string>
+    <string name="stats_overload_empty">Noch keine Trainingsdaten</string>
+    <string name="stats_overload_meta">%1$d Übungen · %2$d Einheiten · %3$d Wochen</string>
+    <string name="stats_overload_trend_insufficient_data">Zu wenig Daten</string>
+    <string name="stats_overload_trend_progressing">Fortschritt</string>
+    <string name="stats_overload_trend_maintaining">Stabil</string>
+    <string name="stats_overload_trend_declining">Rückgang</string>
+    <string name="stats_overload_advice_collect_more_data">Für eine Aussage ist das Beobachtungsfenster noch zu klein. Ab etwa 3 Trainingswochen und 6 Einheiten lässt sich ein echter Trend von der normalen Tagesform (rund ±5 %%) unterscheiden.</string>
+    <string name="stats_overload_advice_keep_going">Dein Kraftindex steigt – dein Training funktioniert. Steigere weiter in kleinen Schritten: erst die Wiederholungen im Zielbereich auffüllen, dann das Gewicht erhöhen (doppelte Progression).</string>
+    <string name="stats_overload_advice_recent_stall">Der Zuwachs flacht in den letzten Wochen ab. Das ist normal, je näher du an deinem Potenzial bist – wechsle jetzt den Progressionsweg: ein Satz mehr, etwas längere Pausen oder eine neue Übungsvariante.</string>
+    <string name="stats_overload_advice_expected_in_deficit">Du verlierst gerade Gewicht. Kraft dabei zu halten ist im Kaloriendefizit ein Erfolg und kein Stillstand – halte die Intensität hoch und erwarte in dieser Phase keine neuen Bestleistungen.</string>
+    <string name="stats_overload_advice_energy_deficit">Dein Gewicht sinkt und deine Kraft sinkt mit. Ein zu großes Defizit kostet Kraft: mehr als etwa 0,5–0,75 %% Körpergewicht pro Woche solltest du nicht verlieren – sonst die Kalorien anheben.</string>
+    <string name="stats_overload_advice_protein_low">Deine Proteinzufuhr liegt unter 1,6 g pro kg Körpergewicht. Für Kraft- und Muskelaufbau gelten 1,6–2,2 g/kg als Zielbereich – darunter bleibt Aufbaupotenzial ungenutzt.</string>
+    <string name="stats_overload_advice_recovery_frequency">Du trainierst sehr häufig und ohne erkennbare Pausen. Kraft entsteht in der Erholung: plane mindestens einen freien Tag pro Woche ein und ziele auf 7–9 Stunden Schlaf.</string>
+    <string name="stats_overload_advice_consistency">Deine Einheiten sind zu unregelmäßig für einen stetigen Reiz. Jede Muskelgruppe sollte etwa 2× pro Woche trainiert werden – Regelmäßigkeit wirkt stärker als jedes Programm-Detail.</string>
+    <string name="stats_overload_advice_deload">Du trainierst seit über 8 Wochen ohne Entlastung. Eine Deload-Woche (Volumen etwa halbieren, Gewichte beibehalten) baut Ermüdung ab und macht den nächsten Block wieder progressiv.</string>
+    <string name="stats_overload_advice_progression_scheme">Ernährung und Erholung sehen unauffällig aus – dann liegt es an der Programmierung. Trainiere die letzten Sätze näher am Muskelversagen (1–3 Wiederholungen in Reserve) und halte etwa 10–20 harte Sätze pro Muskelgruppe und Woche.</string>
 
     <!-- OnboardingScreen (ui/onboarding/OnboardingScreen.kt) -->
     <string name="onboarding_welcome_prefix">Willkommen bei</string>

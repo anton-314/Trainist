@@ -1,6 +1,8 @@
 package dev.antonlammers.trainist.ui.stats
 
 import app.cash.turbine.test
+import dev.antonlammers.trainist.domain.ProgressionAdvice
+import dev.antonlammers.trainist.domain.ProgressionTrend
 import dev.antonlammers.trainist.domain.model.DailyGoal
 import dev.antonlammers.trainist.domain.model.Exercise
 import dev.antonlammers.trainist.domain.model.ExerciseType
@@ -71,10 +73,11 @@ class StatsViewModelTest {
             awaitItem() // initial WEEK
 
             viewModel.setTimeRange(TimeRange.MONTH)
-            val state = awaitItem()
+            var state = awaitItem()
+            while (state.timeRange != TimeRange.MONTH) state = awaitItem()
 
-            assertEquals(TimeRange.MONTH, state.timeRange)
             assertEquals(30, state.caloriePoints.size)
+            cancelAndIgnoreRemainingEvents()
         }
     }
 
@@ -84,10 +87,11 @@ class StatsViewModelTest {
             awaitItem()
 
             viewModel.setTimeRange(TimeRange.YEAR)
-            val state = awaitItem()
+            var state = awaitItem()
+            while (state.timeRange != TimeRange.YEAR) state = awaitItem()
 
-            assertEquals(TimeRange.YEAR, state.timeRange)
             assertEquals(12, state.caloriePoints.size)
+            cancelAndIgnoreRemainingEvents()
         }
     }
 
@@ -97,11 +101,11 @@ class StatsViewModelTest {
         foodRepo.add(buildEntry(kcal = 500.0, date = today))
 
         viewModel.uiState.test {
-            awaitItem() // initial empty state
-            val state = awaitItem() // populated state
+            var state = awaitItem()
+            while (state.caloriePoints.isEmpty()) state = awaitItem()
 
-            val todayPoint = state.caloriePoints.last()
-            assertEquals(500.0, todayPoint.value, 0.001)
+            assertEquals(500.0, state.caloriePoints.last().value, 0.001)
+            cancelAndIgnoreRemainingEvents()
         }
     }
 
@@ -110,10 +114,12 @@ class StatsViewModelTest {
         foodRepo.add(buildEntry(kcal = 999.0, date = LocalDate.now().minusDays(10)))
 
         viewModel.uiState.test {
-            awaitItem() // initial empty
-            val state = awaitItem() // populated — 7 points, all 0
+            var state = awaitItem()
+            while (state.caloriePoints.isEmpty()) state = awaitItem()
+
             assertEquals(7, state.caloriePoints.size)
             assertTrue(state.caloriePoints.all { it.value == 0.0 })
+            cancelAndIgnoreRemainingEvents()
         }
     }
 
@@ -267,6 +273,110 @@ class StatsViewModelTest {
             viewModel.setSelectedExercise("squat")
             while (state.selectedExerciseId != "squat") state = awaitItem()
             assertEquals(163.333, state.strength.samples.last().estimatedOneRepMaxKg, 0.01) // 140×(1+5/30)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    // --- progressive overload ---
+
+    @Test
+    fun `overload card starts empty and uninterpreted`() = runTest {
+        viewModel.uiState.test {
+            val state = awaitItem()
+
+            assertTrue(state.overload.chart.points.isEmpty())
+            assertEquals(ProgressionTrend.INSUFFICIENT_DATA, state.overload.trend)
+            assertEquals(listOf(ProgressionAdvice.COLLECT_MORE_DATA), state.overload.advice)
+            assertEquals(null, state.overload.changePercent)
+        }
+    }
+
+    @Test
+    fun `a couple of sessions never produce a verdict`() = runTest {
+        val today = LocalDate.now()
+        catalogRepo.upsertAll(listOf(Exercise("bench", "Bench Press", ExerciseType.WEIGHT_REPS, isCustom = false)))
+        sessionRepo.save(completedSession("s1", today.minusWeeks(1), "bench", listOf(SetEntry(position = 0, weightKg = 100.0, reps = 5))))
+        sessionRepo.save(completedSession("s2", today, "bench", listOf(SetEntry(position = 0, weightKg = 60.0, reps = 5))))
+
+        viewModel.uiState.test {
+            var state = awaitItem()
+            while (state.overload.chart.points.size < 2) state = awaitItem()
+
+            // The index dropped hard, but two weeks is no basis for telling the user anything.
+            assertEquals(ProgressionTrend.INSUFFICIENT_DATA, state.overload.trend)
+            assertEquals(listOf(ProgressionAdvice.COLLECT_MORE_DATA), state.overload.advice)
+            assertEquals(null, state.overload.changePercent)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `a steadily rising index over enough weeks reads as progress`() = runTest {
+        val today = LocalDate.now()
+        catalogRepo.upsertAll(listOf(Exercise("bench", "Bench Press", ExerciseType.WEIGHT_REPS, isCustom = false)))
+        // Six weeks, two sessions each, +2 kg per week on the same lift.
+        (0 until 6).forEach { week ->
+            val date = today.minusWeeks(5L - week)
+            val weight = 100.0 + week * 2
+            sessionRepo.save(completedSession("a$week", date, "bench", listOf(SetEntry(position = 0, weightKg = weight, reps = 5))))
+            sessionRepo.save(completedSession("b$week", date, "bench", listOf(SetEntry(position = 0, weightKg = weight, reps = 5))))
+        }
+
+        viewModel.uiState.test {
+            var state = awaitItem()
+            while (state.overload.trend == ProgressionTrend.INSUFFICIENT_DATA) state = awaitItem()
+
+            assertEquals(ProgressionTrend.PROGRESSING, state.overload.trend)
+            assertEquals(listOf(ProgressionAdvice.KEEP_GOING), state.overload.advice)
+            assertEquals(10.0, state.overload.changePercent!!, 0.5) // 100 → 110 kg
+            assertEquals(6, state.overload.trainingWeeks)
+            assertEquals(12, state.overload.sessions)
+            assertEquals(1, state.overload.chart.trackedExercises)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `stagnating strength while losing weight is framed as a deficit, not a training failure`() = runTest {
+        val today = LocalDate.now()
+        catalogRepo.upsertAll(listOf(Exercise("bench", "Bench Press", ExerciseType.WEIGHT_REPS, isCustom = false)))
+        (0 until 6).forEach { week ->
+            val date = today.minusWeeks(5L - week)
+            sessionRepo.save(completedSession("a$week", date, "bench", listOf(SetEntry(position = 0, weightKg = 100.0, reps = 5))))
+            sessionRepo.save(completedSession("b$week", date, "bench", listOf(SetEntry(position = 0, weightKg = 100.0, reps = 5))))
+        }
+        // Weekly weigh-ins, −0.5 kg per week.
+        (0 until 6).forEach { week ->
+            weightRepo.save(WeightEntry(date = today.minusWeeks(5L - week), weightKg = 85.0 - week * 0.5, timestampMs = week.toLong()))
+        }
+        val restarted = StatsViewModel(foodRepo, weightRepo, goalRepo, sessionRepo, catalogRepo, settingsRepo)
+
+        restarted.uiState.test {
+            var state = awaitItem()
+            while (state.overload.trend == ProgressionTrend.INSUFFICIENT_DATA) state = awaitItem()
+
+            assertEquals(ProgressionTrend.MAINTAINING, state.overload.trend)
+            assertEquals(ProgressionAdvice.EXPECTED_IN_DEFICIT, state.overload.advice.first())
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `the overload window is fixed and ignores the time range`() = runTest {
+        val today = LocalDate.now()
+        catalogRepo.upsertAll(listOf(Exercise("bench", "Bench Press", ExerciseType.WEIGHT_REPS, isCustom = false)))
+        // Well outside the 7-day chip range, well inside the card's own 12-week window.
+        sessionRepo.save(completedSession("s1", today.minusWeeks(8), "bench", listOf(SetEntry(position = 0, weightKg = 100.0, reps = 5))))
+
+        viewModel.uiState.test {
+            var state = awaitItem()
+            while (state.overload.chart.points.isEmpty()) state = awaitItem()
+            assertEquals(1, state.overload.chart.points.size)
+
+            viewModel.setTimeRange(TimeRange.YEAR)
+            while (state.timeRange != TimeRange.YEAR) state = awaitItem()
+
+            assertEquals(1, state.overload.chart.points.size) // unchanged by the range switch
             cancelAndIgnoreRemainingEvents()
         }
     }

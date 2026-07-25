@@ -3,11 +3,17 @@ package dev.antonlammers.trainist.ui.stats
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dev.antonlammers.trainist.domain.ProgressionAdvice
+import dev.antonlammers.trainist.domain.ProgressionAdvisor
+import dev.antonlammers.trainist.domain.ProgressionFacts
+import dev.antonlammers.trainist.domain.ProgressionTrend
 import dev.antonlammers.trainist.domain.WorkoutMetrics
+import dev.antonlammers.trainist.domain.model.Exercise
 import dev.antonlammers.trainist.domain.model.ExerciseType
 import dev.antonlammers.trainist.domain.model.FoodEntry
 import dev.antonlammers.trainist.domain.model.StatCardType
 import dev.antonlammers.trainist.domain.model.WeightEntry
+import dev.antonlammers.trainist.domain.model.WorkoutSession
 import dev.antonlammers.trainist.domain.repository.ExerciseCatalogRepository
 import dev.antonlammers.trainist.domain.repository.FoodEntryRepository
 import dev.antonlammers.trainist.domain.repository.GoalRepository
@@ -15,6 +21,7 @@ import dev.antonlammers.trainist.domain.repository.SettingsRepository
 import dev.antonlammers.trainist.domain.repository.WeightRepository
 import dev.antonlammers.trainist.domain.repository.WorkoutSessionRepository
 import dev.antonlammers.trainist.ui.util.localizedDateFormatter
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -37,6 +44,24 @@ enum class TimeRange {
 
 data class ChartPoint(val label: String, val value: Double)
 
+/**
+ * State of the progressive-overload card: the overall strength index plus the advisor's verdict and
+ * tips. Unlike every other card this one runs on its own fixed [OverloadSeries.WINDOW_WEEKS]-week
+ * window and ignores the screen's time-range chips — a trend needs a minimum observation window, and
+ * a 7-day view of it would only ever show noise.
+ */
+data class OverloadCardState(
+    val chart: OverloadChartData = OverloadChartData(),
+    val trend: ProgressionTrend = ProgressionTrend.INSUFFICIENT_DATA,
+    val advice: List<ProgressionAdvice> = listOf(ProgressionAdvice.COLLECT_MORE_DATA),
+    /** Index change over the window in percent; `null` while there is not enough data. */
+    val changePercent: Double? = null,
+    /** Weeks in the window that produced usable training data. */
+    val trainingWeeks: Int = 0,
+    /** Completed sessions in the window. */
+    val sessions: Int = 0,
+)
+
 data class StatsUiState(
     val timeRange: TimeRange = TimeRange.WEEK,
     val caloriePoints: List<ChartPoint> = emptyList(),
@@ -53,6 +78,8 @@ data class StatsUiState(
     /** The exercise the strength chart is showing (defaults to the first option). */
     val selectedExerciseId: String? = null,
     val strength: StrengthChartData = StrengthChartData(),
+    /** Overall progressive-overload analysis — on its own fixed window, see [OverloadCardState]. */
+    val overload: OverloadCardState = OverloadCardState(),
     /** User-customizable order of the chart cards (drag-to-reorder). */
     val cardOrder: List<StatCardType> = StatCardType.DEFAULT_ORDER,
 )
@@ -133,10 +160,27 @@ class StatsViewModel @Inject constructor(
             initialValue = StatsUiState(),
         )
 
+    // The progressive-overload card runs on its own fixed window, so it lives in a separate combine
+    // rather than inside chartState above — switching the time range must not recompute it, and its
+    // nutrition slice covers the analysis window, not the selected range.
+    private val overloadState: Flow<OverloadCardState> = run {
+        val today = LocalDate.now()
+        val from = OverloadSeries.windowStart(today)
+        combine(
+            workoutSessionRepository.sessions(),
+            exerciseCatalogRepository.exercises(),
+            _allWeights,
+            foodEntryRepository.entriesInRange(from, today),
+            goalRepository.goal(),
+        ) { sessions, catalog, allWeights, foodEntries, goal ->
+            buildOverload(from, today, sessions, catalog, allWeights, foodEntries, goal.kcal)
+        }
+    }
+
     // Recombined on top of chartState so a reorder never re-triggers the (expensive) repository
     // re-subscription above — only the card order itself changes.
-    val uiState: StateFlow<StatsUiState> = combine(chartState, _cardOrder) { state, order ->
-        state.copy(cardOrder = order)
+    val uiState: StateFlow<StatsUiState> = combine(chartState, _cardOrder, overloadState) { state, order, overload ->
+        state.copy(cardOrder = order, overload = overload)
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5_000),
@@ -154,6 +198,69 @@ class StatsViewModel @Inject constructor(
         val reordered = order.toMutableList().apply { val tmp = this[from]; this[from] = this[to]; this[to] = tmp }
         _cardOrder.value = reordered
         viewModelScope.launch { settingsRepository.setStatsCardOrder(reordered) }
+    }
+
+    /**
+     * Builds the progressive-overload card: the chain-linked overall strength index over the window
+     * plus the [ProgressionAdvisor]'s verdict on it. Everything the advisor sees is measured here —
+     * the strength trend from the sessions, the energy signal from the *body-weight trend* (with
+     * logged kcal only as a fallback), protein per kg from the logged days, and training frequency
+     * across the trained span, so a stagnation is attributed to a cause instead of guessed at.
+     */
+    private fun buildOverload(
+        from: LocalDate,
+        today: LocalDate,
+        allSessions: List<WorkoutSession>,
+        catalog: List<Exercise>,
+        allWeights: List<WeightEntry>,
+        foodEntries: List<FoodEntry>,
+        goalKcal: Double,
+    ): OverloadCardState {
+        val byStableId = catalog.associateBy { it.stableId }
+        val sessionsInWindow = allSessions.filter {
+            !it.isActive && !it.date.isBefore(from) && !it.date.isAfter(today)
+        }
+        val index = OverloadSeries.index(
+            sessions = sessionsInWindow,
+            typeOf = { byStableId[it]?.type ?: ExerciseType.WEIGHT_REPS },
+            // Resolved from *all* weigh-ins so a bodyweight 1RM can reference one from before the
+            // window start (same rule as the strength chart).
+            bodyWeightForDate = { WorkoutMetrics.resolveBodyWeightKg(allWeights, it) },
+        )
+        val (minIndex, maxIndex) = OverloadSeries.bounds(index.points)
+        val spanWeeks = OverloadSeries.spanWeeks(index.points)
+        val facts = ProgressionFacts(
+            trainingWeeks = index.points.size,
+            sessions = sessionsInWindow.size,
+            totalChangePercent = OverloadSeries.totalChangePercent(index.points),
+            recentChangePercent = OverloadSeries.changeSince(index.points, today.minusWeeks(OverloadSeries.RECENT_WEEKS)),
+            bodyWeightTrendKgPerWeek = OverloadSeries.bodyWeightTrendKgPerWeek(
+                allWeights.filter { !it.date.isBefore(from) && !it.date.isAfter(today) },
+            ),
+            kcalVsGoal = OverloadSeries.kcalVsGoal(foodEntries, goalKcal),
+            proteinGPerKgBodyWeight = OverloadSeries.proteinPerKgBodyWeight(
+                foodEntries,
+                WorkoutMetrics.resolveBodyWeightKg(allWeights, today),
+            ),
+            sessionsPerWeek = if (spanWeeks > 0) sessionsInWindow.size.toDouble() / spanWeeks else 0.0,
+        )
+        val insight = ProgressionAdvisor.evaluate(facts)
+        return OverloadCardState(
+            chart = OverloadChartData(
+                points = index.points,
+                rangeStart = from,
+                rangeEnd = today,
+                minIndex = minIndex,
+                maxIndex = maxIndex,
+                trackedExercises = index.trackedExercises,
+            ),
+            trend = insight.trend,
+            advice = insight.advice,
+            // Only surfaced once the advisor considers the window large enough to interpret.
+            changePercent = facts.totalChangePercent.takeIf { insight.trend != ProgressionTrend.INSUFFICIENT_DATA },
+            trainingWeeks = facts.trainingWeeks,
+            sessions = facts.sessions,
+        )
     }
 
     /**
