@@ -160,36 +160,39 @@ fun WorkoutSessionScreen(
     }
 
     Scaffold(
+        // The rest timer rides in the top bar slot, directly under the back/finish row: it is the
+        // thing the user watches between sets, and at the bottom it competed with the set rows
+        // (and with the keyboard, which pushed it out of sight while a weight was being typed).
         topBar = {
-            TopAppBar(
-                title = { Text(stringResource(R.string.workout_session_title)) },
-                navigationIcon = {
-                    IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = stringResource(R.string.common_back))
-                    }
-                },
-                actions = {
-                    IconButton(onClick = { showDiscardDialog = true }) {
-                        Icon(
-                            Icons.Rounded.Close,
-                            contentDescription = stringResource(R.string.workout_session_discard_confirm),
-                            tint = MaterialTheme.colorScheme.error,
-                        )
-                    }
-                    TextButton(onClick = viewModel::finish, enabled = !state.loading) {
-                        Text(stringResource(R.string.workout_session_finish_button), style = MaterialTheme.typography.labelLarge)
-                    }
-                },
-            )
-        },
-        bottomBar = {
-            restTimer?.let { timer ->
-                RestTimerBar(
-                    timer = timer,
-                    onPauseResume = { if (timer.isPaused) viewModel.resumeRest() else viewModel.pauseRest() },
-                    onAdjust = viewModel::adjustRest,
-                    onSkip = viewModel::skipRest,
+            Column {
+                TopAppBar(
+                    title = { Text(stringResource(R.string.workout_session_title)) },
+                    navigationIcon = {
+                        IconButton(onClick = { navController.popBackStack() }) {
+                            Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = stringResource(R.string.common_back))
+                        }
+                    },
+                    actions = {
+                        IconButton(onClick = { showDiscardDialog = true }) {
+                            Icon(
+                                Icons.Rounded.Close,
+                                contentDescription = stringResource(R.string.workout_session_discard_confirm),
+                                tint = MaterialTheme.colorScheme.error,
+                            )
+                        }
+                        TextButton(onClick = viewModel::finish, enabled = !state.loading) {
+                            Text(stringResource(R.string.workout_session_finish_button), style = MaterialTheme.typography.labelLarge)
+                        }
+                    },
                 )
+                restTimer?.let { timer ->
+                    RestTimerBar(
+                        timer = timer,
+                        onPauseResume = { if (timer.isPaused) viewModel.resumeRest() else viewModel.pauseRest() },
+                        onAdjust = viewModel::adjustRest,
+                        onSkip = viewModel::skipRest,
+                    )
+                }
             }
         },
     ) { padding ->
@@ -443,7 +446,10 @@ private fun EmptySessionHint() {
 
 /**
  * The sticky rest-timer bar: a progress line over the remaining mm:ss, with ±15 s adjust, a
- * pause/resume toggle and skip. Flat, hairline-topped, Ink & Paper.
+ * pause/resume toggle and skip. Flat, hairline-bottomed, Ink & Paper.
+ *
+ * Sits under the session's top bar, so the progress line reads as attached to it and the hairline
+ * separates the whole header block from the exercise list below.
  */
 @Composable
 private fun RestTimerBar(
@@ -459,7 +465,6 @@ private fun RestTimerBar(
     }
     Surface(color = MaterialTheme.colorScheme.surface, tonalElevation = 0.dp) {
         Column {
-            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
             LinearProgressIndicator(
                 progress = { fraction },
                 modifier = Modifier.fillMaxWidth(),
@@ -493,6 +498,7 @@ private fun RestTimerBar(
                     Icon(Icons.Rounded.SkipNext, contentDescription = stringResource(R.string.workout_session_rest_skip_content_description), tint = MaterialTheme.colorScheme.outline)
                 }
             }
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
         }
     }
 }
