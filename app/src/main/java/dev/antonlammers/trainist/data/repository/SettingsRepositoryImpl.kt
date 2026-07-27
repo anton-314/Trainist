@@ -49,6 +49,13 @@ class SettingsRepositoryImpl @Inject constructor(
         prefs.edit { putBoolean(KEY_ONBOARDING_COMPLETED, completed) }
     }
 
+    override suspend fun isTutorialPending(): Boolean =
+        prefs.getBoolean(KEY_TUTORIAL_PENDING, false)
+
+    override suspend fun setTutorialPending(pending: Boolean) {
+        prefs.edit { putBoolean(KEY_TUTORIAL_PENDING, pending) }
+    }
+
     // Per-app language. MainActivity is a plain ComponentActivity (no AppCompatActivity — the
     // Ink & Paper theme forbids a Theme.AppCompat descendant), so no AppCompatDelegate is ever
     // registered. That makes AppCompatDelegate's own storage/apply path a no-op: on API 33+
@@ -103,6 +110,7 @@ class SettingsRepositoryImpl @Inject constructor(
         private const val KEY_REMINDER_ENABLED = "meal_reminder_enabled"
         private const val KEY_STATS_CARD_ORDER = "stats_card_order"
         private const val KEY_ONBOARDING_COMPLETED = "onboarding_completed"
+        private const val KEY_TUTORIAL_PENDING = "tutorial_pending"
         private const val KEY_APP_LANGUAGE = "app_language"
         private const val KEY_THEME_MODE = "theme_mode"
 

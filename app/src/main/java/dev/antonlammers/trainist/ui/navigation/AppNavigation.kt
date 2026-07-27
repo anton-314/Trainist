@@ -1,6 +1,7 @@
 package dev.antonlammers.trainist.ui.navigation
 
 import androidx.camera.core.ExperimentalGetImage
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material.icons.Icons
@@ -19,12 +20,16 @@ import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
@@ -42,6 +47,12 @@ import dev.antonlammers.trainist.ui.goals.GoalsScreen
 import dev.antonlammers.trainist.ui.help.HelpScreen
 import dev.antonlammers.trainist.ui.settings.SettingsScreen
 import dev.antonlammers.trainist.ui.stats.StatsScreen
+import dev.antonlammers.trainist.ui.tutorial.LocalTutorialAnchors
+import dev.antonlammers.trainist.ui.tutorial.TutorialAnchors
+import dev.antonlammers.trainist.ui.tutorial.TutorialOverlay
+import dev.antonlammers.trainist.ui.tutorial.TutorialTarget
+import dev.antonlammers.trainist.ui.tutorial.TutorialViewModel
+import dev.antonlammers.trainist.ui.tutorial.tutorialAnchor
 import dev.antonlammers.trainist.ui.workout.ExerciseCatalogScreen
 import dev.antonlammers.trainist.ui.workout.ExerciseDetailScreen
 import dev.antonlammers.trainist.ui.workout.TemplateEditorScreen
@@ -89,6 +100,8 @@ private data class BottomNavItem(
     val label: String,
     val selectedIcon: androidx.compose.ui.graphics.vector.ImageVector,
     val unselectedIcon: androidx.compose.ui.graphics.vector.ImageVector,
+    /** Set for the tabs the guided tour points at; null for the ones it reaches by content instead. */
+    val tutorialTarget: TutorialTarget? = null,
 )
 
 // Active tab uses the filled (Rounded) icon variant, inactive the outline variant. A @Composable
@@ -99,8 +112,8 @@ private data class BottomNavItem(
 private fun bottomNavItems() = listOf(
     BottomNavItem(Screen.Overview, stringResource(R.string.nav_overview_label), Icons.Rounded.Restaurant, Icons.Outlined.Restaurant),
     BottomNavItem(Screen.Workout, stringResource(R.string.templates_title), Icons.Rounded.FitnessCenter, Icons.Outlined.FitnessCenter),
-    BottomNavItem(Screen.Stats, stringResource(R.string.stats_title), Icons.Rounded.BarChart, Icons.Outlined.BarChart),
-    BottomNavItem(Screen.Settings, stringResource(R.string.settings_title), Icons.Rounded.Settings, Icons.Outlined.Settings),
+    BottomNavItem(Screen.Stats, stringResource(R.string.stats_title), Icons.Rounded.BarChart, Icons.Outlined.BarChart, TutorialTarget.STATS_TAB),
+    BottomNavItem(Screen.Settings, stringResource(R.string.settings_title), Icons.Rounded.Settings, Icons.Outlined.Settings, TutorialTarget.SETTINGS_TAB),
 )
 
 @ExperimentalGetImage
@@ -108,11 +121,20 @@ private fun bottomNavItems() = listOf(
 fun AppNavigation(
     navController: NavHostController = rememberNavController(),
     openWorkoutSession: Boolean = false,
+    tutorialViewModel: TutorialViewModel = hiltViewModel(),
 ) {
     val backStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = backStackEntry?.destination?.route
     val navItems = bottomNavItems()
     val showBottomNav = navItems.any { it.screen.route == currentRoute }
+
+    // The guided tour runs *over* this navigation host: it owns the tab the tour is on, and the
+    // anchors registry every screen below reports its highlightable elements to.
+    val tutorialStep by tutorialViewModel.step.collectAsStateWithLifecycle()
+    val tutorialAnchors = remember { TutorialAnchors() }
+    // Written before the screens below read it in their tutorialAnchor modifiers, so an element
+    // sitting below the fold scrolls itself into the spotlight in the same frame.
+    tutorialAnchors.currentTarget = tutorialStep?.target
 
     // Tapping a rest-timer notification relaunches the app with this flag set — jump straight
     // into the live session (which resumes the active one regardless of the templateId argument).
@@ -120,77 +142,114 @@ fun AppNavigation(
         if (openWorkoutSession) navController.navigate(Screen.WorkoutSession.start(0))
     }
 
-    Column(modifier = Modifier.fillMaxSize()) {
-        NavHost(
-            navController = navController,
-            startDestination = Screen.Overview.route,
-            modifier = Modifier.weight(1f),
-        ) {
-            composable(Screen.Overview.route) { OverviewScreen(navController) }
-            composable(
-                route = Screen.AddFood.route,
-                arguments = listOf(navArgument("date") { type = NavType.StringType }),
-            ) { AddFoodScreen(navController) }
-            composable(Screen.Workout.route) { TemplatesScreen(navController) }
-            composable(Screen.WorkoutHistory.route) { WorkoutHistoryScreen(navController) }
-            composable(Screen.ExerciseCatalog.route) { ExerciseCatalogScreen(navController) }
-            composable(
-                route = Screen.ExerciseDetail.route,
-                arguments = listOf(navArgument("exerciseStableId") { type = NavType.StringType }),
-            ) { ExerciseDetailScreen(navController) }
-            composable(
-                route = Screen.TemplateEditor.route,
-                arguments = listOf(navArgument("templateId") { type = NavType.LongType }),
-            ) { TemplateEditorScreen(navController) }
-            composable(
-                route = Screen.WorkoutSession.route,
-                arguments = listOf(
-                    navArgument("templateId") { type = NavType.LongType; defaultValue = 0L },
-                ),
-            ) { WorkoutSessionScreen(navController) }
-            composable(Screen.BarcodeScanner.route) { BarcodeScannerScreen(navController) }
-            composable(Screen.Stats.route) { StatsScreen(navController) }
-            composable(Screen.Settings.route) { SettingsScreen(navController) }
-            composable(Screen.Goals.route) { GoalsScreen(navController) }
-            composable(Screen.Help.route) { HelpScreen(navController) }
-            composable(Screen.BmrCalculator.route) { BmrCalculatorScreen(navController) }
+    // Each step names the tab it plays on; switching there is the tour's job, not the user's. Uses
+    // the same tab-switch semantics as the bottom bar, so the tour leaves no back stack behind.
+    LaunchedEffect(tutorialStep) {
+        val route = tutorialStep?.route ?: return@LaunchedEffect
+        if (navController.currentDestination?.route != route) {
+            navController.navigate(route) {
+                popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+                launchSingleTop = true
+                restoreState = true
+            }
         }
-        if (showBottomNav) {
-            // Flat nav bar: hairline top border replaces Material's tonal elevation.
-            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-            NavigationBar(
-                containerColor = MaterialTheme.colorScheme.surface,
-                tonalElevation = 0.dp,
-            ) {
-                navItems.forEach { item ->
-                    val selected = currentRoute == item.screen.route
-                    NavigationBarItem(
-                        selected = selected,
-                        onClick = {
-                            navController.navigate(item.screen.route) {
-                                popUpTo(navController.graph.findStartDestination().id) {
-                                    saveState = true
-                                }
-                                launchSingleTop = true
-                                restoreState = true
-                            }
-                        },
-                        // Icon-only nav: labels are dropped (the pictograms are self-explanatory);
-                        // the label text lives on as the icon's contentDescription for a11y.
-                        icon = {
-                            Icon(
-                                if (selected) item.selectedIcon else item.unselectedIcon,
-                                contentDescription = item.label,
-                            )
-                        },
-                        colors = NavigationBarItemDefaults.colors(
-                            selectedIconColor = MaterialTheme.colorScheme.primary,
-                            indicatorColor = Color.Transparent,
-                            unselectedIconColor = MaterialTheme.colorScheme.outline,
+    }
+
+    Box(modifier = Modifier.fillMaxSize()) {
+        CompositionLocalProvider(LocalTutorialAnchors provides tutorialAnchors) {
+            Column(modifier = Modifier.fillMaxSize()) {
+                NavHost(
+                    navController = navController,
+                    startDestination = Screen.Overview.route,
+                    modifier = Modifier.weight(1f),
+                ) {
+                    composable(Screen.Overview.route) { OverviewScreen(navController) }
+                    composable(
+                        route = Screen.AddFood.route,
+                        arguments = listOf(navArgument("date") { type = NavType.StringType }),
+                    ) { AddFoodScreen(navController) }
+                    composable(Screen.Workout.route) { TemplatesScreen(navController) }
+                    composable(Screen.WorkoutHistory.route) { WorkoutHistoryScreen(navController) }
+                    composable(Screen.ExerciseCatalog.route) { ExerciseCatalogScreen(navController) }
+                    composable(
+                        route = Screen.ExerciseDetail.route,
+                        arguments = listOf(navArgument("exerciseStableId") { type = NavType.StringType }),
+                    ) { ExerciseDetailScreen(navController) }
+                    composable(
+                        route = Screen.TemplateEditor.route,
+                        arguments = listOf(navArgument("templateId") { type = NavType.LongType }),
+                    ) { TemplateEditorScreen(navController) }
+                    composable(
+                        route = Screen.WorkoutSession.route,
+                        arguments = listOf(
+                            navArgument("templateId") { type = NavType.LongType; defaultValue = 0L },
                         ),
-                    )
+                    ) { WorkoutSessionScreen(navController) }
+                    composable(Screen.BarcodeScanner.route) { BarcodeScannerScreen(navController) }
+                    composable(Screen.Stats.route) { StatsScreen(navController) }
+                    composable(Screen.Settings.route) { SettingsScreen(navController) }
+                    composable(Screen.Goals.route) { GoalsScreen(navController) }
+                    composable(Screen.Help.route) {
+                        // The tour's ViewModel is the activity-scoped one held above; a
+                        // hiltViewModel() inside this destination would resolve against the
+                        // back-stack entry and start a second, unobserved tour.
+                        HelpScreen(navController, onStartTutorial = tutorialViewModel::start)
+                    }
+                    composable(Screen.BmrCalculator.route) { BmrCalculatorScreen(navController) }
+                }
+                if (showBottomNav) {
+                    // Flat nav bar: hairline top border replaces Material's tonal elevation.
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                    NavigationBar(
+                        containerColor = MaterialTheme.colorScheme.surface,
+                        tonalElevation = 0.dp,
+                    ) {
+                        navItems.forEach { item ->
+                            val selected = currentRoute == item.screen.route
+                            NavigationBarItem(
+                                selected = selected,
+                                modifier = if (item.tutorialTarget != null) {
+                                    Modifier.tutorialAnchor(item.tutorialTarget)
+                                } else {
+                                    Modifier
+                                },
+                                onClick = {
+                                    navController.navigate(item.screen.route) {
+                                        popUpTo(navController.graph.findStartDestination().id) {
+                                            saveState = true
+                                        }
+                                        launchSingleTop = true
+                                        restoreState = true
+                                    }
+                                },
+                                // Icon-only nav: labels are dropped (the pictograms are self-explanatory);
+                                // the label text lives on as the icon's contentDescription for a11y.
+                                icon = {
+                                    Icon(
+                                        if (selected) item.selectedIcon else item.unselectedIcon,
+                                        contentDescription = item.label,
+                                    )
+                                },
+                                colors = NavigationBarItemDefaults.colors(
+                                    selectedIconColor = MaterialTheme.colorScheme.primary,
+                                    indicatorColor = Color.Transparent,
+                                    unselectedIconColor = MaterialTheme.colorScheme.outline,
+                                ),
+                            )
+                        }
+                    }
                 }
             }
+        }
+
+        tutorialStep?.let { step ->
+            TutorialOverlay(
+                step = step,
+                anchors = tutorialAnchors,
+                onNext = tutorialViewModel::next,
+                onBack = tutorialViewModel::back,
+                onSkip = tutorialViewModel::skip,
+            )
         }
     }
 }

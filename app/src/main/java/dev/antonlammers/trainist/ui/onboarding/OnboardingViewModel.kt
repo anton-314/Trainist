@@ -13,8 +13,10 @@ import javax.inject.Inject
 /**
  * Gates the first-launch welcome flow. Reads the persisted "onboarding completed" flag once and
  * decides whether the app shows the [OnboardingScreen] or goes straight to the main navigation.
- * Owns only the flag — the goals guide reuses [dev.antonlammers.trainist.ui.goals.GoalsViewModel]
- * and the backup quick-start reuses [dev.antonlammers.trainist.ui.data.DataViewModel].
+ * Owns only the flags — the goals guide reuses [dev.antonlammers.trainist.ui.goals.GoalsViewModel],
+ * the backup quick-start reuses [dev.antonlammers.trainist.ui.data.DataViewModel], and the guided
+ * tour that the "I'm new here" path hands over to runs in the main app
+ * ([dev.antonlammers.trainist.ui.tutorial.TutorialViewModel]).
  */
 @HiltViewModel
 class OnboardingViewModel @Inject constructor(
@@ -32,10 +34,19 @@ class OnboardingViewModel @Inject constructor(
         }
     }
 
-    /** Marks onboarding done (persisted) and drops the welcome flow — called by every path out. */
-    fun complete() {
-        _state.value = OnboardingState.Completed
-        viewModelScope.launch { settingsRepository.setOnboardingCompleted(true) }
+    /**
+     * Marks onboarding done and drops the welcome flow — called by every path out.
+     *
+     * [startTutorial] arms the guided tour of the main app (the "I'm new here" path). The state is
+     * flipped only *after* both flags are persisted: the tour's ViewModel reads its flag when the
+     * main navigation first composes, which is exactly what flipping the state triggers.
+     */
+    fun complete(startTutorial: Boolean = false) {
+        viewModelScope.launch {
+            if (startTutorial) settingsRepository.setTutorialPending(true)
+            settingsRepository.setOnboardingCompleted(true)
+            _state.value = OnboardingState.Completed
+        }
     }
 }
 

@@ -29,6 +29,16 @@ interface SettingsRepository {
     suspend fun setOnboardingCompleted(completed: Boolean)
 
     /**
+     * Whether the guided tour through the app still has to run. Default: false — it is opt-in,
+     * set by the onboarding's "I'm new here" path and by the Help Center's "show it again" row,
+     * and cleared once the tour is walked or skipped. Persisted rather than passed along, so a
+     * process death mid-tour resumes it instead of dropping it.
+     */
+    suspend fun isTutorialPending(): Boolean
+
+    suspend fun setTutorialPending(pending: Boolean)
+
+    /**
      * The user's chosen app language as a BCP-47 tag (e.g. "de", "en"), or `null` to follow the
      * system language. Backed by the Android per-app language mechanism, which already persists
      * this itself — the repository is a thin, testable wrapper around it.

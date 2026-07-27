@@ -57,6 +57,8 @@ import androidx.navigation.NavController
 import dev.antonlammers.trainist.R
 import dev.antonlammers.trainist.ui.components.DragReorderColumn
 import dev.antonlammers.trainist.ui.navigation.Screen
+import dev.antonlammers.trainist.ui.tutorial.TutorialTarget
+import dev.antonlammers.trainist.ui.tutorial.tutorialAnchor
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.temporal.ChronoUnit
@@ -91,10 +93,16 @@ fun TemplatesScreen(
             TopAppBar(
                 title = { Text(stringResource(R.string.templates_title)) },
                 actions = {
-                    IconButton(onClick = { navController.navigate(Screen.WorkoutHistory.route) }) {
+                    IconButton(
+                        onClick = { navController.navigate(Screen.WorkoutHistory.route) },
+                        modifier = Modifier.tutorialAnchor(TutorialTarget.WORKOUT_HISTORY),
+                    ) {
                         Icon(Icons.Rounded.CalendarMonth, contentDescription = stringResource(R.string.templates_history_content_description))
                     }
-                    IconButton(onClick = { navController.navigate(Screen.TemplateEditor.forTemplate(0)) }) {
+                    IconButton(
+                        onClick = { navController.navigate(Screen.TemplateEditor.forTemplate(0)) },
+                        modifier = Modifier.tutorialAnchor(TutorialTarget.NEW_TEMPLATE),
+                    ) {
                         Icon(Icons.Rounded.Add, contentDescription = stringResource(R.string.templates_new_template_content_description))
                     }
                     IconButton(onClick = { navController.navigate(Screen.ExerciseCatalog.route) }) {
@@ -106,6 +114,7 @@ fun TemplatesScreen(
         floatingActionButton = {
             ExtendedFloatingActionButton(
                 onClick = { navController.navigate(Screen.WorkoutSession.start(0)) },
+                modifier = Modifier.tutorialAnchor(TutorialTarget.START_WORKOUT),
                 containerColor = MaterialTheme.colorScheme.primary,
                 contentColor = MaterialTheme.colorScheme.onPrimary,
                 elevation = FloatingActionButtonDefaults.elevation(0.dp, 0.dp, 0.dp, 0.dp),

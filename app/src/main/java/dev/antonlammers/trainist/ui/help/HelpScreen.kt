@@ -20,6 +20,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.ExpandMore
+import androidx.compose.material.icons.rounded.Explore
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -46,6 +47,7 @@ import dev.antonlammers.trainist.ui.settings.FeedbackButton
 import dev.antonlammers.trainist.ui.settings.SettingsBottomSpacer
 import dev.antonlammers.trainist.ui.settings.SettingsGroup
 import dev.antonlammers.trainist.ui.settings.SettingsGroupLabel
+import dev.antonlammers.trainist.ui.settings.SettingsRow
 import dev.antonlammers.trainist.ui.settings.SettingsRowDivider
 
 /**
@@ -58,7 +60,7 @@ import dev.antonlammers.trainist.ui.settings.SettingsRowDivider
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun HelpScreen(navController: NavController) {
+fun HelpScreen(navController: NavController, onStartTutorial: () -> Unit) {
     Scaffold(
         topBar = {
             TopAppBar(
@@ -87,6 +89,18 @@ fun HelpScreen(navController: NavController) {
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(top = 4.dp, bottom = 4.dp),
             )
+
+            // The tour explains the same first steps by pointing at the real buttons — offered
+            // above the written version, because being shown beats being told.
+            SettingsGroupLabel(stringResource(R.string.help_section_tour))
+            SettingsGroup {
+                SettingsRow(
+                    icon = Icons.Rounded.Explore,
+                    title = stringResource(R.string.help_tutorial_row_title),
+                    supportingText = stringResource(R.string.help_tutorial_row_subtitle),
+                    onClick = onStartTutorial,
+                )
+            }
 
             // Getting started stays open: someone opening the help on day one shouldn't have to
             // guess which of four collapsed rows explains where to begin.

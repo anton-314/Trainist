@@ -302,12 +302,37 @@
     <string name="onboarding_quickstart_subtitle">Import an existing backup and get started right away.</string>
     <string name="onboarding_start_empty_title">Just get started</string>
     <string name="onboarding_start_empty_subtitle">Start with an empty app — you can set goals anytime later.</string>
+    <string name="onboarding_new_user_title">I\'m new here</string>
+    <string name="onboarding_new_user_subtitle">Calculate your calorie needs and get a quick tour of the app.</string>
     <string name="onboarding_setup_goals_title">Set up goals</string>
-    <string name="onboarding_setup_goals_subtitle">Calculate your personal calorie needs — recommended</string>
     <string name="onboarding_setup_goals_recommended_badge">RECOMMENDED</string>
     <string name="onboarding_guide_skip_button">Skip</string>
     <string name="onboarding_guide_hint">You can adjust these values anytime in settings.</string>
     <string name="onboarding_guide_save_button">Save &amp; get started</string>
+
+    <!-- Guided tour (ui/tutorial/) -->
+    <string name="tutorial_progress">%1$d / %2$d</string>
+    <string name="tutorial_next_button">Next</string>
+    <string name="tutorial_done_button">Let\'s go</string>
+    <string name="tutorial_skip_button">Skip</string>
+    <string name="tutorial_add_food_title">Add a meal</string>
+    <string name="tutorial_add_food_body">The plus button lets you search for a food, scan a barcode or pick something from your history — enter the amount and you\'re done.</string>
+    <string name="tutorial_day_switch_title">Switch days</string>
+    <string name="tutorial_day_switch_body">The arrows take you to another day — that\'s also how you log what you ate yesterday.</string>
+    <string name="tutorial_calorie_ring_title">Your day at a glance</string>
+    <string name="tutorial_calorie_ring_body">The ring shows your calories against your goal, coloured by how clean your foods were. Protein, carbs and fat are right below it.</string>
+    <string name="tutorial_weight_title">Log your weight</string>
+    <string name="tutorial_weight_body">Tap this card to save today\'s weight. One value a day is enough — it becomes your weight curve.</string>
+    <string name="tutorial_start_workout_title">Start a workout</string>
+    <string name="tutorial_start_workout_body">This starts a free workout. Check off the sets you finish and the rest timer runs by itself.</string>
+    <string name="tutorial_new_template_title">Create a template</string>
+    <string name="tutorial_new_template_body">Put your training days together as templates once — a tap on a template then starts the session with all its exercises.</string>
+    <string name="tutorial_history_title">Workout history</string>
+    <string name="tutorial_history_body">The calendar holds every past session: correct sets afterwards and look up your personal records.</string>
+    <string name="tutorial_stats_title">Statistics</string>
+    <string name="tutorial_stats_body">Weight, calories, clean share and strength progress as charts — drag the cards into the order you like.</string>
+    <string name="tutorial_settings_title">Settings &amp; help</string>
+    <string name="tutorial_settings_body">Goals, language, appearance and backups — plus the Help Center, where you can restart this tour anytime.</string>
 
     <!-- BMR/TDEE calculator (ui/bmr/) -->
     <string name="bmr_wizard_title">Calorie calculator</string>
@@ -403,6 +428,10 @@
     <string name="settings_help_row_title">Help &amp; support</string>
     <string name="settings_help_row_description">Getting started, FAQ, contact</string>
     <string name="help_intro">Short answers to the most common questions. If yours isn\'t here, just write to me — you\'ll find out how at the bottom.</string>
+
+    <string name="help_section_tour">TOUR</string>
+    <string name="help_tutorial_row_title">Take the tour again</string>
+    <string name="help_tutorial_row_subtitle">Points out the main features right inside the app.</string>
 
     <string name="help_section_start">GETTING STARTED</string>
     <string name="help_start_goals_title">Set your goals</string>

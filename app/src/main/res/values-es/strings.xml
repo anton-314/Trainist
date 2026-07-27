@@ -302,12 +302,37 @@
     <string name="onboarding_quickstart_subtitle">Importa una copia de seguridad existente y empieza enseguida.</string>
     <string name="onboarding_start_empty_title">Empezar sin más</string>
     <string name="onboarding_start_empty_subtitle">Empieza con la app vacía — puedes definir objetivos más adelante.</string>
+    <string name="onboarding_new_user_title">Soy nuevo aquí</string>
+    <string name="onboarding_new_user_subtitle">Calcula tus necesidades calóricas y conoce la app en un recorrido.</string>
     <string name="onboarding_setup_goals_title">Configurar objetivos</string>
-    <string name="onboarding_setup_goals_subtitle">Calcula tus necesidades calóricas personales — recomendado</string>
     <string name="onboarding_setup_goals_recommended_badge">RECOMENDADO</string>
     <string name="onboarding_guide_skip_button">Omitir</string>
     <string name="onboarding_guide_hint">Puedes ajustar estos valores en cualquier momento en los ajustes.</string>
     <string name="onboarding_guide_save_button">Guardar y empezar</string>
+
+    <!-- Guided tour (ui/tutorial/) -->
+    <string name="tutorial_progress">%1$d / %2$d</string>
+    <string name="tutorial_next_button">Siguiente</string>
+    <string name="tutorial_done_button">¡Vamos!</string>
+    <string name="tutorial_skip_button">Omitir</string>
+    <string name="tutorial_add_food_title">Añadir una comida</string>
+    <string name="tutorial_add_food_body">Con el botón más buscas un alimento, escaneas un código de barras o eliges algo de tu historial — indica la cantidad y listo.</string>
+    <string name="tutorial_day_switch_title">Cambiar de día</string>
+    <string name="tutorial_day_switch_body">Las flechas te llevan a otro día — así también registras lo que comiste ayer.</string>
+    <string name="tutorial_calorie_ring_title">Tu día de un vistazo</string>
+    <string name="tutorial_calorie_ring_body">El anillo muestra tus calorías frente al objetivo, coloreadas según lo clean que fueron tus alimentos. Debajo están proteínas, carbohidratos y grasas.</string>
+    <string name="tutorial_weight_title">Registrar el peso</string>
+    <string name="tutorial_weight_body">Un toque en esta tarjeta guarda tu peso de hoy. Con un valor al día basta — de ahí sale tu curva de peso.</string>
+    <string name="tutorial_start_workout_title">Empezar un entrenamiento</string>
+    <string name="tutorial_start_workout_body">Aquí empiezas un entrenamiento libre. Marca las series terminadas y el temporizador de descanso arranca solo.</string>
+    <string name="tutorial_new_template_title">Crear una plantilla</string>
+    <string name="tutorial_new_template_body">Arma tus días de entrenamiento una vez como plantilla — un toque en ella inicia la sesión con todos sus ejercicios.</string>
+    <string name="tutorial_history_title">Historial de entrenamientos</string>
+    <string name="tutorial_history_body">En el calendario está cada sesión pasada: corrige series después y consulta tus récords.</string>
+    <string name="tutorial_stats_title">Estadísticas</string>
+    <string name="tutorial_stats_body">Peso, calorías, proporción clean y evolución de fuerza en gráficos — arrastra las tarjetas al orden que prefieras.</string>
+    <string name="tutorial_settings_title">Ajustes y ayuda</string>
+    <string name="tutorial_settings_body">Objetivos, idioma, apariencia y copias de seguridad — además del centro de ayuda, donde puedes repetir este recorrido cuando quieras.</string>
 
     <!-- BMR/TDEE calculator (ui/bmr/) -->
     <string name="bmr_wizard_title">Calculadora de calorías</string>
@@ -403,6 +428,10 @@
     <string name="settings_help_row_title">Ayuda y soporte</string>
     <string name="settings_help_row_description">Primeros pasos, preguntas frecuentes, contacto</string>
     <string name="help_intro">Respuestas breves a las preguntas más frecuentes. Si la tuya no está, escríbeme — abajo del todo verás cómo.</string>
+
+    <string name="help_section_tour">RECORRIDO</string>
+    <string name="help_tutorial_row_title">Repetir el recorrido</string>
+    <string name="help_tutorial_row_subtitle">Te señala las funciones principales dentro de la app.</string>
 
     <string name="help_section_start">PRIMEROS PASOS</string>
     <string name="help_start_goals_title">Fija tus objetivos</string>

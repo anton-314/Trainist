@@ -11,6 +11,7 @@ class FakeSettingsRepository(
     private var reminderEnabled: Boolean = true,
     private var statsCardOrder: List<StatCardType> = StatCardType.DEFAULT_ORDER,
     private var onboardingCompleted: Boolean = false,
+    private var tutorialPending: Boolean = false,
     private var appLanguage: String? = null,
     initialThemeMode: ThemeMode = ThemeMode.SYSTEM,
 ) : SettingsRepository {
@@ -38,6 +39,12 @@ class FakeSettingsRepository(
 
     override suspend fun setOnboardingCompleted(completed: Boolean) {
         onboardingCompleted = completed
+    }
+
+    override suspend fun isTutorialPending(): Boolean = tutorialPending
+
+    override suspend fun setTutorialPending(pending: Boolean) {
+        tutorialPending = pending
     }
 
     override suspend fun getAppLanguage(): String? = appLanguage

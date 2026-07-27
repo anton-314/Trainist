@@ -105,6 +105,8 @@ import dev.antonlammers.trainist.ui.navigation.Screen
 import dev.antonlammers.trainist.ui.theme.CarbsColor
 import dev.antonlammers.trainist.ui.theme.FatColor
 import dev.antonlammers.trainist.ui.theme.ProteinColor
+import dev.antonlammers.trainist.ui.tutorial.TutorialTarget
+import dev.antonlammers.trainist.ui.tutorial.tutorialAnchor
 import dev.antonlammers.trainist.ui.util.localizedDateFormatter
 import dev.antonlammers.trainist.util.normalizeDecimal
 import kotlinx.coroutines.launch
@@ -151,7 +153,9 @@ fun OverviewScreen(
                 title = {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .tutorialAnchor(TutorialTarget.DAY_SWITCH),
                     ) {
                         IconButton(onClick = viewModel::previousDay) {
                             Icon(Icons.Rounded.KeyboardArrowLeft, contentDescription = stringResource(R.string.overview_previous_day_content_description))
@@ -177,6 +181,7 @@ fun OverviewScreen(
         floatingActionButton = {
             FloatingActionButton(
                 onClick = { navController.navigate(Screen.AddFood.withDate(state.date)) },
+                modifier = Modifier.tutorialAnchor(TutorialTarget.ADD_FOOD),
                 shape = RoundedCornerShape(20.dp),
                 containerColor = MaterialTheme.colorScheme.primary,
                 contentColor = MaterialTheme.colorScheme.onPrimary,
@@ -201,7 +206,13 @@ fun OverviewScreen(
                     onReplay = { replayTrigger++ },
                 )
             }
-            item { WeightCard(weight = state.todayWeight, onSave = viewModel::saveWeight) }
+            item {
+                WeightCard(
+                    weight = state.todayWeight,
+                    onSave = viewModel::saveWeight,
+                    modifier = Modifier.tutorialAnchor(TutorialTarget.WEIGHT_CARD),
+                )
+            }
             if (state.entries.isEmpty() && state.copyableMeals.isEmpty()) {
                 item {
                     Box(
@@ -504,7 +515,11 @@ private fun MacroSummaryCard(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(20.dp),
         ) {
-            CalorieRing(state = state, time = time)
+            CalorieRing(
+                state = state,
+                time = time,
+                modifier = Modifier.tutorialAnchor(TutorialTarget.CALORIE_RING),
+            )
 
             if (FoodTag.selectable.any { state.kcalForTag(it) > 0 }) {
                 CleanEatingSummary(cleanPercent = state.cleanPercent, time = time)
@@ -534,7 +549,7 @@ private fun MacroSummaryCard(
 }
 
 @Composable
-private fun CalorieRing(state: OverviewUiState, time: Float) {
+private fun CalorieRing(state: OverviewUiState, time: Float, modifier: Modifier = Modifier) {
     val current = state.totalKcal
     val goal = state.goal.kcal
     val progress = if (goal > 0) (current / goal).toFloat().coerceIn(0f, 1f) else 0f
@@ -550,7 +565,7 @@ private fun CalorieRing(state: OverviewUiState, time: Float) {
         .map { tag -> (if (tag == FoodTag.NONE) untaggedConsumedColor else tag.color()) to state.kcalForTag(tag) }
         .filter { it.second > 0 }
 
-    Box(contentAlignment = Alignment.Center, modifier = Modifier.size(176.dp)) {
+    Box(contentAlignment = Alignment.Center, modifier = modifier.size(176.dp)) {
         Canvas(modifier = Modifier.fillMaxSize()) {
             val strokeWidth = 15.5.dp.toPx()
             val diameter = size.minDimension - strokeWidth
@@ -734,7 +749,7 @@ private fun SecondaryMacro(label: String, value: Double, unit: String) {
 }
 
 @Composable
-private fun WeightCard(weight: WeightEntry?, onSave: (Double) -> Unit) {
+private fun WeightCard(weight: WeightEntry?, onSave: (Double) -> Unit, modifier: Modifier = Modifier) {
     var showDialog by remember { mutableStateOf(false) }
     var input by remember { mutableStateOf("") }
 
@@ -763,7 +778,7 @@ private fun WeightCard(weight: WeightEntry?, onSave: (Double) -> Unit) {
     }
 
     Card(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .clickable {
                 input = weight?.weightKg?.let {

@@ -22,9 +22,9 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Calculate
 import androidx.compose.material.icons.rounded.ChevronLeft
 import androidx.compose.material.icons.rounded.ChevronRight
+import androidx.compose.material.icons.rounded.Explore
 import androidx.compose.material.icons.rounded.FileUpload
 import androidx.compose.material.icons.rounded.RocketLaunch
 import androidx.compose.material3.Card
@@ -73,13 +73,18 @@ private enum class OnboardingStep { Welcome, BmrWizard, GoalsReview }
 
 /**
  * First-launch welcome flow. Shows the app name + logo and three ways in: quick-start via backup
- * import, start empty, or the featured "set up goals" path — a mandatory walk through the
+ * import, start empty, or the featured "I'm new here" path — a mandatory walk through the
  * Mifflin-St Jeor calculator ([BmrCalculatorWizard]) that lands on an editable goals-review form
- * ([MacroGoalsEditor]) pre-filled with the calculator's result. Every path calls [onFinished].
+ * ([MacroGoalsEditor]) pre-filled with the calculator's result.
+ *
+ * Every path calls [onFinished]; the "I'm new here" path passes `startTutorial = true`, which hands
+ * the new user over to the guided tour of the main app instead of dropping them on an empty
+ * Ernährung tab. The other two don't: someone restoring a backup has used Trainist before, and
+ * "just get going" is a request to be left alone.
  */
 @Composable
 fun OnboardingScreen(
-    onFinished: () -> Unit,
+    onFinished: (startTutorial: Boolean) -> Unit,
     dataViewModel: DataViewModel = hiltViewModel(),
     goalsViewModel: GoalsViewModel = hiltViewModel(),
     bmrViewModel: BmrCalculatorViewModel = hiltViewModel(),
@@ -90,8 +95,8 @@ fun OnboardingScreen(
     when (step) {
         OnboardingStep.Welcome -> WelcomeStep(
             dataViewModel = dataViewModel,
-            onImported = onFinished,
-            onStartEmpty = onFinished,
+            onImported = { onFinished(false) },
+            onStartEmpty = { onFinished(false) },
             onOpenGuide = { step = OnboardingStep.BmrWizard },
         )
 
@@ -109,7 +114,7 @@ fun OnboardingScreen(
             prefill = pendingPrefill,
             onBack = { step = OnboardingStep.Welcome },
             onOpenBmrCalculator = { step = OnboardingStep.BmrWizard },
-            onDone = onFinished,
+            onDone = { onFinished(true) },
         )
     }
 }
@@ -205,10 +210,10 @@ private fun WelcomeStep(
             )
             Spacer(Modifier.height(12.dp))
             FeaturedOptionCard(
-                icon = Icons.Rounded.Calculate,
+                icon = Icons.Rounded.Explore,
                 badge = stringResource(R.string.onboarding_setup_goals_recommended_badge),
-                title = stringResource(R.string.onboarding_setup_goals_title),
-                subtitle = stringResource(R.string.onboarding_setup_goals_subtitle),
+                title = stringResource(R.string.onboarding_new_user_title),
+                subtitle = stringResource(R.string.onboarding_new_user_subtitle),
                 enabled = !dataState.isLoading,
                 onClick = onOpenGuide,
             )
