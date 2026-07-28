@@ -1,5 +1,7 @@
 package dev.antonlammers.trainist.ui.settings
 
+import android.content.ActivityNotFoundException
+import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -7,6 +9,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.MailOutline
+import androidx.compose.material.icons.rounded.StarRate
 import androidx.compose.material.icons.rounded.VolunteerActivism
 import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
@@ -21,12 +24,12 @@ import dev.antonlammers.trainist.BuildConfig
 import dev.antonlammers.trainist.R
 
 /**
- * The two ways to support Trainist — donate, or write to the developer.
+ * The three ways to support Trainist — rate it, donate, or write to the developer.
  *
- * Both live at the end of the Help Center (`ui/help/HelpScreen`): a question the FAQ doesn't answer
- * should lead straight to a mail draft, so support isn't a destination of its own. [DonateButton] is
- * deliberately *also* placed on the settings hub itself: a donation the user has to go looking for
- * is a donation that doesn't happen.
+ * All live at the end of the Help Center (`ui/help/HelpScreen`): a question the FAQ doesn't answer
+ * should lead straight to a mail draft, so support isn't a destination of its own. [DonateButton]
+ * and the rating link are deliberately *also* reachable from the settings hub itself: a donation
+ * (or a rating) the user has to go looking for is one that doesn't happen.
  */
 
 /** PayPal donation — used both in the Help Center and directly on the settings hub. */
@@ -76,6 +79,48 @@ fun FeedbackButton() {
             modifier = Modifier.padding(end = 8.dp),
         )
         Text(stringResource(R.string.settings_contact_developer_button))
+    }
+}
+
+/** Opens Trainist's Play Store listing, where the user can leave a rating. */
+@Composable
+fun RateButton() {
+    val context = LocalContext.current
+    OutlinedButton(
+        onClick = { context.openPlayStoreListing() },
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(14.dp),
+    ) {
+        Icon(
+            Icons.Rounded.StarRate,
+            contentDescription = null,
+            modifier = Modifier.padding(end = 8.dp),
+        )
+        Text(stringResource(R.string.settings_rate_button))
+    }
+}
+
+/**
+ * Sends the user to the Play Store listing for [BuildConfig.APPLICATION_ID].
+ *
+ * A plain deep link, deliberately not Play's in-app review API: Google's guidance forbids putting
+ * that flow behind a button (it is meant to fire at a natural moment, and it silently does nothing
+ * for installs that didn't come from Play), so a button promising a rating dialog would often
+ * deliver none. `market://` opens the Play app directly; the https form covers devices without it.
+ * If neither resolves there is nothing left to open, so the tap does nothing rather than crash.
+ */
+internal fun Context.openPlayStoreListing() {
+    val listings = listOf(
+        "market://details?id=${BuildConfig.APPLICATION_ID}",
+        "https://play.google.com/store/apps/details?id=${BuildConfig.APPLICATION_ID}",
+    )
+    for (listing in listings) {
+        try {
+            startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(listing)))
+            return
+        } catch (_: ActivityNotFoundException) {
+            // No handler for this form — fall through to the next one.
+        }
     }
 }
 

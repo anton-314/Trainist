@@ -206,6 +206,9 @@
     <string name="settings_donation_body">Die App wird von einer einzelnen Person in der Freizeit entwickelt. Wenn sie dir hilft, freue ich mich über einen Kaffee.</string>
     <string name="settings_donation_cta">Kaffee spendieren</string>
     <string name="settings_contact_developer_button">Feedback senden</string>
+    <string name="settings_rate_button">Im Play Store bewerten</string>
+    <string name="settings_rate_row_title">Trainist bewerten</string>
+    <string name="settings_rate_row_description">Eine Bewertung hilft anderen, die App zu finden.</string>
     <string name="settings_contact_email_subject">Trainist — Feedback &amp; Verbesserungsvorschläge</string>
     <string name="settings_contact_email_body">Was gefällt dir, was nicht?\n\n\nWelche Funktion wünschst du dir?\n\n\n---\nTrainist %1$s</string>
     <string name="settings_group_nutrition">ERNÄHRUNG</string>

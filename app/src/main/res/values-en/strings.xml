@@ -206,6 +206,9 @@
     <string name="settings_donation_body">The app is developed by a single person in their spare time. If it helps you, I\'d appreciate a coffee.</string>
     <string name="settings_donation_cta">Buy me a coffee</string>
     <string name="settings_contact_developer_button">Send feedback</string>
+    <string name="settings_rate_button">Rate on Play Store</string>
+    <string name="settings_rate_row_title">Rate Trainist</string>
+    <string name="settings_rate_row_description">A rating helps other people find the app.</string>
     <string name="settings_contact_email_subject">Trainist — Feedback &amp; suggestions</string>
     <string name="settings_contact_email_body">What do you like, what don\'t you?\n\n\nWhich feature would you like to see?\n\n\n---\nTrainist %1$s</string>
     <string name="settings_group_nutrition">NUTRITION</string>

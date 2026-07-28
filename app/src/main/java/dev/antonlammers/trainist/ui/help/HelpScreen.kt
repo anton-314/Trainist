@@ -44,6 +44,7 @@ import androidx.navigation.NavController
 import dev.antonlammers.trainist.R
 import dev.antonlammers.trainist.ui.settings.DonateButton
 import dev.antonlammers.trainist.ui.settings.FeedbackButton
+import dev.antonlammers.trainist.ui.settings.RateButton
 import dev.antonlammers.trainist.ui.settings.SettingsBottomSpacer
 import dev.antonlammers.trainist.ui.settings.SettingsGroup
 import dev.antonlammers.trainist.ui.settings.SettingsGroupLabel
@@ -202,7 +203,8 @@ private fun HelpExpandableRow(entry: HelpEntry) {
 
 /**
  * The end of the help is the way out of it: a question the FAQ doesn't answer goes straight to the
- * developer. The donation ask sits below it — the same pair the (now removed) support sheet held.
+ * developer. The rating link sits next to it — someone who read this far has an opinion worth
+ * asking for, and the two are the same gesture from the user's side. The donation ask follows.
  */
 @Composable
 private fun ColumnScope.ContactSection() {
@@ -214,6 +216,8 @@ private fun ColumnScope.ContactSection() {
         modifier = Modifier.padding(bottom = 12.dp),
     )
     FeedbackButton()
+    Spacer(Modifier.height(8.dp))
+    RateButton()
 
     Spacer(Modifier.height(24.dp))
     Text(stringResource(R.string.settings_donation_title), style = MaterialTheme.typography.titleMedium)

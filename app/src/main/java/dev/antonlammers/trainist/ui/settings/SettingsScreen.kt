@@ -14,6 +14,7 @@ import androidx.compose.material.icons.rounded.DarkMode
 import androidx.compose.material.icons.rounded.HelpOutline
 import androidx.compose.material.icons.rounded.Language
 import androidx.compose.material.icons.rounded.Notifications
+import androidx.compose.material.icons.rounded.StarRate
 import androidx.compose.material.icons.rounded.TrackChanges
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -122,6 +123,10 @@ fun SettingsScreen(
                     onClick = { navController.navigate(Screen.Help.route) },
                     trailing = { Chevron() },
                 )
+                SettingsRowDivider()
+                // Also offered at the end of the Help Center — but a rating asked for only there
+                // is one nobody gets around to. Leaves the app for the Play listing.
+                RateRow()
             }
 
             // Also in the Help Center, but repeated here on purpose: a donation the user has to go
@@ -132,6 +137,20 @@ fun SettingsScreen(
             SettingsBottomSpacer()
         }
     }
+}
+
+/** Play Store listing — see [openPlayStoreListing] for why this is a link and not an in-app flow. */
+@Composable
+private fun RateRow() {
+    val context = LocalContext.current
+
+    SettingsRow(
+        icon = Icons.Rounded.StarRate,
+        title = stringResource(R.string.settings_rate_row_title),
+        supportingText = stringResource(R.string.settings_rate_row_description),
+        onClick = { context.openPlayStoreListing() },
+        trailing = { Chevron() },
+    )
 }
 
 /** Daily goals — the row previews the calorie target so the common case needs no tap. */
