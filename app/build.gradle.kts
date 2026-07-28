@@ -73,6 +73,11 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
+        // The whole app speaks java.time (LocalDate is the domain's date type, stored as ISO text
+        // in Room), but java.time only exists on the device from API 26. Desugaring back-ports it
+        // into the APK, so minSdk can stay at 24 — without it, anything touching a date throws
+        // NoClassDefFoundError on Android 7.x, which is every screen right after launch.
+        isCoreLibraryDesugaringEnabled = true
     }
     kotlinOptions {
         jvmTarget = "11"
@@ -89,6 +94,9 @@ ksp {
 }
 
 dependencies {
+    // Back-ports java.time (and friends) to minSdk — see isCoreLibraryDesugaringEnabled above.
+    coreLibraryDesugaring(libs.desugar.jdk.libs)
+
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)
     implementation(libs.androidx.lifecycle.runtime.ktx)

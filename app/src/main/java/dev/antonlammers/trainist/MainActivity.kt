@@ -57,6 +57,11 @@ class MainActivity : ComponentActivity() {
         super.attachBaseContext(context)
     }
 
+    // Where the @ExperimentalGetImage chain from the barcode analyzer terminates. It must be
+    // androidx's OptIn, not Kotlin's: the marker is a Java @RequiresOptIn, so the Kotlin compiler
+    // ignores it entirely and only lint enforces it — and lint reads the annotation off the
+    // enclosing declaration, not off a statement inside it.
+    @androidx.annotation.OptIn(markerClass = [ExperimentalGetImage::class])
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -65,7 +70,6 @@ class MainActivity : ComponentActivity() {
         // notification, so tearing anything down would kill a rest that is still running. The alert
         // notification auto-cancels on tap, and its ~2 s tone has all but finished by then anyway.
         val openWorkoutSession = intent.getBooleanExtra(RestTimerNotifier.EXTRA_OPEN_WORKOUT_SESSION, false)
-        @OptIn(ExperimentalGetImage::class)
         setContent {
             // App appearance: the user's choice wins over the system setting (ThemeMode.SYSTEM
             // defers to it). The value is known synchronously on the first composition, so a pinned
