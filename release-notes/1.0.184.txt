@@ -1,0 +1,32 @@
+<en-US>
+What's new:
+
+• Guided tour: after installing, Trainist now walks you through the main features right inside the app. Skippable at any point, and you can start it again anytime under Help & support.
+• The rest timer has moved to the top of the screen and stays visible while you type in weight and reps.
+• New button for rating Trainist — in Settings and in Help & support.
+• Fix: Trainist now runs on Android 7 as well.
+</en-US>
+<de-DE>
+Neu in dieser Version:
+
+• Rundgang: Nach der Installation zeigt dir Trainist die wichtigsten Funktionen direkt in der App. Jederzeit überspringbar und unter Hilfe & Support jederzeit erneut startbar.
+• Der Pausen-Timer sitzt jetzt oben am Bildschirm und bleibt sichtbar, während du Gewicht und Wiederholungen einträgst.
+• Neuer Knopf zum Bewerten – in den Einstellungen und unter Hilfe & Support.
+• Fehlerbehebung: Trainist läuft jetzt auch auf Android 7.
+</de-DE>
+<es-ES>
+Novedades:
+
+• Recorrido guiado: tras instalar la app, Trainist te muestra las funciones principales directamente en la pantalla. Puedes saltarlo en cualquier momento y repetirlo desde Ayuda y soporte.
+• El temporizador de descanso ahora está arriba en la pantalla y sigue visible mientras escribes el peso y las repeticiones.
+• Nuevo botón para valorar Trainist, en Ajustes y en Ayuda y soporte.
+• Corrección: Trainist ya funciona también en Android 7.
+</es-ES>
+<fr-FR>
+Nouveautés :
+
+• Visite guidée : après l'installation, Trainist te présente les fonctions principales directement dans l'appli. Tu peux la passer à tout moment et la relancer depuis Aide & assistance.
+• Le minuteur de repos est passé en haut de l'écran et reste visible pendant que tu saisis le poids et les répétitions.
+• Nouveau bouton pour noter Trainist, dans les paramètres et dans Aide & assistance.
+• Correction : Trainist fonctionne désormais aussi sur Android 7.
+</fr-FR>
