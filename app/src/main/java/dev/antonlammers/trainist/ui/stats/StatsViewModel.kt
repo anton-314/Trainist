@@ -8,12 +8,15 @@ import dev.antonlammers.trainist.domain.ProgressionAdvisor
 import dev.antonlammers.trainist.domain.ProgressionFacts
 import dev.antonlammers.trainist.domain.ProgressionTrend
 import dev.antonlammers.trainist.domain.WorkoutMetrics
+import dev.antonlammers.trainist.domain.model.BodyMeasurementEntry
 import dev.antonlammers.trainist.domain.model.Exercise
 import dev.antonlammers.trainist.domain.model.ExerciseType
 import dev.antonlammers.trainist.domain.model.FoodEntry
+import dev.antonlammers.trainist.domain.model.MeasurementType
 import dev.antonlammers.trainist.domain.model.StatCardType
 import dev.antonlammers.trainist.domain.model.WeightEntry
 import dev.antonlammers.trainist.domain.model.WorkoutSession
+import dev.antonlammers.trainist.domain.repository.BodyMeasurementRepository
 import dev.antonlammers.trainist.domain.repository.ExerciseCatalogRepository
 import dev.antonlammers.trainist.domain.repository.FoodEntryRepository
 import dev.antonlammers.trainist.domain.repository.GoalRepository
@@ -27,6 +30,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -43,6 +47,12 @@ enum class TimeRange {
 }
 
 data class ChartPoint(val label: String, val value: Double)
+
+/** State of the Körpermaße card: which [MeasurementType] is selected plus its chart data. */
+data class MeasurementCardState(
+    val selectedType: MeasurementType = MeasurementType.WAIST,
+    val chart: MeasurementChartData = MeasurementChartData(),
+)
 
 /**
  * State of the progressive-overload card: the overall strength index plus the advisor's verdict and
@@ -80,6 +90,10 @@ data class StatsUiState(
     val strength: StrengthChartData = StrengthChartData(),
     /** Overall progressive-overload analysis — on its own fixed window, see [OverloadCardState]. */
     val overload: OverloadCardState = OverloadCardState(),
+    /** Körpermaße card — selected type + its chart data over the current time range. */
+    val measurement: MeasurementCardState = MeasurementCardState(),
+    /** Today's already-logged measurements, keyed by type — prefills the quick-add entry sheet. */
+    val todaysMeasurements: Map<MeasurementType, Double> = emptyMap(),
     /** User-customizable order of the chart cards (drag-to-reorder). */
     val cardOrder: List<StatCardType> = StatCardType.DEFAULT_ORDER,
 )
@@ -92,10 +106,12 @@ class StatsViewModel @Inject constructor(
     private val workoutSessionRepository: WorkoutSessionRepository,
     private val exerciseCatalogRepository: ExerciseCatalogRepository,
     private val settingsRepository: SettingsRepository,
+    private val bodyMeasurementRepository: BodyMeasurementRepository,
 ) : ViewModel() {
 
     private val _timeRange = MutableStateFlow(TimeRange.WEEK)
     private val _selectedExerciseId = MutableStateFlow<String?>(null)
+    private val _selectedMeasurementType = MutableStateFlow(MeasurementType.WAIST)
     private val _cardOrder = MutableStateFlow(StatCardType.DEFAULT_ORDER)
 
     // All weigh-ins (loaded once) — used to resolve body weight for bodyweight-exercise 1RMs, which
@@ -108,17 +124,21 @@ class StatsViewModel @Inject constructor(
     }
 
     private val chartState: StateFlow<StatsUiState> =
-        combine(_timeRange, _selectedExerciseId) { range, selectedId -> range to selectedId }
-        .flatMapLatest { (range, selectedId) ->
+        combine(_timeRange, _selectedExerciseId, _selectedMeasurementType) { range, selectedId, selectedType -> Triple(range, selectedId, selectedType) }
+        .flatMapLatest { (range, selectedId, selectedType) ->
             val (from, to) = range.dateRange()
             combine(
                 foodEntryRepository.entriesInRange(from, to),
                 weightRepository.entriesInRange(from, to),
                 goalRepository.goal(),
                 workoutSessionRepository.sessions(),
-                combine(exerciseCatalogRepository.exercises(), _allWeights) { catalog, allWeights -> catalog to allWeights },
-            ) { foodEntries, weightEntries, goal, allSessions, catalogAndWeights ->
-                val (catalog, allWeights) = catalogAndWeights
+                combine(
+                    exerciseCatalogRepository.exercises(),
+                    _allWeights,
+                    bodyMeasurementRepository.entriesInRange(from, to),
+                ) { catalog, allWeights, measurements -> Triple(catalog, allWeights, measurements) },
+            ) { foodEntries, weightEntries, goal, allSessions, catalogWeightsMeasurements ->
+                val (catalog, allWeights, measurementEntries) = catalogWeightsMeasurements
                 val byStableId = catalog.associateBy { it.stableId }
                 val sessionsInRange = allSessions.filter {
                     !it.isActive && !it.date.isBefore(from) && !it.date.isAfter(to)
@@ -151,6 +171,10 @@ class StatsViewModel @Inject constructor(
                     strengthExercises = options,
                     selectedExerciseId = effectiveId,
                     strength = strength,
+                    measurement = MeasurementCardState(
+                        selectedType = selectedType,
+                        chart = buildMeasurementData(range, from, to, measurementEntries, selectedType),
+                    ),
                 )
             }
         }
@@ -177,10 +201,16 @@ class StatsViewModel @Inject constructor(
         }
     }
 
+    // Today's measurements for the entry sheet's prefill — always "today", independent of the
+    // selected time range, so it lives in its own flow rather than inside chartState above.
+    private val todaysMeasurements: Flow<Map<MeasurementType, Double>> =
+        bodyMeasurementRepository.entriesForDate(LocalDate.now())
+            .map { entries -> entries.associate { it.type to it.valueCm } }
+
     // Recombined on top of chartState so a reorder never re-triggers the (expensive) repository
     // re-subscription above — only the card order itself changes.
-    val uiState: StateFlow<StatsUiState> = combine(chartState, _cardOrder, overloadState) { state, order, overload ->
-        state.copy(cardOrder = order, overload = overload)
+    val uiState: StateFlow<StatsUiState> = combine(chartState, _cardOrder, overloadState, todaysMeasurements) { state, order, overload, todays ->
+        state.copy(cardOrder = order, overload = overload, todaysMeasurements = todays)
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5_000),
@@ -190,6 +220,13 @@ class StatsViewModel @Inject constructor(
     fun setTimeRange(range: TimeRange) = _timeRange.update { range }
 
     fun setSelectedExercise(stableId: String) = _selectedExerciseId.update { stableId }
+
+    fun setSelectedMeasurementType(type: MeasurementType) = _selectedMeasurementType.update { type }
+
+    /** Saves the entry sheet's values for today; a `null` value clears any existing entry for that type. */
+    fun saveMeasurements(values: Map<MeasurementType, Double?>) {
+        viewModelScope.launch { bodyMeasurementRepository.save(LocalDate.now(), values) }
+    }
 
     /** Swap two cards — called repeatedly (once per adjacent step) while a card is dragged into place. */
     fun moveCard(from: Int, to: Int) {
@@ -325,6 +362,18 @@ class StatsViewModel @Inject constructor(
             maxKg = maxKg,
             targetKg = targetKg,
         )
+    }
+
+    private fun buildMeasurementData(
+        range: TimeRange,
+        from: LocalDate,
+        to: LocalDate,
+        entries: List<BodyMeasurementEntry>,
+        type: MeasurementType,
+    ): MeasurementChartData {
+        val samples = MeasurementSeries.samples(range, entries, type)
+        val (minCm, maxCm) = MeasurementSeries.bounds(samples)
+        return MeasurementChartData(samples = samples, rangeStart = from, rangeEnd = to, minCm = minCm, maxCm = maxCm)
     }
 }
 

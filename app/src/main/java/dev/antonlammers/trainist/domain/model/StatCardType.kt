@@ -7,7 +7,7 @@ package dev.antonlammers.trainist.domain.model
  * dropped rather than crashing.
  */
 enum class StatCardType {
-    CALORIES, CLEAN_EATING, WEIGHT, TRAINING_FREQUENCY, STRENGTH, PROGRESSIVE_OVERLOAD;
+    CALORIES, CLEAN_EATING, WEIGHT, TRAINING_FREQUENCY, STRENGTH, PROGRESSIVE_OVERLOAD, MEASUREMENTS;
 
     companion object {
         /**
@@ -17,6 +17,7 @@ enum class StatCardType {
          */
         val DEFAULT_ORDER: List<StatCardType> = listOf(
             WEIGHT,
+            MEASUREMENTS,
             PROGRESSIVE_OVERLOAD,
             CALORIES,
             CLEAN_EATING,

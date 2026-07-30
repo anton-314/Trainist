@@ -6,6 +6,7 @@ import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import dev.antonlammers.trainist.data.backup.BackupExporterImpl
 import dev.antonlammers.trainist.data.backup.BackupImporterImpl
+import dev.antonlammers.trainist.data.repository.BodyMeasurementRepositoryImpl
 import dev.antonlammers.trainist.data.repository.CustomFoodRepositoryImpl
 import dev.antonlammers.trainist.data.repository.ExerciseCatalogRepositoryImpl
 import dev.antonlammers.trainist.data.repository.FoodEntryRepositoryImpl
@@ -23,6 +24,7 @@ import dev.antonlammers.trainist.domain.backup.BackupImporter
 import dev.antonlammers.trainist.data.repository.WeightRepositoryImpl
 import dev.antonlammers.trainist.data.repository.WorkoutSessionRepositoryImpl
 import dev.antonlammers.trainist.data.repository.WorkoutTemplateRepositoryImpl
+import dev.antonlammers.trainist.domain.repository.BodyMeasurementRepository
 import dev.antonlammers.trainist.domain.repository.CustomFoodRepository
 import dev.antonlammers.trainist.domain.repository.ExerciseCatalogRepository
 import dev.antonlammers.trainist.domain.repository.FoodEntryRepository
@@ -49,6 +51,9 @@ abstract class RepositoryModule {
 
     @Binds @Singleton
     abstract fun bindWeightRepository(impl: WeightRepositoryImpl): WeightRepository
+
+    @Binds @Singleton
+    abstract fun bindBodyMeasurementRepository(impl: BodyMeasurementRepositoryImpl): BodyMeasurementRepository
 
     @Binds @Singleton
     abstract fun bindCustomFoodRepository(impl: CustomFoodRepositoryImpl): CustomFoodRepository

@@ -4,6 +4,7 @@ import androidx.room.Database
 import androidx.room.RoomDatabase
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
+import dev.antonlammers.trainist.data.local.dao.BodyMeasurementDao
 import dev.antonlammers.trainist.data.local.dao.CustomFoodDao
 import dev.antonlammers.trainist.data.local.dao.DailyGoalDao
 import dev.antonlammers.trainist.data.local.dao.ExerciseDao
@@ -11,6 +12,7 @@ import dev.antonlammers.trainist.data.local.dao.FoodEntryDao
 import dev.antonlammers.trainist.data.local.dao.WeightEntryDao
 import dev.antonlammers.trainist.data.local.dao.WorkoutSessionDao
 import dev.antonlammers.trainist.data.local.dao.WorkoutTemplateDao
+import dev.antonlammers.trainist.data.local.entity.BodyMeasurementEntity
 import dev.antonlammers.trainist.data.local.entity.CustomFoodEntity
 import dev.antonlammers.trainist.data.local.entity.DailyGoalEntity
 import dev.antonlammers.trainist.data.local.entity.ExerciseEntity
@@ -27,8 +29,9 @@ import dev.antonlammers.trainist.data.local.entity.WorkoutTemplateEntity
         FoodEntryEntity::class, DailyGoalEntity::class, WeightEntryEntity::class, CustomFoodEntity::class,
         ExerciseEntity::class, WorkoutTemplateEntity::class, TemplateExerciseEntity::class,
         WorkoutSessionEntity::class, SessionExerciseEntity::class, SetEntryEntity::class,
+        BodyMeasurementEntity::class,
     ],
-    version = 12,
+    version = 13,
     exportSchema = true,
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -39,6 +42,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun exerciseDao(): ExerciseDao
     abstract fun workoutTemplateDao(): WorkoutTemplateDao
     abstract fun workoutSessionDao(): WorkoutSessionDao
+    abstract fun bodyMeasurementDao(): BodyMeasurementDao
 
     companion object {
         val MIGRATION_1_2 = object : Migration(1, 2) {
@@ -184,6 +188,26 @@ abstract class AppDatabase : RoomDatabase() {
                 db.execSQL("ALTER TABLE daily_goal ADD COLUMN bmrAgeYears INTEGER")
                 db.execSQL("ALTER TABLE daily_goal ADD COLUMN bmrHeightCm REAL")
                 db.execSQL("ALTER TABLE daily_goal ADD COLUMN bmrActivityLevel TEXT")
+            }
+        }
+
+        /**
+         * Adds the `body_measurements` table (cm values per date + [dev.antonlammers.trainist.domain.model.MeasurementType],
+         * at most one row per (date, type)) for the Stats screen's Körpermaße card.
+         */
+        val MIGRATION_12_13 = object : Migration(12, 13) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS body_measurements (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        date TEXT NOT NULL,
+                        type TEXT NOT NULL,
+                        valueCm REAL NOT NULL
+                    )
+                    """.trimIndent()
+                )
+                db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS index_body_measurements_date_type ON body_measurements (date, type)")
             }
         }
     }

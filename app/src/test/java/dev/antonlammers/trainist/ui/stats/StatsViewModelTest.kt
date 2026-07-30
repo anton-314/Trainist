@@ -9,11 +9,13 @@ import dev.antonlammers.trainist.domain.model.ExerciseType
 import dev.antonlammers.trainist.domain.model.FoodEntry
 import dev.antonlammers.trainist.domain.model.FoodTag
 import dev.antonlammers.trainist.domain.model.MealCategory
+import dev.antonlammers.trainist.domain.model.MeasurementType
 import dev.antonlammers.trainist.domain.model.SessionExercise
 import dev.antonlammers.trainist.domain.model.SetEntry
 import dev.antonlammers.trainist.domain.model.StatCardType
 import dev.antonlammers.trainist.domain.model.WeightEntry
 import dev.antonlammers.trainist.domain.model.WorkoutSession
+import dev.antonlammers.trainist.fake.FakeBodyMeasurementRepository
 import dev.antonlammers.trainist.fake.FakeExerciseCatalogRepository
 import dev.antonlammers.trainist.fake.FakeFoodEntryRepository
 import dev.antonlammers.trainist.fake.FakeGoalRepository
@@ -43,6 +45,7 @@ class StatsViewModelTest {
     private lateinit var sessionRepo: FakeWorkoutSessionRepository
     private lateinit var catalogRepo: FakeExerciseCatalogRepository
     private lateinit var settingsRepo: FakeSettingsRepository
+    private lateinit var measurementRepo: FakeBodyMeasurementRepository
     private lateinit var viewModel: StatsViewModel
 
     @Before
@@ -54,7 +57,8 @@ class StatsViewModelTest {
         sessionRepo = FakeWorkoutSessionRepository()
         catalogRepo = FakeExerciseCatalogRepository()
         settingsRepo = FakeSettingsRepository()
-        viewModel = StatsViewModel(foodRepo, weightRepo, goalRepo, sessionRepo, catalogRepo, settingsRepo)
+        measurementRepo = FakeBodyMeasurementRepository()
+        viewModel = StatsViewModel(foodRepo, weightRepo, goalRepo, sessionRepo, catalogRepo, settingsRepo, measurementRepo)
     }
 
     @After
@@ -169,6 +173,60 @@ class StatsViewModelTest {
             assertEquals(2, state.weight.samples.size)
             assertEquals(81.0, state.weight.samples.first().kg, 0.001) // (80 + 82) / 2
             assertEquals(79.0, state.weight.samples.last().kg, 0.001)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    // --- body measurements ---
+
+    @Test
+    fun `measurement card defaults to WAIST and surfaces its samples`() = runTest {
+        val today = LocalDate.now()
+        measurementRepo.save(today.minusDays(1), mapOf(MeasurementType.WAIST to 80.0))
+        measurementRepo.save(today, mapOf(MeasurementType.WAIST to 79.0, MeasurementType.CHEST to 100.0))
+
+        viewModel.uiState.test {
+            var state = awaitItem()
+            while (state.measurement.chart.samples.size < 2) state = awaitItem()
+
+            assertEquals(MeasurementType.WAIST, state.measurement.selectedType)
+            assertEquals(listOf(80.0, 79.0), state.measurement.chart.samples.map { it.cm })
+            assertEquals(-1.0, state.measurement.chart.delta!!, 0.001)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `selecting another measurement type switches the chart`() = runTest {
+        val today = LocalDate.now()
+        measurementRepo.save(today, mapOf(MeasurementType.WAIST to 79.0, MeasurementType.CHEST to 100.0))
+
+        viewModel.uiState.test {
+            var state = awaitItem()
+            while (state.measurement.chart.samples.isEmpty()) state = awaitItem()
+            assertEquals(79.0, state.measurement.chart.current!!, 0.001)
+
+            viewModel.setSelectedMeasurementType(MeasurementType.CHEST)
+            while (state.measurement.selectedType != MeasurementType.CHEST) state = awaitItem()
+            assertEquals(100.0, state.measurement.chart.current!!, 0.001)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `saveMeasurements writes today's values and a null value clears an existing entry`() = runTest {
+        val today = LocalDate.now()
+        measurementRepo.save(today, mapOf(MeasurementType.WAIST to 79.0))
+
+        viewModel.uiState.test {
+            var state = awaitItem()
+            while (state.todaysMeasurements[MeasurementType.WAIST] != 79.0) state = awaitItem()
+
+            viewModel.saveMeasurements(mapOf(MeasurementType.WAIST to null, MeasurementType.CHEST to 101.0))
+            while (state.todaysMeasurements[MeasurementType.CHEST] != 101.0) state = awaitItem()
+
+            assertTrue(MeasurementType.WAIST !in state.todaysMeasurements)
+            assertEquals(101.0, state.todaysMeasurements[MeasurementType.CHEST]!!, 0.001)
             cancelAndIgnoreRemainingEvents()
         }
     }
@@ -349,7 +407,7 @@ class StatsViewModelTest {
         (0 until 6).forEach { week ->
             weightRepo.save(WeightEntry(date = today.minusWeeks(5L - week), weightKg = 85.0 - week * 0.5, timestampMs = week.toLong()))
         }
-        val restarted = StatsViewModel(foodRepo, weightRepo, goalRepo, sessionRepo, catalogRepo, settingsRepo)
+        val restarted = StatsViewModel(foodRepo, weightRepo, goalRepo, sessionRepo, catalogRepo, settingsRepo, measurementRepo)
 
         restarted.uiState.test {
             var state = awaitItem()
@@ -423,7 +481,7 @@ class StatsViewModelTest {
     fun `saved card order is restored on start`() = runTest {
         val saved = listOf(StatCardType.STRENGTH, StatCardType.CALORIES, StatCardType.WEIGHT, StatCardType.CLEAN_EATING, StatCardType.TRAINING_FREQUENCY)
         settingsRepo.setStatsCardOrder(saved)
-        val restored = StatsViewModel(foodRepo, weightRepo, goalRepo, sessionRepo, catalogRepo, settingsRepo)
+        val restored = StatsViewModel(foodRepo, weightRepo, goalRepo, sessionRepo, catalogRepo, settingsRepo, measurementRepo)
 
         restored.uiState.test {
             var state = awaitItem()

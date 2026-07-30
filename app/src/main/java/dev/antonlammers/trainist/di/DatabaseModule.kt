@@ -8,6 +8,7 @@ import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import dev.antonlammers.trainist.data.local.AppDatabase
+import dev.antonlammers.trainist.data.local.dao.BodyMeasurementDao
 import dev.antonlammers.trainist.data.local.dao.CustomFoodDao
 import dev.antonlammers.trainist.data.local.dao.DailyGoalDao
 import dev.antonlammers.trainist.data.local.dao.ExerciseDao
@@ -37,6 +38,7 @@ object DatabaseModule {
                 AppDatabase.MIGRATION_9_10,
                 AppDatabase.MIGRATION_10_11,
                 AppDatabase.MIGRATION_11_12,
+                AppDatabase.MIGRATION_12_13,
             )
             .build()
 
@@ -60,4 +62,7 @@ object DatabaseModule {
 
     @Provides
     fun provideWorkoutSessionDao(db: AppDatabase): WorkoutSessionDao = db.workoutSessionDao()
+
+    @Provides
+    fun provideBodyMeasurementDao(db: AppDatabase): BodyMeasurementDao = db.bodyMeasurementDao()
 }

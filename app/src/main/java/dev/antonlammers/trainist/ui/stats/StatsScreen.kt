@@ -30,7 +30,9 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.CornerRadius
@@ -70,6 +72,7 @@ fun StatsScreen(
     statsViewModel: StatsViewModel = hiltViewModel(),
 ) {
     val state by statsViewModel.uiState.collectAsStateWithLifecycle()
+    var showMeasurementSheet by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
@@ -215,6 +218,14 @@ fun StatsScreen(
                         ) {
                             OverloadCard(state.overload)
                         }
+                        StatCardType.MEASUREMENTS -> ChartCard(stringResource(R.string.stats_card_measurements), rowModifier, dragHandleModifier, isDragging) {
+                            MeasurementCard(
+                                state = state.measurement,
+                                range = state.timeRange,
+                                onSelectType = statsViewModel::setSelectedMeasurementType,
+                                onAddClick = { showMeasurementSheet = true },
+                            )
+                        }
                         StatCardType.STRENGTH -> ChartCard(stringResource(R.string.stats_card_strength), rowModifier, dragHandleModifier, isDragging) {
                             if (state.strengthExercises.isEmpty()) {
                                 ChartEmptyHint(stringResource(R.string.stats_empty_strength))
@@ -251,6 +262,17 @@ fun StatsScreen(
                 Spacer(Modifier.height(24.dp))
             }
         }
+    }
+
+    if (showMeasurementSheet) {
+        MeasurementEntrySheet(
+            today = state.todaysMeasurements,
+            onSave = { values ->
+                statsViewModel.saveMeasurements(values)
+                showMeasurementSheet = false
+            },
+            onDismiss = { showMeasurementSheet = false },
+        )
     }
 }
 
@@ -352,7 +374,7 @@ private fun WeightSummary(data: WeightChartData) {
 }
 
 @Composable
-private fun SummaryStat(label: String, value: String) {
+internal fun SummaryStat(label: String, value: String) {
     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
         Text(
             label.uppercase(currentAppLocale()),
@@ -551,14 +573,14 @@ private fun TimeRange.label(): String = stringResource(
     },
 )
 
-private fun weightTickFormatter(range: TimeRange): DateTimeFormatter = when (range) {
+internal fun weightTickFormatter(range: TimeRange): DateTimeFormatter = when (range) {
     TimeRange.WEEK -> localizedDateFormatter("EE")
     TimeRange.MONTH -> localizedDateFormatter("d.M.")
     TimeRange.YEAR -> localizedDateFormatter("MMM")
 }
 
-/** Evenly spaced tick dates across the range; count tuned per range to avoid label overlap. */
-private fun weightTickDates(start: LocalDate, end: LocalDate, range: TimeRange): List<LocalDate> {
+/** Evenly spaced tick dates across the range; count tuned per range to avoid label overlap. Shared with [MeasurementCard]. */
+internal fun weightTickDates(start: LocalDate, end: LocalDate, range: TimeRange): List<LocalDate> {
     val count = when (range) {
         TimeRange.WEEK -> 7
         TimeRange.MONTH -> 5

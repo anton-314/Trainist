@@ -269,12 +269,15 @@
     <string name="stats_card_weight">Poids</string>
     <string name="stats_card_training_frequency">Fréquence d\'entraînement</string>
     <string name="stats_card_strength">Progression de force</string>
+    <string name="stats_card_measurements">Mensurations</string>
     <string name="stats_empty_calories">Pas encore d\'entrées</string>
     <string name="stats_empty_clean_eating">Pas encore d\'entrées taguées</string>
     <string name="stats_empty_weight">Pas encore de données de poids</string>
     <string name="stats_empty_frequency">Pas encore de séances</string>
     <string name="stats_empty_strength">Pas encore de données d\'entraînement</string>
     <string name="stats_empty_strength_exercise">Aucune donnée pour cet exercice sur cette période</string>
+    <string name="stats_empty_measurements">Aucune mensuration enregistrée</string>
+    <string name="stats_empty_measurements_type">Aucune donnée pour cette mesure sur cette période</string>
     <string name="stats_clean_average">Moy. %1$d %%</string>
     <string name="stats_weight_current">Actuel</string>
     <string name="stats_weight_change">Évolution</string>
@@ -297,6 +300,17 @@
     <string name="stats_overload_advice_consistency">Tes séances sont trop irrégulières pour un stimulus constant. Chaque groupe musculaire devrait être entraîné environ 2× par semaine — la régularité pèse plus que n\'importe quel détail de programme.</string>
     <string name="stats_overload_advice_deload">Tu t\'entraînes depuis plus de 8 semaines sans décharge. Une semaine de deload (volume réduit de moitié, charges maintenues) évacue la fatigue et rend le bloc suivant à nouveau progressif.</string>
     <string name="stats_overload_advice_progression_scheme">L\'alimentation et la récupération semblent correctes : c\'est donc la programmation. Amène tes dernières séries plus près de l\'échec (1–3 répétitions en réserve) et tiens environ 10–20 séries efficaces par groupe musculaire et par semaine.</string>
+
+    <!-- Body measurements (ui/stats/MeasurementCard.kt, MeasurementEntrySheet.kt) -->
+    <string name="measurement_type_neck">Cou</string>
+    <string name="measurement_type_chest">Poitrine</string>
+    <string name="measurement_type_waist">Taille</string>
+    <string name="measurement_type_hips">Hanches</string>
+    <string name="measurement_type_biceps">Biceps</string>
+    <string name="measurement_type_thigh">Cuisse</string>
+    <string name="measurement_type_calf">Mollet</string>
+    <string name="measurement_add_content_description">Enregistrer les mensurations</string>
+    <string name="measurement_entry_sheet_title">Enregistrer les mensurations</string>
 
     <!-- OnboardingScreen (ui/onboarding/OnboardingScreen.kt) -->
     <string name="onboarding_welcome_prefix">Bienvenue sur</string>

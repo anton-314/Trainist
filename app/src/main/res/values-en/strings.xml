@@ -269,12 +269,15 @@
     <string name="stats_card_weight">Weight</string>
     <string name="stats_card_training_frequency">Training Frequency</string>
     <string name="stats_card_strength">Strength Progress</string>
+    <string name="stats_card_measurements">Body measurements</string>
     <string name="stats_empty_calories">No entries yet</string>
     <string name="stats_empty_clean_eating">No tagged entries yet</string>
     <string name="stats_empty_weight">No weight data yet</string>
     <string name="stats_empty_frequency">No sessions yet</string>
     <string name="stats_empty_strength">No training data yet</string>
     <string name="stats_empty_strength_exercise">No data for this exercise in this range</string>
+    <string name="stats_empty_measurements">No measurements logged yet</string>
+    <string name="stats_empty_measurements_type">No data for this measurement in this range</string>
     <string name="stats_clean_average">Avg %1$d %%</string>
     <string name="stats_weight_current">Current</string>
     <string name="stats_weight_change">Change</string>
@@ -297,6 +300,17 @@
     <string name="stats_overload_advice_consistency">Your sessions are too irregular for a steady stimulus. Each muscle group should be trained about twice a week — consistency matters more than any programme detail.</string>
     <string name="stats_overload_advice_deload">You have trained for more than 8 weeks without a break. A deload week (roughly halve the volume, keep the weights) sheds fatigue and makes the next block progressive again.</string>
     <string name="stats_overload_advice_progression_scheme">Nutrition and recovery look fine — so it comes down to your programming. Take your last sets closer to failure (1–3 reps in reserve) and keep about 10–20 hard sets per muscle group per week.</string>
+
+    <!-- Body measurements (ui/stats/MeasurementCard.kt, MeasurementEntrySheet.kt) -->
+    <string name="measurement_type_neck">Neck</string>
+    <string name="measurement_type_chest">Chest</string>
+    <string name="measurement_type_waist">Waist</string>
+    <string name="measurement_type_hips">Hips</string>
+    <string name="measurement_type_biceps">Biceps</string>
+    <string name="measurement_type_thigh">Thigh</string>
+    <string name="measurement_type_calf">Calf</string>
+    <string name="measurement_add_content_description">Log measurements</string>
+    <string name="measurement_entry_sheet_title">Log measurements</string>
 
     <!-- OnboardingScreen (ui/onboarding/OnboardingScreen.kt) -->
     <string name="onboarding_welcome_prefix">Welcome to</string>

@@ -1,0 +1,92 @@
+package dev.antonlammers.trainist.ui.stats
+
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Button
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.Text
+import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
+import dev.antonlammers.trainist.R
+import dev.antonlammers.trainist.domain.model.MeasurementType
+import dev.antonlammers.trainist.ui.components.NumericTextField
+import dev.antonlammers.trainist.util.normalizeDecimal
+
+/**
+ * Quick-add sheet for today's body measurements: one optional cm field per [MeasurementType],
+ * prefilled from [today]. A blank field on save means "no entry for that type today" (clears any
+ * existing one) — the map [onSave] receives is the complete state for the day, not a diff.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+internal fun MeasurementEntrySheet(
+    today: Map<MeasurementType, Double>,
+    onSave: (Map<MeasurementType, Double?>) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val sheetState = rememberModalBottomSheetState()
+    var fields by remember(today) {
+        mutableStateOf(MeasurementType.entries.associateWith { type -> today[type]?.let { formatCm(it) } ?: "" })
+    }
+
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        modifier = Modifier.statusBarsPadding(),
+        sheetState = sheetState,
+        shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
+        containerColor = MaterialTheme.colorScheme.surface,
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp)
+                .navigationBarsPadding()
+                .imePadding()
+                .padding(bottom = 20.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+        ) {
+            Text(stringResource(R.string.measurement_entry_sheet_title), style = MaterialTheme.typography.titleLarge)
+
+            MeasurementType.entries.forEach { type ->
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text(
+                        type.displayName(),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    NumericTextField(
+                        value = fields[type].orEmpty(),
+                        onValueChange = { text -> fields = fields + (type to text) },
+                        label = null,
+                        suffix = "cm",
+                        textStyle = MaterialTheme.typography.titleMedium,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
+            }
+
+            Button(
+                onClick = { onSave(fields.mapValues { (_, text) -> text.normalizeDecimal().toDoubleOrNull() }) },
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(14.dp),
+            ) {
+                Text(stringResource(R.string.common_save), style = MaterialTheme.typography.labelLarge)
+            }
+        }
+    }
+}

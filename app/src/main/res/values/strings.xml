@@ -269,12 +269,15 @@
     <string name="stats_card_weight">Gewicht</string>
     <string name="stats_card_training_frequency">Trainingsfrequenz</string>
     <string name="stats_card_strength">Kraftverlauf</string>
+    <string name="stats_card_measurements">Körpermaße</string>
     <string name="stats_empty_calories">Noch keine Einträge</string>
     <string name="stats_empty_clean_eating">Noch keine getaggten Einträge</string>
     <string name="stats_empty_weight">Noch keine Gewichtsdaten</string>
     <string name="stats_empty_frequency">Noch keine Einheiten</string>
     <string name="stats_empty_strength">Noch keine Trainingsdaten</string>
     <string name="stats_empty_strength_exercise">Für diese Übung keine Daten im Zeitraum</string>
+    <string name="stats_empty_measurements">Noch keine Maße erfasst</string>
+    <string name="stats_empty_measurements_type">Für dieses Maß keine Daten im Zeitraum</string>
     <string name="stats_clean_average">Ø %1$d %%</string>
     <string name="stats_weight_current">Aktuell</string>
     <string name="stats_weight_change">Veränderung</string>
@@ -297,6 +300,17 @@
     <string name="stats_overload_advice_consistency">Deine Einheiten sind zu unregelmäßig für einen stetigen Reiz. Jede Muskelgruppe sollte etwa 2× pro Woche trainiert werden – Regelmäßigkeit wirkt stärker als jedes Programm-Detail.</string>
     <string name="stats_overload_advice_deload">Du trainierst seit über 8 Wochen ohne Entlastung. Eine Deload-Woche (Volumen etwa halbieren, Gewichte beibehalten) baut Ermüdung ab und macht den nächsten Block wieder progressiv.</string>
     <string name="stats_overload_advice_progression_scheme">Ernährung und Erholung sehen unauffällig aus – dann liegt es an der Programmierung. Trainiere die letzten Sätze näher am Muskelversagen (1–3 Wiederholungen in Reserve) und halte etwa 10–20 harte Sätze pro Muskelgruppe und Woche.</string>
+
+    <!-- Body measurements (ui/stats/MeasurementCard.kt, MeasurementEntrySheet.kt) -->
+    <string name="measurement_type_neck">Hals</string>
+    <string name="measurement_type_chest">Brust</string>
+    <string name="measurement_type_waist">Taille</string>
+    <string name="measurement_type_hips">Hüfte</string>
+    <string name="measurement_type_biceps">Bizeps</string>
+    <string name="measurement_type_thigh">Oberschenkel</string>
+    <string name="measurement_type_calf">Wade</string>
+    <string name="measurement_add_content_description">Maße erfassen</string>
+    <string name="measurement_entry_sheet_title">Maße erfassen</string>
 
     <!-- OnboardingScreen (ui/onboarding/OnboardingScreen.kt) -->
     <string name="onboarding_welcome_prefix">Willkommen bei</string>

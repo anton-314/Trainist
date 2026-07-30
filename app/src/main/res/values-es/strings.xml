@@ -269,12 +269,15 @@
     <string name="stats_card_weight">Peso</string>
     <string name="stats_card_training_frequency">Frecuencia de entrenamiento</string>
     <string name="stats_card_strength">Progreso de fuerza</string>
+    <string name="stats_card_measurements">Medidas corporales</string>
     <string name="stats_empty_calories">Aún no hay entradas</string>
     <string name="stats_empty_clean_eating">Aún no hay entradas etiquetadas</string>
     <string name="stats_empty_weight">Aún no hay datos de peso</string>
     <string name="stats_empty_frequency">Aún no hay sesiones</string>
     <string name="stats_empty_strength">Aún no hay datos de entrenamiento</string>
     <string name="stats_empty_strength_exercise">No hay datos de este ejercicio en este período</string>
+    <string name="stats_empty_measurements">Aún no hay medidas registradas</string>
+    <string name="stats_empty_measurements_type">No hay datos de esta medida en este período</string>
     <string name="stats_clean_average">Media %1$d %%</string>
     <string name="stats_weight_current">Actual</string>
     <string name="stats_weight_change">Cambio</string>
@@ -297,6 +300,17 @@
     <string name="stats_overload_advice_consistency">Tus sesiones son demasiado irregulares para un estímulo constante. Cada grupo muscular debería entrenarse unas 2 veces por semana: la regularidad pesa más que cualquier detalle del programa.</string>
     <string name="stats_overload_advice_deload">Llevas más de 8 semanas entrenando sin descarga. Una semana de deload (reducir el volumen a la mitad y mantener los pesos) elimina fatiga y vuelve progresivo el siguiente bloque.</string>
     <string name="stats_overload_advice_progression_scheme">La alimentación y la recuperación no muestran problemas, así que es cuestión de programación. Lleva las últimas series más cerca del fallo (1–3 repeticiones en reserva) y mantén unas 10–20 series efectivas por grupo muscular y semana.</string>
+
+    <!-- Body measurements (ui/stats/MeasurementCard.kt, MeasurementEntrySheet.kt) -->
+    <string name="measurement_type_neck">Cuello</string>
+    <string name="measurement_type_chest">Pecho</string>
+    <string name="measurement_type_waist">Cintura</string>
+    <string name="measurement_type_hips">Cadera</string>
+    <string name="measurement_type_biceps">Bíceps</string>
+    <string name="measurement_type_thigh">Muslo</string>
+    <string name="measurement_type_calf">Pantorrilla</string>
+    <string name="measurement_add_content_description">Registrar medidas</string>
+    <string name="measurement_entry_sheet_title">Registrar medidas</string>
 
     <!-- OnboardingScreen (ui/onboarding/OnboardingScreen.kt) -->
     <string name="onboarding_welcome_prefix">Bienvenido a</string>
