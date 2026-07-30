@@ -21,7 +21,6 @@ import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material.icons.rounded.Close
-import androidx.compose.material.icons.rounded.DragIndicator
 import androidx.compose.material.icons.rounded.Pause
 import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material.icons.rounded.RadioButtonUnchecked
@@ -46,6 +45,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -64,7 +64,6 @@ import dev.antonlammers.trainist.domain.model.ExerciseType
 import dev.antonlammers.trainist.domain.model.SetEntry
 import dev.antonlammers.trainist.domain.model.SetType
 import dev.antonlammers.trainist.notification.RestTimerService
-import dev.antonlammers.trainist.ui.components.DragReorderColumn
 import dev.antonlammers.trainist.ui.components.NumericTextField
 import dev.antonlammers.trainist.ui.navigation.Screen
 import dev.antonlammers.trainist.ui.util.currentAppLocale
@@ -217,7 +216,6 @@ fun WorkoutSessionScreen(
                         onRemove = { viewModel.removeExercise(index) },
                         onAddSet = { viewModel.addSet(index) },
                         onRemoveSet = { setIndex -> viewModel.removeSet(index, setIndex) },
-                        onMoveSet = { from, to -> viewModel.moveSet(index, from, to) },
                         onWeightChange = { setIndex, w -> viewModel.setWeight(index, setIndex, w) },
                         onRepsChange = { setIndex, r -> viewModel.setReps(index, setIndex, r) },
                         onToggleCompleted = { setIndex -> viewModel.toggleSetCompleted(index, setIndex) },
@@ -251,7 +249,6 @@ private fun ExerciseCard(
     onRemove: () -> Unit,
     onAddSet: () -> Unit,
     onRemoveSet: (Int) -> Unit,
-    onMoveSet: (from: Int, to: Int) -> Unit,
     onWeightChange: (Int, Double) -> Unit,
     onRepsChange: (Int, Int) -> Unit,
     onToggleCompleted: (Int) -> Unit,
@@ -288,7 +285,6 @@ private fun ExerciseCard(
 
         // Column captions — spacing must mirror SetRow's spacedBy(8.dp) so captions sit above their fields.
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Box(Modifier.width(28.dp)) // spacer for the drag-handle column
             Caption(stringResource(R.string.workout_session_set_number_caption), Modifier.width(32.dp))
             Caption(weightCaption, Modifier.weight(1f))
             Caption(stringResource(R.string.workout_session_reps_caption), Modifier.weight(1f))
@@ -296,28 +292,23 @@ private fun ExerciseCard(
             Box(Modifier.width(88.dp))
         }
 
-        DragReorderColumn(
-            items = exercise.sets,
-            key = { it.id },
-            onMove = onMoveSet,
-            modifier = Modifier.fillMaxWidth(),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-        ) { setIndex, set, rowModifier, dragHandleModifier, isDragging ->
-            val hint = exercise.lastPerformance.getOrNull(setIndex)
-            SetRow(
-                setNumber = setIndex + 1,
-                set = set,
-                weightPlaceholder = hint?.let { weightToText(it.weightKg).ifEmpty { "0" } },
-                repsPlaceholder = hint?.let { it.reps.takeIf { r -> r != 0 }?.toString() },
-                isDragging = isDragging,
-                rowModifier = rowModifier,
-                dragHandleModifier = dragHandleModifier,
-                onWeightChange = { onWeightChange(setIndex, it) },
-                onRepsChange = { onRepsChange(setIndex, it) },
-                onToggleCompleted = { onToggleCompleted(setIndex) },
-                onSetTypeChange = { onSetTypeChange(setIndex, it) },
-                onDelete = { onRemoveSet(setIndex) },
-            )
+        Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            exercise.sets.forEachIndexed { setIndex, set ->
+                val hint = exercise.lastPerformance.getOrNull(setIndex)
+                key(set.id) {
+                    SetRow(
+                        setNumber = setIndex + 1,
+                        set = set,
+                        weightPlaceholder = hint?.let { weightToText(it.weightKg).ifEmpty { "0" } },
+                        repsPlaceholder = hint?.let { it.reps.takeIf { r -> r != 0 }?.toString() },
+                        onWeightChange = { onWeightChange(setIndex, it) },
+                        onRepsChange = { onRepsChange(setIndex, it) },
+                        onToggleCompleted = { onToggleCompleted(setIndex) },
+                        onSetTypeChange = { onSetTypeChange(setIndex, it) },
+                        onDelete = { onRemoveSet(setIndex) },
+                    )
+                }
+            }
         }
 
         TextButton(onClick = onAddSet) {
@@ -351,9 +342,6 @@ private fun SetRow(
     set: SetEntry,
     weightPlaceholder: String?,
     repsPlaceholder: String?,
-    isDragging: Boolean,
-    rowModifier: Modifier,
-    dragHandleModifier: Modifier,
     onWeightChange: (Double) -> Unit,
     onRepsChange: (Int) -> Unit,
     onToggleCompleted: () -> Unit,
@@ -368,21 +356,13 @@ private fun SetRow(
     var repsText by remember(set.id, set.completed) { mutableStateOf(repsToText(set.reps)) }
 
     Row(
-        modifier = rowModifier
+        modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(8.dp))
-            .background(
-                if (isDragging) MaterialTheme.colorScheme.surfaceVariant else MaterialTheme.colorScheme.surface,
-            ),
+            .background(MaterialTheme.colorScheme.surface),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        Icon(
-            Icons.Rounded.DragIndicator,
-            contentDescription = stringResource(R.string.workout_session_drag_handle_content_description),
-            tint = MaterialTheme.colorScheme.outline,
-            modifier = dragHandleModifier.size(28.dp),
-        )
         SetTypeBadge(
             setNumber = setNumber,
             type = set.type,

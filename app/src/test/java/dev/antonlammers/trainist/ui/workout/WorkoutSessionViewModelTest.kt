@@ -195,26 +195,6 @@ class WorkoutSessionViewModelTest {
         assertTrue(set.completed)
     }
 
-    @Test
-    fun `moveSet reorders sets and reindexes positions`() = runTest {
-        val vm = viewModel()
-        subscribe(vm.uiState)
-        advanceUntilIdle()
-        vm.addExercise(exercise("bench", "Bench Press"))
-        advanceUntilIdle()
-        vm.addSet(0)
-        advanceUntilIdle()
-        vm.setReps(0, 0, 10) // first set marked so we can track it
-        advanceUntilIdle()
-
-        vm.moveSet(0, 0, 1)
-        advanceUntilIdle()
-
-        val sets = vm.uiState.value.exercises[0].sets
-        assertEquals(10, sets[1].reps) // moved to the back
-        assertEquals(listOf(0, 1), sets.map { it.position }) // positions renumbered by order
-    }
-
     // --- set types ---
 
     @Test
