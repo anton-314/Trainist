@@ -232,6 +232,7 @@
     <string name="data_import_exercises">%1$d ejercicios personalizados</string>
     <string name="data_import_templates">%1$d plantillas</string>
     <string name="data_import_sessions">%1$d sesiones</string>
+    <string name="data_import_measurements">%1$d medidas corporales</string>
 
     <!-- ExerciseCatalogScreen (ui/workout/ExerciseCatalogScreen.kt) -->
     <string name="exercise_catalog_title">Ejercicios</string>

@@ -1,14 +1,17 @@
 package dev.antonlammers.trainist.data.backup
 
+import dev.antonlammers.trainist.domain.model.BodyMeasurementEntry
 import dev.antonlammers.trainist.domain.model.Exercise
 import dev.antonlammers.trainist.domain.model.ExerciseType
 import dev.antonlammers.trainist.domain.model.Mechanic
+import dev.antonlammers.trainist.domain.model.MeasurementType
 import dev.antonlammers.trainist.domain.model.SessionExercise
 import dev.antonlammers.trainist.domain.model.SetEntry
 import dev.antonlammers.trainist.domain.model.SetType
 import dev.antonlammers.trainist.domain.model.TemplateExercise
 import dev.antonlammers.trainist.domain.model.WorkoutSession
 import dev.antonlammers.trainist.domain.model.WorkoutTemplate
+import dev.antonlammers.trainist.fake.FakeBodyMeasurementRepository
 import dev.antonlammers.trainist.fake.FakeCustomFoodRepository
 import dev.antonlammers.trainist.fake.FakeExerciseCatalogRepository
 import dev.antonlammers.trainist.fake.FakeFoodEntryRepository
@@ -54,6 +57,12 @@ class BackupImporterTest {
     fun `detectCsvType returns CUSTOM_FOODS when kcal_per_100g column is present`() {
         val headers = CsvFormat.parseHeaders(CustomFoodCsvFormat.HEADER)
         assertEquals(CsvType.CUSTOM_FOODS, detectCsvType(headers))
+    }
+
+    @Test
+    fun `detectCsvType returns BODY_MEASUREMENTS when value_cm column is present`() {
+        val headers = CsvFormat.parseHeaders(BodyMeasurementCsvFormat.HEADER)
+        assertEquals(CsvType.BODY_MEASUREMENTS, detectCsvType(headers))
     }
 
     @Test
@@ -155,9 +164,11 @@ class BackupImporterTest {
         val sessions = FakeWorkoutSessionRepository()
         val food = FakeFoodEntryRepository()
 
+        val measurements = FakeBodyMeasurementRepository()
+
         val result = importZipEntries(
             ByteArrayInputStream(zip),
-            targetsOf(food = food, catalog = catalog, templates = templates, sessions = sessions),
+            targetsOf(food = food, catalog = catalog, templates = templates, sessions = sessions, measurements = measurements),
         )
 
         // Nutrition still imports unchanged next to the new training sections.
@@ -165,6 +176,7 @@ class BackupImporterTest {
         assertEquals(1, result.exercisesImported)
         assertEquals(1, result.templatesImported)
         assertEquals(1, result.sessionsImported)
+        assertEquals(1, result.measurementsImported)
 
         // Only the custom exercise travelled; its metadata survived the round-trip.
         val klimmzug = catalog.exercises().first().first { it.stableId == "custom-klimmzug" }
@@ -294,6 +306,20 @@ class BackupImporterTest {
         assertEquals("Klimmzug", catalog.exercises().first().single().name)
     }
 
+    @Test
+    fun `single body measurements CSV imports standalone`() = runTest {
+        val measurements = FakeBodyMeasurementRepository()
+        val entry = BodyMeasurementEntry(date = LocalDate.parse("2026-06-01"), type = MeasurementType.WAIST, valueCm = 81.5)
+        val lines = listOf(BodyMeasurementCsvFormat.HEADER, BodyMeasurementCsvFormat.toRow(entry))
+
+        val result = importCsvLines(lines, targetsOf(measurements = measurements))
+
+        assertEquals(1, result.measurementsImported)
+        val saved = measurements.entriesForDate(entry.date).first().single()
+        assertEquals(MeasurementType.WAIST, saved.type)
+        assertEquals(81.5, saved.valueCm, 0.001)
+    }
+
     // --- Training fixtures & CSV builders (mirror what BackupExporter writes) --------------------
 
     private fun customKlimmzug() = Exercise(
@@ -359,11 +385,13 @@ class BackupImporterTest {
         val exercises = listOf(customKlimmzug())
         val templates = listOf(pushDayTemplate())
         val sessions = listOf(loggedSession())
+        val measurements = listOf(BodyMeasurementEntry(date = LocalDate.parse("2026-06-01"), type = MeasurementType.WAIST, valueCm = 81.5))
         return zipOf(
             "food_entries.csv" to """
                 date,food_name,brand,amount_grams,kcal,protein_g,carbs_g,fat_g,sugar_g,fiber_g,salt_g,meal_category,tag,timestamp_ms
                 2026-06-01,Apfel,,150,80,0.5,21,0.3,18,2,0,SNACK,NONE,1717200000000
             """.trimIndent(),
+            "body_measurements.csv" to section(BodyMeasurementCsvFormat.HEADER, measurements.map { BodyMeasurementCsvFormat.toRow(it) }),
             WorkoutBackupEntries.EXERCISES to section(ExerciseCsvFormat.HEADER, exercises.map { ExerciseCsvFormat.toRow(it) }),
             WorkoutBackupEntries.WORKOUT_TEMPLATES to section(WorkoutTemplateCsvFormat.HEADER, templates.map { WorkoutTemplateCsvFormat.toRow(it) }),
             WorkoutBackupEntries.TEMPLATE_EXERCISES to section(
@@ -393,7 +421,8 @@ class BackupImporterTest {
         catalog: FakeExerciseCatalogRepository = FakeExerciseCatalogRepository(),
         templates: FakeWorkoutTemplateRepository = FakeWorkoutTemplateRepository(),
         sessions: FakeWorkoutSessionRepository = FakeWorkoutSessionRepository(),
-    ) = ImportTargets(food, weight, goal, custom, catalog, templates, sessions)
+        measurements: FakeBodyMeasurementRepository = FakeBodyMeasurementRepository(),
+    ) = ImportTargets(food, weight, goal, custom, catalog, templates, sessions, measurements)
 
     private fun zipOf(vararg entries: Pair<String, String>): ByteArray {
         val bytes = ByteArrayOutputStream()

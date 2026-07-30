@@ -4,6 +4,7 @@ import android.content.Context
 import android.net.Uri
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dev.antonlammers.trainist.domain.backup.BackupImporter
+import dev.antonlammers.trainist.domain.repository.BodyMeasurementRepository
 import dev.antonlammers.trainist.domain.repository.CustomFoodRepository
 import dev.antonlammers.trainist.domain.repository.ExerciseCatalogRepository
 import dev.antonlammers.trainist.domain.repository.FoodEntryRepository
@@ -20,6 +21,7 @@ internal enum class CsvType {
     FOOD_ENTRIES, WEIGHT_ENTRIES, DAILY_GOAL, CUSTOM_FOODS,
     EXERCISES, WORKOUT_TEMPLATES, TEMPLATE_EXERCISES,
     WORKOUT_SESSIONS, SESSION_EXERCISES, SET_ENTRIES,
+    BODY_MEASUREMENTS,
     UNKNOWN,
 }
 
@@ -32,6 +34,7 @@ internal fun detectCsvType(headers: Map<String, Int>): CsvType = when {
     WorkoutSessionCsvFormat.IS_ACTIVE in headers -> CsvType.WORKOUT_SESSIONS
     SessionExerciseCsvFormat.SUPERSET_GROUP_ID in headers -> CsvType.SESSION_EXERCISES
     SetEntryCsvFormat.EXERCISE_POSITION in headers -> CsvType.SET_ENTRIES
+    BodyMeasurementCsvFormat.VALUE_CM in headers -> CsvType.BODY_MEASUREMENTS
     CsvColumns.FOOD_NAME in headers -> CsvType.FOOD_ENTRIES
     "weight_kg" in headers -> CsvType.WEIGHT_ENTRIES
     "kcal_per_100g" in headers -> CsvType.CUSTOM_FOODS
@@ -48,6 +51,7 @@ internal class ImportTargets(
     val exerciseCatalogRepository: ExerciseCatalogRepository,
     val workoutTemplateRepository: WorkoutTemplateRepository,
     val workoutSessionRepository: WorkoutSessionRepository,
+    val bodyMeasurementRepository: BodyMeasurementRepository,
 )
 
 @Singleton
@@ -60,11 +64,13 @@ class BackupImporterImpl @Inject constructor(
     private val exerciseCatalogRepository: ExerciseCatalogRepository,
     private val workoutTemplateRepository: WorkoutTemplateRepository,
     private val workoutSessionRepository: WorkoutSessionRepository,
+    private val bodyMeasurementRepository: BodyMeasurementRepository,
 ) : BackupImporter {
 
     private val targets = ImportTargets(
         foodEntryRepository, weightRepository, goalRepository, customFoodRepository,
         exerciseCatalogRepository, workoutTemplateRepository, workoutSessionRepository,
+        bodyMeasurementRepository,
     )
 
     override suspend fun import(uri: String): BackupImporter.Result {
@@ -154,6 +160,20 @@ internal suspend fun importZipEntries(input: InputStream, targets: ImportTargets
         }
     }
 
+    var measurementsImported = 0
+    sections["body_measurements.csv"]?.let { lines ->
+        if (lines.size > 1) {
+            val headers = CsvFormat.parseHeaders(lines.first())
+            lines.drop(1).forEach { line ->
+                val e = runCatching { BodyMeasurementCsvFormat.fromRow(line, headers) }.getOrNull()
+                if (e != null) {
+                    targets.bodyMeasurementRepository.save(e.date, mapOf(e.type to e.valueCm))
+                    measurementsImported++
+                }
+            }
+        }
+    }
+
     val (exercisesImported, templatesImported, sessionsImported) = importWorkoutSections(
         exerciseLines = sections[WorkoutBackupEntries.EXERCISES],
         templateLines = sections[WorkoutBackupEntries.WORKOUT_TEMPLATES],
@@ -173,6 +193,7 @@ internal suspend fun importZipEntries(input: InputStream, targets: ImportTargets
         exercisesImported = exercisesImported,
         templatesImported = templatesImported,
         sessionsImported = sessionsImported,
+        measurementsImported = measurementsImported,
     )
 }
 
@@ -248,6 +269,17 @@ internal suspend fun importCsvLines(lines: List<String>, targets: ImportTargets)
             val exercises = WorkoutBackup.parseExercises(lines)
             if (exercises.isNotEmpty()) targets.exerciseCatalogRepository.upsertAll(exercises)
             BackupImporter.Result(exercisesImported = exercises.size)
+        }
+        CsvType.BODY_MEASUREMENTS -> {
+            var imported = 0
+            lines.drop(1).forEach { line ->
+                val e = runCatching { BodyMeasurementCsvFormat.fromRow(line, headers) }.getOrNull()
+                if (e != null) {
+                    targets.bodyMeasurementRepository.save(e.date, mapOf(e.type to e.valueCm))
+                    imported++
+                }
+            }
+            BackupImporter.Result(measurementsImported = imported)
         }
         // Recognised but not standalone-importable — these reassemble only as a full backup ZIP.
         CsvType.WORKOUT_TEMPLATES, CsvType.TEMPLATE_EXERCISES,

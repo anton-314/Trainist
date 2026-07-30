@@ -68,6 +68,7 @@ class DataViewModel @Inject constructor(
                         exercisesImported = result.exercisesImported,
                         templatesImported = result.templatesImported,
                         sessionsImported = result.sessionsImported,
+                        measurementsImported = result.measurementsImported,
                     )
                     _uiState.update { it.copy(isLoading = false, message = message) }
                     onSuccess()
@@ -104,5 +105,6 @@ sealed interface DataMessage {
         val exercisesImported: Int,
         val templatesImported: Int,
         val sessionsImported: Int,
+        val measurementsImported: Int,
     ) : DataMessage
 }
