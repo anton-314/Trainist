@@ -1,0 +1,28 @@
+<en-US>
+What's new:
+
+• Body measurements: a new card on the Stats screen — log neck, chest, waist, hips, biceps, thigh and calf in cm and follow their trend on a chart.
+• Your measurements are part of backup export and import, so they move to a new device along with the rest of your data.
+• Sets in a running workout can no longer be dragged around — they now stay in a fixed order.
+</en-US>
+<de-DE>
+Neu in dieser Version:
+
+• Körpermaße: Neue Karte in der Statistik – trage Hals, Brust, Taille, Hüfte, Bizeps, Oberschenkel und Wade in cm ein und sieh ihren Verlauf im Diagramm.
+• Deine Maße stecken jetzt in Export und Import und wandern mit dem Backup auf ein neues Gerät.
+• Sätze im laufenden Training lassen sich nicht mehr verschieben – sie stehen jetzt in fester Reihenfolge.
+</de-DE>
+<es-ES>
+Novedades:
+
+• Medidas corporales: nueva tarjeta en Estadísticas: registra cuello, pecho, cintura, cadera, bíceps, muslo y pantorrilla en cm y sigue su evolución en un gráfico.
+• Tus medidas se incluyen en la exportación e importación, así que viajan con la copia de seguridad a un nuevo dispositivo.
+• Las series de un entrenamiento en curso ya no se pueden reordenar arrastrándolas: ahora mantienen un orden fijo.
+</es-ES>
+<fr-FR>
+Nouveautés :
+
+• Mensurations : nouvelle carte dans les statistiques – note ton cou, ta poitrine, ta taille, tes hanches, tes biceps, tes cuisses et tes mollets en cm et suis leur évolution sur un graphique.
+• Tes mensurations font partie de l'export et de l'import, elles suivent donc la sauvegarde vers un nouvel appareil.
+• Les séries d'un entraînement en cours ne peuvent plus être réordonnées par glisser-déposer : leur ordre est désormais fixe.
+</fr-FR>
