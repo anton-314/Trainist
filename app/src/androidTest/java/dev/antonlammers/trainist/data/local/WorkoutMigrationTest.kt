@@ -12,9 +12,9 @@ import org.junit.Test
 import org.junit.runner.RunWith
 
 /**
- * Verifies the additive workout-module migrations (v7 → v11) on a real SQLite engine: each one must
- * apply its schema change and leave existing data intact. Instrumented (needs Android's SQLite) — run
- * via `connectedDebugAndroidTest` against a device/emulator.
+ * Verifies the additive migrations from v7 onwards on a real SQLite engine: each one must apply its
+ * schema change and leave existing data intact. Instrumented (needs Android's SQLite) — run via
+ * `connectedDebugAndroidTest` against a device/emulator.
  */
 @RunWith(AndroidJUnit4::class)
 class WorkoutMigrationTest {
@@ -29,7 +29,7 @@ class WorkoutMigrationTest {
 
     @Test
     fun migrate7to8_addsWorkoutTables_andPreservesExistingData() {
-        val db = openV7WithOneFoodEntry()
+        val db = openV7WithSeedData()
 
         AppDatabase.MIGRATION_7_8.migrate(db)
 
@@ -82,7 +82,7 @@ class WorkoutMigrationTest {
 
     @Test
     fun migrate8to9_addsRestTimerColumns_andPreservesExistingData() {
-        val db = openV7WithOneFoodEntry()
+        val db = openV7WithSeedData()
         AppDatabase.MIGRATION_7_8.migrate(db)
         db.execSQL(
             "INSERT INTO workout_sessions (stableId, date, isActive, startedAtMs, endedAtMs, note) " +
@@ -126,7 +126,7 @@ class WorkoutMigrationTest {
 
     @Test
     fun migrate9to10_addsTemplatePositionAndSessionTemplateLink_andPreservesExistingData() {
-        val db = openV7WithOneFoodEntry()
+        val db = openV7WithSeedData()
         AppDatabase.MIGRATION_7_8.migrate(db)
         AppDatabase.MIGRATION_8_9.migrate(db)
         db.execSQL("INSERT INTO workout_templates (id, stableId, name) VALUES (5, 'tpl', 'Push Day')")
@@ -172,7 +172,7 @@ class WorkoutMigrationTest {
 
     @Test
     fun migrate10to11_addsTemplateSetTypesColumn_andPreservesExistingData() {
-        val db = openV7WithOneFoodEntry()
+        val db = openV7WithSeedData()
         AppDatabase.MIGRATION_7_8.migrate(db)
         AppDatabase.MIGRATION_8_9.migrate(db)
         AppDatabase.MIGRATION_9_10.migrate(db)
@@ -207,8 +207,95 @@ class WorkoutMigrationTest {
         db.close()
     }
 
-    /** Creates a fresh database at schema version 7 with one representative food entry. */
-    private fun openV7WithOneFoodEntry(): SupportSQLiteDatabase {
+    @Test
+    fun migrate11to12_addsBmrProfileColumns_andPreservesExistingGoal() {
+        val db = openV7WithSeedData()
+        AppDatabase.MIGRATION_7_8.migrate(db)
+        AppDatabase.MIGRATION_8_9.migrate(db)
+        AppDatabase.MIGRATION_9_10.migrate(db)
+        AppDatabase.MIGRATION_10_11.migrate(db)
+
+        AppDatabase.MIGRATION_11_12.migrate(db)
+
+        val columns = db.query("PRAGMA table_info(daily_goal)").use { c ->
+            val nameIdx = c.getColumnIndex("name")
+            buildSet { while (c.moveToNext()) add(c.getString(nameIdx)) }
+        }
+        assertTrue(columns.containsAll(listOf("bmrSex", "bmrAgeYears", "bmrHeightCm", "bmrActivityLevel")))
+
+        // The goal singleton kept its macros and target weight; the profile columns default to null,
+        // which is what "the calculator has never been run" means to BmrProfile.fromParts.
+        db.query(
+            "SELECT kcal, proteinG, targetWeightKg, bmrSex, bmrAgeYears, bmrHeightCm, bmrActivityLevel " +
+                "FROM daily_goal WHERE id = 1",
+        ).use { c ->
+            c.moveToFirst()
+            assertEquals(2200.0, c.getDouble(0), 0.001)
+            assertEquals(165.0, c.getDouble(1), 0.001)
+            assertEquals(78.0, c.getDouble(2), 0.001)
+            assertTrue(c.isNull(3) && c.isNull(4) && c.isNull(5) && c.isNull(6))
+        }
+
+        // Usable: the singleton row can now carry a complete BMR profile.
+        db.execSQL(
+            "UPDATE daily_goal SET bmrSex = 'MALE', bmrAgeYears = 31, bmrHeightCm = 183.0, " +
+                "bmrActivityLevel = 'MODERATE' WHERE id = 1",
+        )
+        db.query("SELECT bmrSex, bmrAgeYears, bmrHeightCm, bmrActivityLevel FROM daily_goal WHERE id = 1").use { c ->
+            c.moveToFirst()
+            assertEquals("MALE", c.getString(0))
+            assertEquals(31, c.getInt(1))
+            assertEquals(183.0, c.getDouble(2), 0.001)
+            assertEquals("MODERATE", c.getString(3))
+        }
+
+        db.close()
+    }
+
+    @Test
+    fun migrate12to13_addsBodyMeasurementsTable_andPreservesExistingData() {
+        val db = openV7WithSeedData()
+        AppDatabase.MIGRATION_7_8.migrate(db)
+        AppDatabase.MIGRATION_8_9.migrate(db)
+        AppDatabase.MIGRATION_9_10.migrate(db)
+        AppDatabase.MIGRATION_10_11.migrate(db)
+        AppDatabase.MIGRATION_11_12.migrate(db)
+
+        AppDatabase.MIGRATION_12_13.migrate(db)
+
+        val tables = db.query("SELECT name FROM sqlite_master WHERE type = 'table'").use { c ->
+            buildSet { while (c.moveToNext()) add(c.getString(0)) }
+        }
+        assertTrue(tables.contains("body_measurements"))
+
+        // The pre-existing nutrition data survived untouched.
+        db.query("SELECT COUNT(*) FROM food_entries").use { c -> c.moveToFirst(); assertEquals(1, c.getInt(0)) }
+        db.query("SELECT COUNT(*) FROM daily_goal").use { c -> c.moveToFirst(); assertEquals(1, c.getInt(0)) }
+
+        // Usable, and at most one row per (date, type): BodyMeasurementDao.upsert inserts with
+        // REPLACE, which silently degrades into duplicate rows if the unique index is missing.
+        db.execSQL("INSERT OR REPLACE INTO body_measurements (date, type, valueCm) VALUES ('2026-07-10', 'WAIST', 82.0)")
+        db.execSQL("INSERT OR REPLACE INTO body_measurements (date, type, valueCm) VALUES ('2026-07-10', 'WAIST', 81.5)")
+        db.execSQL("INSERT OR REPLACE INTO body_measurements (date, type, valueCm) VALUES ('2026-07-10', 'CHEST', 104.0)")
+        db.execSQL("INSERT OR REPLACE INTO body_measurements (date, type, valueCm) VALUES ('2026-07-17', 'WAIST', 81.0)")
+
+        db.query("SELECT COUNT(*) FROM body_measurements").use { c ->
+            c.moveToFirst()
+            assertEquals(3, c.getInt(0))
+        }
+        db.query("SELECT valueCm FROM body_measurements WHERE date = '2026-07-10' AND type = 'WAIST'").use { c ->
+            c.moveToFirst()
+            assertEquals(81.5, c.getDouble(0), 0.001)
+        }
+
+        db.close()
+    }
+
+    /**
+     * Creates a fresh database at schema version 7 with one representative row per pre-existing
+     * table the later migrations touch or must leave alone: a food entry and the goal singleton.
+     */
+    private fun openV7WithSeedData(): SupportSQLiteDatabase {
         context.deleteDatabase(dbName)
         val callback = object : SupportSQLiteOpenHelper.Callback(7) {
             override fun onCreate(db: SupportSQLiteDatabase) {
@@ -228,6 +315,20 @@ class WorkoutMigrationTest {
                     "INSERT INTO food_entries (foodName, amountGrams, kcal, proteinG, carbsG, fatG, date, timestampMs) " +
                         "VALUES ('Apfel', 100, 52, 0.3, 14.0, 0.2, '2026-07-10', 1)",
                 )
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS daily_goal (
+                        id INTEGER NOT NULL,
+                        kcal REAL NOT NULL, proteinG REAL NOT NULL, carbsG REAL NOT NULL, fatG REAL NOT NULL,
+                        targetWeightKg REAL,
+                        PRIMARY KEY(id)
+                    )
+                    """.trimIndent(),
+                )
+                db.execSQL(
+                    "INSERT INTO daily_goal (id, kcal, proteinG, carbsG, fatG, targetWeightKg) " +
+                        "VALUES (1, 2200, 165, 220, 70, 78.0)",
+                )
             }
 
             override fun onUpgrade(db: SupportSQLiteDatabase, oldVersion: Int, newVersion: Int) = Unit
@@ -239,3 +340,4 @@ class WorkoutMigrationTest {
         return FrameworkSQLiteOpenHelperFactory().create(config).writableDatabase
     }
 }
+
