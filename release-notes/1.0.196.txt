@@ -1,0 +1,35 @@
+<en-US>
+What's new:
+
+• Food search by name: type what you're looking for instead of hunting for a barcode. Results stay limited to products sold in your country.
+• New "Shopping country" setting — detected automatically, adjustable if you live abroad.
+• Supersets: link exercises into a group, in a template or during a workout. The rest timer then starts only after the group's last exercise.
+• Your own history and foods still come first in the search.
+</en-US>
+
+<de-DE>
+Neu in dieser Version:
+
+• Lebensmittelsuche nach Namen: eintippen statt Barcode suchen. Die Treffer bleiben auf Produkte aus deinem Land begrenzt.
+• Neue Einstellung „Einkaufsland“ – wird selbst erkannt, lässt sich aber anpassen, wenn du im Ausland lebst.
+• Supersätze: Übungen zu einer Gruppe verbinden, in der Vorlage oder im Training. Die Pause startet erst nach der letzten Übung der Gruppe.
+• Dein Verlauf und deine Lebensmittel stehen in der Suche weiterhin oben.
+</de-DE>
+
+<es-ES>
+Novedades:
+
+• Búsqueda de alimentos por nombre: escribe en vez de buscar un código de barras. Los resultados se limitan a productos de tu país.
+• Nuevo ajuste «País de compra»: se detecta solo y puedes cambiarlo si vives en el extranjero.
+• Superseries: une ejercicios en un grupo, en una plantilla o durante el entrenamiento. El descanso empieza tras el último ejercicio del grupo.
+• Tu historial y tus alimentos siguen apareciendo primero.
+</es-ES>
+
+<fr-FR>
+Nouveautés :
+
+• Recherche d'aliments par nom : tape au lieu de chercher un code-barres. Les résultats restent limités aux produits vendus dans ton pays.
+• Nouveau réglage « Pays d'achat » : détecté tout seul, modifiable si tu vis à l'étranger.
+• Superséries : associe des exercices en un groupe, dans un modèle ou à l'entraînement. Le repos ne démarre qu'après le dernier exercice.
+• Ton historique et tes aliments restent en tête de la recherche.
+</fr-FR>
