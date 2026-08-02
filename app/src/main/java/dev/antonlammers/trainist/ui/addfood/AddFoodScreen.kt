@@ -97,6 +97,7 @@ fun AddFoodScreen(
     val recentEntries by viewModel.recentEntries.collectAsStateWithLifecycle()
     val customFoods by viewModel.customFoods.collectAsStateWithLifecycle()
     val localSearchResults by viewModel.localSearchResults.collectAsStateWithLifecycle()
+    val remoteSearch by viewModel.remoteSearchResults.collectAsStateWithLifecycle()
     val snackbar = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
 
@@ -299,7 +300,11 @@ fun AddFoodScreen(
 
                 // Search results: flat list of matching custom foods + deduplicated history
                 if (state.query.isNotBlank() && !state.isLoading) {
-                    if (localSearchResults.isEmpty()) {
+                    // Only speak of "no results" once the online search has had its say too —
+                    // otherwise the hint flashes up in the pause before the request even goes out.
+                    if (localSearchResults.isEmpty() && remoteSearch.results.isEmpty() &&
+                        !remoteSearch.isLoading && !remoteSearch.failed
+                    ) {
                         item { EmptyHint(stringResource(R.string.addfood_empty_search_results)) }
                     } else {
                         items(
@@ -350,6 +355,41 @@ fun AddFoodScreen(
                                     },
                                 )
                             }
+                            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                        }
+                    }
+
+                    // Open Food Facts results, below whatever the user has already logged before —
+                    // their own history is always the better match, so it stays on top.
+                    if (remoteSearch.isLoading || remoteSearch.failed || remoteSearch.results.isNotEmpty()) {
+                        item { SectionLabel(stringResource(R.string.addfood_online_results_label)) }
+                    }
+                    when {
+                        remoteSearch.isLoading -> item {
+                            Box(
+                                modifier = Modifier.fillMaxWidth().padding(24.dp),
+                                contentAlignment = Alignment.Center,
+                            ) { CircularProgressIndicator(modifier = Modifier.size(24.dp)) }
+                        }
+                        remoteSearch.failed -> item {
+                            EmptyHint(stringResource(R.string.addfood_online_search_failed))
+                        }
+                        else -> items(remoteSearch.results, key = { "off_${it.id}" }) { food ->
+                            FoodRowContent(
+                                tag = food.tag,
+                                title = buildString {
+                                    append(food.name)
+                                    food.brand?.let { append(" ($it)") }
+                                },
+                                detail = stringResource(
+                                    R.string.addfood_food_detail_per_100g,
+                                    food.kcalPer100g.toInt(),
+                                    food.proteinPer100g.toInt(),
+                                    food.carbsPer100g.toInt(),
+                                    food.fatPer100g.toInt(),
+                                ),
+                                onClick = { viewModel.selectFood(food) },
+                            )
                             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                         }
                     }
@@ -580,6 +620,17 @@ private fun SwipeBackground(target: SwipeToDismissBoxValue) {
             else -> {}
         }
     }
+}
+
+/** Mono-uppercase caption separating a group of rows from the one above it. */
+@Composable
+private fun SectionLabel(text: String) {
+    Text(
+        text,
+        style = MaterialTheme.typography.labelSmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 20.dp, bottom = 8.dp),
+    )
 }
 
 /** A food/history list row: tag dot + name (sans) with a mono detail line beneath. */

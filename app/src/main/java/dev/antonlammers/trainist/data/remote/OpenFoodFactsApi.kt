@@ -1,19 +1,15 @@
 package dev.antonlammers.trainist.data.remote
 
 import dev.antonlammers.trainist.data.remote.dto.ProductResponseDto
-import dev.antonlammers.trainist.data.remote.dto.SearchResponseDto
 import retrofit2.http.GET
 import retrofit2.http.Path
 import retrofit2.http.Query
 
+/**
+ * The product endpoint on the main Open Food Facts host, used for barcode lookup only. Full-text
+ * search lives on a different host entirely — see [OpenFoodFactsSearchApi].
+ */
 interface OpenFoodFactsApi {
-
-    @GET("api/v2/search")
-    suspend fun search(
-        @Query("search_terms") query: String,
-        @Query("fields") fields: String = "id,product_name,brands,nutriments",
-        @Query("page_size") pageSize: Int = 25,
-    ): SearchResponseDto
 
     @GET("api/v2/product/{barcode}")
     suspend fun getProduct(

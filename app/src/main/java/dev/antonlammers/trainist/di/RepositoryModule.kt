@@ -10,6 +10,8 @@ import dev.antonlammers.trainist.data.repository.BodyMeasurementRepositoryImpl
 import dev.antonlammers.trainist.data.repository.CustomFoodRepositoryImpl
 import dev.antonlammers.trainist.data.repository.ExerciseCatalogRepositoryImpl
 import dev.antonlammers.trainist.data.repository.FoodEntryRepositoryImpl
+import dev.antonlammers.trainist.data.remote.AppSearchLocaleProvider
+import dev.antonlammers.trainist.data.remote.SearchLocaleProvider
 import dev.antonlammers.trainist.data.repository.FoodSearchRepositoryImpl
 import dev.antonlammers.trainist.data.repository.GoalRepositoryImpl
 import dev.antonlammers.trainist.data.repository.RoomTransactionRunner
@@ -42,6 +44,9 @@ abstract class RepositoryModule {
 
     @Binds @Singleton
     abstract fun bindFoodSearchRepository(impl: FoodSearchRepositoryImpl): FoodSearchRepository
+
+    @Binds @Singleton
+    abstract fun bindSearchLocaleProvider(impl: AppSearchLocaleProvider): SearchLocaleProvider
 
     @Binds @Singleton
     abstract fun bindFoodEntryRepository(impl: FoodEntryRepositoryImpl): FoodEntryRepository

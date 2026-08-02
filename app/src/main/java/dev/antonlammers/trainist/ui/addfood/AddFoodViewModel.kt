@@ -13,11 +13,18 @@ import dev.antonlammers.trainist.domain.repository.CustomFoodRepository
 import dev.antonlammers.trainist.domain.repository.FoodEntryRepository
 import dev.antonlammers.trainist.domain.repository.FoodSearchRepository
 import dev.antonlammers.trainist.util.normalizeDecimal
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
@@ -78,6 +85,36 @@ class AddFoodViewModel @Inject constructor(
             matchedCustoms + matchedHistory
         }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    /**
+     * Open Food Facts hits for the current query, below the local results.
+     *
+     * Local search stays instant and offline; this is the "not in my history yet" case, so it is
+     * deliberately lazy: it waits for a pause in typing and for the query to be worth a request. The
+     * search service is a shared, rate-limited community resource — one request per keystroke would
+     * be both rude and slower than useful.
+     */
+    @OptIn(ExperimentalCoroutinesApi::class, FlowPreview::class)
+    val remoteSearchResults: StateFlow<RemoteSearchState> = _uiState
+        .map { it.query.trim() }
+        .distinctUntilChanged()
+        .debounce { if (it.length >= MIN_REMOTE_QUERY_LENGTH) SEARCH_DEBOUNCE_MS else 0L }
+        .flatMapLatest { query ->
+            if (query.length < MIN_REMOTE_QUERY_LENGTH) {
+                flowOf(RemoteSearchState())
+            } else {
+                flow {
+                    emit(RemoteSearchState(isLoading = true))
+                    emit(
+                        foodSearchRepository.searchByName(query).fold(
+                            onSuccess = { RemoteSearchState(results = it) },
+                            onFailure = { RemoteSearchState(failed = true) },
+                        ),
+                    )
+                }
+            }
+        }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), RemoteSearchState())
 
     fun onQueryChange(query: String) = _uiState.update { it.copy(query = query) }
 
@@ -216,6 +253,17 @@ sealed interface LocalSearchResult {
     data class CustomFoodResult(val food: Food) : LocalSearchResult
 }
 
+/**
+ * The online-search section's state. [failed] is kept apart from an empty [results] on purpose: "no
+ * product found" and "couldn't reach Open Food Facts" call for different messages, and the user can
+ * act on the second one.
+ */
+data class RemoteSearchState(
+    val results: List<Food> = emptyList(),
+    val isLoading: Boolean = false,
+    val failed: Boolean = false,
+)
+
 /** Barcode-lookup failure kinds; the UI resolves each to a localized message. */
 enum class BarcodeError {
     PRODUCT_NOT_FOUND,
@@ -234,6 +282,12 @@ data class AddFoodUiState(
     val tag: FoodTag = FoodTag.NONE,
     val entryAdded: Boolean = false,
 )
+
+/** Below this many characters a query is too vague to be worth a request. */
+private const val MIN_REMOTE_QUERY_LENGTH = 3
+
+/** Typing pause before the request goes out. */
+private const val SEARCH_DEBOUNCE_MS = 450L
 
 internal fun mealCategoryForHour(hour: Int): MealCategory = when {
     hour in 5..9   -> MealCategory.BREAKFAST

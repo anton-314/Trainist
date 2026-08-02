@@ -12,7 +12,9 @@ import dev.antonlammers.trainist.fake.FakeFoodEntryRepository
 import dev.antonlammers.trainist.fake.FakeFoodSearchRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
+import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
@@ -513,6 +515,110 @@ class AddFoodViewModelTest {
     }
 
     // --- helpers ---
+
+    // --- online search (Open Food Facts) ---
+
+    @Test
+    fun `a query shorter than three characters never reaches the network`() = runTest {
+        viewModel = viewModel()
+        backgroundScope.launch { viewModel.remoteSearchResults.collect {} }
+
+        viewModel.onQueryChange("mi")
+        advanceUntilIdle()
+
+        assertTrue(searchRepo.searchedQueries.isEmpty())
+        assertEquals(RemoteSearchState(), viewModel.remoteSearchResults.value)
+    }
+
+    @Test
+    fun `typing is debounced into a single request for the final query`() = runTest {
+        searchRepo.respondWith(Result.success(listOf(apple())))
+        viewModel = viewModel()
+        backgroundScope.launch { viewModel.remoteSearchResults.collect {} }
+
+        // Keystrokes arriving faster than the debounce window must not each become a request — the
+        // search service is a shared, rate-limited resource.
+        viewModel.onQueryChange("app")
+        advanceTimeBy(100)
+        viewModel.onQueryChange("apfe")
+        advanceTimeBy(100)
+        viewModel.onQueryChange("apfel")
+        advanceUntilIdle()
+
+        assertEquals(listOf("apfel"), searchRepo.searchedQueries)
+    }
+
+    @Test
+    fun `results are exposed once the search returns`() = runTest {
+        searchRepo.respondWith(Result.success(listOf(apple())))
+        viewModel = viewModel()
+        backgroundScope.launch { viewModel.remoteSearchResults.collect {} }
+
+        viewModel.onQueryChange("apfel")
+        advanceUntilIdle()
+
+        val state = viewModel.remoteSearchResults.value
+        assertEquals(listOf("Apfel"), state.results.map { it.name })
+        assertFalse(state.isLoading)
+        assertFalse(state.failed)
+    }
+
+    @Test
+    fun `the section reports loading before the results arrive`() = runTest {
+        searchRepo.respondWith(Result.success(listOf(apple())))
+        viewModel = viewModel()
+
+        viewModel.remoteSearchResults.test {
+            assertEquals(RemoteSearchState(), awaitItem())
+            viewModel.onQueryChange("apfel")
+            assertTrue(awaitItem().isLoading)
+            assertEquals(listOf("Apfel"), awaitItem().results.map { it.name })
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `a failed search is reported as failed, not as an empty result`() = runTest {
+        // The UI shows different text for the two, and only one of them is worth retrying.
+        searchRepo.respondWith(Result.failure(BarcodeException.NetworkUnavailable))
+        viewModel = viewModel()
+        backgroundScope.launch { viewModel.remoteSearchResults.collect {} }
+
+        viewModel.onQueryChange("apfel")
+        advanceUntilIdle()
+
+        val state = viewModel.remoteSearchResults.value
+        assertTrue(state.failed)
+        assertTrue(state.results.isEmpty())
+    }
+
+    @Test
+    fun `clearing the query drops the previous results`() = runTest {
+        searchRepo.respondWith(Result.success(listOf(apple())))
+        viewModel = viewModel()
+        backgroundScope.launch { viewModel.remoteSearchResults.collect {} }
+        viewModel.onQueryChange("apfel")
+        advanceUntilIdle()
+
+        viewModel.onQueryChange("")
+        advanceUntilIdle()
+
+        assertEquals(RemoteSearchState(), viewModel.remoteSearchResults.value)
+    }
+
+    @Test
+    fun `whitespace-only changes to a query do not re-run the search`() = runTest {
+        searchRepo.respondWith(Result.success(listOf(apple())))
+        viewModel = viewModel()
+        backgroundScope.launch { viewModel.remoteSearchResults.collect {} }
+
+        viewModel.onQueryChange("apfel")
+        advanceUntilIdle()
+        viewModel.onQueryChange("apfel ")
+        advanceUntilIdle()
+
+        assertEquals(listOf("apfel"), searchRepo.searchedQueries)
+    }
 
     private fun viewModel() = AddFoodViewModel(
         SavedStateHandle(mapOf("date" to LocalDate.now().toString())),

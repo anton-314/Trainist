@@ -71,6 +71,8 @@
     <string name="addfood_empty_custom_foods">Aún no hay alimentos personalizados.\nToca + para crear uno.</string>
     <string name="addfood_empty_history">Aún no hay entradas en el historial.</string>
     <string name="addfood_empty_search_results">Sin resultados</string>
+    <string name="addfood_online_results_label">DE OPEN FOOD FACTS</string>
+    <string name="addfood_online_search_failed">Open Food Facts no está disponible ahora mismo.</string>
     <string name="addfood_custom_food_deleted">Alimento eliminado</string>
     <string name="addfood_entry_deleted">Entrada eliminada</string>
     <string name="addfood_search_placeholder">Buscar alimentos</string>

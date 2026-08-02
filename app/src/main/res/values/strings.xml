@@ -71,6 +71,8 @@
     <string name="addfood_empty_custom_foods">Noch keine eigenen Lebensmittel.\nTippe auf + um eines anzulegen.</string>
     <string name="addfood_empty_history">Noch keine Einträge im Verlauf.</string>
     <string name="addfood_empty_search_results">Keine Ergebnisse</string>
+    <string name="addfood_online_results_label">AUS OPEN FOOD FACTS</string>
+    <string name="addfood_online_search_failed">Open Food Facts ist gerade nicht erreichbar.</string>
     <string name="addfood_custom_food_deleted">Lebensmittel gelöscht</string>
     <string name="addfood_entry_deleted">Eintrag gelöscht</string>
     <string name="addfood_search_placeholder">Lebensmittel suchen</string>
