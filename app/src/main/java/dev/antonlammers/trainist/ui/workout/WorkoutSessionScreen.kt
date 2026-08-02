@@ -365,8 +365,9 @@ private fun MetricStat(label: String, value: String) {
     }
 }
 
+/** Internal rather than private so `WorkoutSetRowTest` can drive its text-state rules directly. */
 @Composable
-private fun SetRow(
+internal fun SetRow(
     setNumber: Int,
     set: SetEntry,
     weightPlaceholder: String?,
