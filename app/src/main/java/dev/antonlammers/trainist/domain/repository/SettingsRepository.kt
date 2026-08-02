@@ -48,6 +48,16 @@ interface SettingsRepository {
     suspend fun setAppLanguage(tag: String?)
 
     /**
+     * The country whose products the food search should show, as an ISO 3166-1 alpha-2 code, or
+     * `null` to detect it automatically (mobile network, then SIM, then device region — see
+     * `CountryResolution`). Deliberately separate from the app language: someone using the app in
+     * English while living in Spain still shops in Spanish supermarkets.
+     */
+    suspend fun getSearchCountry(): String?
+
+    suspend fun setSearchCountry(code: String?)
+
+    /**
      * The user's chosen app appearance. Unlike every other setting here this is a [StateFlow], not a
      * suspend getter: two independent surfaces read it (the settings row and the `MainActivity`
      * composition wrapping the *whole* app), so a change made in one has to reach the other live —

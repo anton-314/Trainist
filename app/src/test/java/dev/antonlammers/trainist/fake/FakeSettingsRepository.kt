@@ -13,6 +13,7 @@ class FakeSettingsRepository(
     private var onboardingCompleted: Boolean = false,
     private var tutorialPending: Boolean = false,
     private var appLanguage: String? = null,
+    private var searchCountry: String? = null,
     initialThemeMode: ThemeMode = ThemeMode.SYSTEM,
 ) : SettingsRepository {
 
@@ -51,5 +52,11 @@ class FakeSettingsRepository(
 
     override suspend fun setAppLanguage(tag: String?) {
         appLanguage = tag
+    }
+
+    override suspend fun getSearchCountry(): String? = searchCountry
+
+    override suspend fun setSearchCountry(code: String?) {
+        searchCountry = code
     }
 }

@@ -439,6 +439,10 @@
     <string name="settings_language_french">Français</string>
     <string name="settings_language_spanish">Español</string>
     <string name="settings_language_picker_title">Choose language</string>
+    <string name="settings_search_country_row_title">Shopping country</string>
+    <string name="settings_search_country_automatic">Automatic</string>
+    <string name="settings_search_country_picker_title">Choose country</string>
+    <string name="settings_search_country_search_placeholder">Search country</string>
 
     <!-- Appearance picker (ui/settings/SettingsScreen.kt, ui/theme/ThemeViewModel.kt) -->
     <string name="settings_theme_row_title">Appearance</string>

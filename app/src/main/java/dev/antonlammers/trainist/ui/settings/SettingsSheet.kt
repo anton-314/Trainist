@@ -3,6 +3,7 @@ package dev.antonlammers.trainist.ui.settings
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
@@ -44,6 +45,8 @@ fun SettingsSheet(
             modifier = Modifier
                 .fillMaxWidth()
                 .navigationBarsPadding()
+                // The country picker types into a search field; without this the keyboard covers it.
+                .imePadding()
                 .padding(bottom = 16.dp),
         ) {
             Text(

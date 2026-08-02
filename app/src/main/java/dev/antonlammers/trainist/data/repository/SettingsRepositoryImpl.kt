@@ -75,6 +75,14 @@ class SettingsRepositoryImpl @Inject constructor(
             prefs.getString(KEY_APP_LANGUAGE, null)
         }
 
+    override suspend fun getSearchCountry(): String? = prefs.getString(KEY_SEARCH_COUNTRY, null)
+
+    override suspend fun setSearchCountry(code: String?) {
+        prefs.edit {
+            if (code == null) remove(KEY_SEARCH_COUNTRY) else putString(KEY_SEARCH_COUNTRY, code)
+        }
+    }
+
     override suspend fun setAppLanguage(tag: String?) {
         // Persisted for the legacy startup re-apply; harmless (unused) on 33+.
         prefs.edit {
@@ -112,6 +120,7 @@ class SettingsRepositoryImpl @Inject constructor(
         private const val KEY_ONBOARDING_COMPLETED = "onboarding_completed"
         private const val KEY_TUTORIAL_PENDING = "tutorial_pending"
         private const val KEY_APP_LANGUAGE = "app_language"
+        private const val KEY_SEARCH_COUNTRY = "search_country"
         private const val KEY_THEME_MODE = "theme_mode"
 
         /**

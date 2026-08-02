@@ -51,7 +51,7 @@ class FoodSearchRepositoryTest {
     }
 
     private fun locales(language: String = "de", country: String = "DE") = object : SearchLocaleProvider {
-        override fun current() = SearchLocale(language, country)
+        override suspend fun current() = SearchLocale(language, country)
     }
 
     private fun repository(searchApi: OpenFoodFactsSearchApi, provider: SearchLocaleProvider = locales()) =

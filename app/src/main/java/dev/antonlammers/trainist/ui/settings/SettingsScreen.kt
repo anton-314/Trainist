@@ -4,7 +4,11 @@ import android.os.Build
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -14,11 +18,14 @@ import androidx.compose.material.icons.rounded.DarkMode
 import androidx.compose.material.icons.rounded.HelpOutline
 import androidx.compose.material.icons.rounded.Language
 import androidx.compose.material.icons.rounded.Notifications
+import androidx.compose.material.icons.rounded.Public
+import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material.icons.rounded.StarRate
 import androidx.compose.material.icons.rounded.TrackChanges
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -50,7 +57,9 @@ import dev.antonlammers.trainist.ui.data.toDisplayString
 import dev.antonlammers.trainist.ui.goals.GoalsViewModel
 import dev.antonlammers.trainist.ui.navigation.Screen
 import dev.antonlammers.trainist.ui.theme.ThemeViewModel
+import dev.antonlammers.trainist.ui.util.currentAppLocale
 import dev.antonlammers.trainist.ui.util.findActivity
+import java.util.Locale
 
 /**
  * Settings hub — a short list of grouped rows, not a scroll of inline forms.
@@ -66,6 +75,7 @@ fun SettingsScreen(
     goalsViewModel: GoalsViewModel = hiltViewModel(),
     dataViewModel: DataViewModel = hiltViewModel(),
     languageViewModel: LanguageViewModel = hiltViewModel(),
+    searchCountryViewModel: SearchCountryViewModel = hiltViewModel(),
     themeViewModel: ThemeViewModel = hiltViewModel(),
 ) {
     val snackbar = remember { SnackbarHostState() }
@@ -99,6 +109,9 @@ fun SettingsScreen(
         ) {
             SettingsGroupLabel(stringResource(R.string.settings_group_nutrition))
             GoalsRow(goalsViewModel, navController)
+            SettingsGroup(modifier = Modifier.padding(top = 12.dp)) {
+                SearchCountryRow(searchCountryViewModel)
+            }
 
             SettingsGroupLabel(stringResource(R.string.settings_group_notifications))
             ReminderRow(dataViewModel)
@@ -329,3 +342,103 @@ private fun LanguagePickerSheet(
         }
     }
 }
+
+/**
+ * Which country's products the food search offers. Automatic by default (mobile network → SIM →
+ * device region, see `CountryResolution`); this row exists for the cases detection cannot get
+ * right — an expat, a long stay abroad, or a phone whose language was set to another region.
+ *
+ * Deliberately its own setting rather than a side effect of the language row: language and shopping
+ * country are genuinely independent, which is the whole reason detection ignores the app language.
+ */
+@Composable
+private fun SearchCountryRow(viewModel: SearchCountryViewModel) {
+    val selected by viewModel.country.collectAsStateWithLifecycle()
+    var showPicker by remember { mutableStateOf(false) }
+
+    if (showPicker) {
+        SearchCountryPickerSheet(
+            selected = selected,
+            onSelect = { code ->
+                viewModel.setCountry(code)
+                showPicker = false
+            },
+            onDismiss = { showPicker = false },
+        )
+    }
+
+    // No supporting line: with the value shown inline the row would run to four wrapped lines and
+    // wreck the hub's "fits on one screen" rule. The title carries it, as with "Daily goals".
+    SettingsRow(
+        icon = Icons.Rounded.Public,
+        title = stringResource(R.string.settings_search_country_row_title),
+        value = selected?.countryDisplayName() ?: stringResource(R.string.settings_search_country_automatic),
+        onClick = { showPicker = true },
+        trailing = { Chevron() },
+    )
+}
+
+/** Localized country name for an ISO 3166-1 alpha-2 code, e.g. "DE" → "Deutschland". */
+@Composable
+private fun String.countryDisplayName(): String =
+    Locale.Builder().setRegion(this).build().getDisplayCountry(currentAppLocale())
+
+/**
+ * The country picker. Unlike every other settings sheet this one carries a search field: the list is
+ * every ISO country, and scrolling ~250 rows to reach "Portugal" is not a picker. The "automatic"
+ * option stays pinned above the results so it is always one tap away.
+ */
+@Composable
+private fun SearchCountryPickerSheet(
+    selected: String?,
+    onSelect: (String?) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    var query by remember { mutableStateOf("") }
+    val locale = currentAppLocale()
+    // Sorted by the *localized* name, so the order matches what the user is reading.
+    val countries = remember(locale) {
+        Locale.getISOCountries()
+            .map { it to Locale.Builder().setRegion(it).build().getDisplayCountry(locale) }
+            .filter { (code, name) -> name.isNotBlank() && !name.equals(code, ignoreCase = true) }
+            .sortedBy { (_, name) -> name.lowercase(locale) }
+    }
+    val matches = remember(query, countries) {
+        if (query.isBlank()) countries
+        else countries.filter { (_, name) -> name.contains(query.trim(), ignoreCase = true) }
+    }
+
+    SettingsSheet(
+        title = stringResource(R.string.settings_search_country_picker_title),
+        onDismiss = onDismiss,
+    ) {
+        OutlinedTextField(
+            value = query,
+            onValueChange = { query = it },
+            singleLine = true,
+            placeholder = { Text(stringResource(R.string.settings_search_country_search_placeholder)) },
+            leadingIcon = { Icon(Icons.Rounded.Search, contentDescription = null) },
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = SHEET_CONTENT_PADDING)
+                .padding(bottom = 8.dp),
+        )
+        SettingsOptionRow(
+            label = stringResource(R.string.settings_search_country_automatic),
+            selected = selected == null,
+            onSelect = { onSelect(null) },
+        )
+        // Capped so the sheet stays a sheet; the search field is how you reach anything below.
+        LazyColumn(modifier = Modifier.heightIn(max = COUNTRY_LIST_MAX_HEIGHT)) {
+            items(matches, key = { (code, _) -> code }) { (code, name) ->
+                SettingsOptionRow(
+                    label = name,
+                    selected = code == selected,
+                    onSelect = { onSelect(code) },
+                )
+            }
+        }
+    }
+}
+
+private val COUNTRY_LIST_MAX_HEIGHT = 320.dp

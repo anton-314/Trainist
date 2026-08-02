@@ -46,9 +46,9 @@ fun ColumnScope.SettingsGroupLabel(label: String) {
 
 /** Bordered card holding one or more [SettingsRow]s, separated by [SettingsRowDivider]. */
 @Composable
-fun SettingsGroup(content: @Composable ColumnScope.() -> Unit) {
+fun SettingsGroup(modifier: Modifier = Modifier, content: @Composable ColumnScope.() -> Unit) {
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(20.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
