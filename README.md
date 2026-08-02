@@ -5,8 +5,8 @@ A minimalistic, open-source nutrition and workout tracking app for Android.
 ## Features
 
 ### Nutrition
-- Log meals by searching the [Open Food Facts](https://world.openfoodfacts.org/) database or scanning a barcode
-- **Recently eaten** shortcuts — your food history and custom foods appear instantly when you open the food search
+- Log meals by scanning a barcode or searching [Open Food Facts](https://world.openfoodfacts.org/) by name — results are filtered to products sold in your country, because an unfiltered worldwide search buries the thing you actually meant
+- **Recently eaten** shortcuts — your food history and custom foods appear instantly when you open the food search, and always rank above the online results
 - Daily overview with an animated, segmented calorie ring and pastel-colored progress bars for protein, carbs, and fat
 - **Clean-eating tags** — mark foods Healthy / Neutral / Unhealthy; the ring segments by tag and a "% clean" score tracks how much of your intake is clean
 - **Meal sections** grouped by breakfast/lunch/dinner/snack, each with its own kcal total; copy yesterday's meal into today with one tap
@@ -14,9 +14,11 @@ A minimalistic, open-source nutrition and workout tracking app for Android.
 - **Weight tracking** — log today's weight directly from the overview with a single tap; set an optional target weight
 - **Edit food entries** — swipe left-to-right to edit amount/meal/tag, right-to-left to delete (with undo)
 - Set your own daily macro targets, with built-in recommendations
+- **Calorie calculator** — a six-step BMR/TDEE wizard (Mifflin-St Jeor) that turns your body data and goal into a calorie target, and says what weekly rate of change that implies
 
 ### Workouts
 - **Templates** — build reusable workout templates, plan each slot's sets individually (warm-up, normal, drop, failure), and reorder everything by drag-and-drop
+- **Supersets** — link adjacent exercises into a group, in the plan or on the fly; the rest timer then only runs after the group's last exercise, which is the whole point of supersetting
 - **Live session tracking** — start a session from a template or from scratch, log weight/reps per set, check off completed sets, add/remove/reorder exercises and sets on the fly
 - **Inline history hints** — see what you lifted last time as placeholder text while logging a new set
 - **Volume & estimated 1RM** — per-exercise summary computed live as you train
@@ -27,12 +29,17 @@ A minimalistic, open-source nutrition and workout tracking app for Android.
 - **Exercise detail** — per-exercise page with metadata, current PR, and an all-time strength progression chart
 
 ### Stats
-- Reorderable chart cards: **calories**, **clean-eating trend**, **weight**, **training frequency**, and **strength progression** per exercise
+- Reorderable chart cards: **weight**, **body measurements**, **progressive overload**, **calories**, **clean-eating trend**, **strength progression** per exercise, and **training frequency**
+- **Body measurements** — neck, chest, waist, hips, biceps, thigh and calf in cm, with their own trend chart (numbers only, no photos)
+- **Progressive overload** — one chain-linked strength index across all your exercises, so a rotating split or a new exercise can't fake progress, plus ranked coaching tips that read the cause from your actual weight trend and intake
 - 7-day / 30-day / 1-year time ranges with a moving-average trend line on the weight chart
 
 ### General
+- **Guided tour** on first launch, and a **Help Center** with getting-started steps, an FAQ and a glossary
+- **Light, dark or system** appearance
+- Available in **German, English, French and Spanish**
 - **Daily meal reminder** notification if nothing's been logged by 17:00 (toggle in Settings)
-- **Full backup export/import** — a ZIP with all nutrition and workout data (food entries, weight history, goals, custom foods, custom exercises, templates, sessions); backward-compatible with older CSV exports, and safely reassembles cross-device via stable keys (no dependency on local row IDs)
+- **Full backup export/import** — a ZIP with all nutrition and workout data (food entries, weight history, body measurements, goals, custom foods, custom exercises, templates, sessions); backward-compatible with older CSV exports, and safely reassembles cross-device via stable keys (no dependency on local row IDs)
 - All data stored locally — no account, no cloud
 
 ## Download
@@ -67,7 +74,7 @@ JAVA_HOME=/path/to/jdk ./gradlew assembleDebug
 - Room (local database)
 - Retrofit + Moshi (Open Food Facts API)
 - CameraX + ML Kit (barcode scanning)
-- WorkManager + AlarmManager (meal reminders, rest timer alerts)
+- WorkManager (daily meal reminder) + a foreground service that owns the rest-timer countdown and fires its alert on the second
 
 ## License
 

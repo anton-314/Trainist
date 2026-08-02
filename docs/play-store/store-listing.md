@@ -17,27 +17,36 @@ Trainist ist eine ruhige, werbefreie App für Ernährungs- und Trainingstracking
 
 ERNÄHRUNG
 • Kalorien- und Makro-Tracking (Protein, Kohlenhydrate, Fett) mit übersichtlichem Tagesüberblick
-• Barcode-Scanner für schnelle Erfassung verpackter Lebensmittel
+• Lebensmittel per Barcode scannen oder nach Namen suchen – die Treffer sind auf Produkte aus deinem Land eingegrenzt
 • Eigene Lebensmittel anlegen und wiederverwenden
 • Clean-Eating-Tags, um auf einen Blick zu sehen, wie ausgewogen du isst
 • Mahlzeiten von gestern mit einem Tipp übernehmen
 
 TRAINING
 • Trainingspläne mit frei planbaren Sätzen (Aufwärmen, Normal, Drop-Satz, Failure)
+• Supersätze: Übungen zu einer Gruppe verbinden – die Pause läuft erst nach der letzten Übung
 • Live-Session-Logging mit Gewicht, Wiederholungen und automatischem Pausen-Timer
 • Trainingshistorie im Kalender, editierbar im Nachhinein
 • Automatische Erkennung persönlicher Bestleistungen (PRs)
 • Volumen- und Kraftverlauf-Charts pro Übung
 • Umfangreicher Übungskatalog plus eigene Übungen
 
-GEWICHT & STATISTIK
+ZIELE, GEWICHT & STATISTIK
+• Kalorienbedarf berechnen (Mifflin-St Jeor) und daraus Makroziele ableiten
 • Gewichtsverlauf mit Trendlinie und Zielgewicht
+• Körpermaße erfassen – Hals, Brust, Taille, Hüfte, Bizeps, Oberschenkel, Wade
+• Progressive Überladung: ein Kraftindex über alle Übungen, mit Hinweisen, woran es gerade liegt
 • Wochen-, Monats- und Jahresansichten für Kalorien, Clean-Ernährung, Gewicht und Trainingsfrequenz
 
 DEINE DATEN GEHÖREN DIR
 • Kein Konto, kein Server, kein Tracking, keine Werbung
 • Vollständiger Backup-Export/-Import als ZIP-Datei
 • Optionale tägliche Erinnerung, falls du vergisst zu erfassen
+
+AUSSERDEM
+• Geführter Rundgang beim ersten Start und ein Hilfebereich mit FAQ und Glossar
+• Hell, dunkel oder Systemeinstellung
+• Deutsch, Englisch, Französisch und Spanisch
 
 Trainist richtet sich an alle, die ihre Ernährung und ihr Training an einem Ort erfassen wollen – ohne Abo, ohne Datensammlung, ohne Ablenkung.
 ```
