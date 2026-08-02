@@ -4,8 +4,11 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dev.antonlammers.trainist.domain.SupersetPlacement
+import dev.antonlammers.trainist.domain.Supersets
 import dev.antonlammers.trainist.domain.model.Exercise
 import dev.antonlammers.trainist.domain.model.SetType
+import dev.antonlammers.trainist.domain.model.SupersetMember
 import dev.antonlammers.trainist.domain.model.TemplateExercise
 import dev.antonlammers.trainist.domain.model.WorkoutTemplate
 import dev.antonlammers.trainist.domain.repository.ExerciseCatalogRepository
@@ -30,7 +33,10 @@ data class TemplateSlot(
     val exerciseStableId: String,
     val exerciseName: String,
     val setTypes: List<SetType>,
-)
+    override val supersetGroupId: Int? = null,
+) : SupersetMember<TemplateSlot> {
+    override fun withSupersetGroupId(groupId: Int?) = copy(supersetGroupId = groupId)
+}
 
 data class TemplateEditorUiState(
     val name: String = "",
@@ -39,6 +45,9 @@ data class TemplateEditorUiState(
 ) {
     /** A template needs a name and at least one exercise before it can be saved. */
     val canSave: Boolean get() = name.isNotBlank() && slots.isNotEmpty()
+
+    /** Slot index → its place in a planned superset; slots that stand alone are absent. */
+    val supersets: Map<Int, SupersetPlacement> get() = Supersets.placements(slots)
 }
 
 @HiltViewModel
@@ -108,6 +117,7 @@ class TemplateEditorViewModel @Inject constructor(
                             exerciseStableId = e.exerciseStableId,
                             exerciseName = names[e.exerciseStableId] ?: e.exerciseStableId,
                             setTypes = e.setTypes,
+                            supersetGroupId = e.supersetGroupId,
                         )
                     },
                 loading = false,
@@ -133,7 +143,19 @@ class TemplateEditorViewModel @Inject constructor(
 
     fun removeExercise(index: Int) = _uiState.update { state ->
         if (index !in state.slots.indices) state
-        else state.copy(slots = state.slots.filterIndexed { i, _ -> i != index })
+        // Normalize so a planned superset whose partner just went away dissolves instead of
+        // lingering as a group of one (see Supersets).
+        else state.copy(slots = Supersets.normalize(state.slots.filterIndexed { i, _ -> i != index }))
+    }
+
+    /** Plans the slot at [index] and the one after it as a superset. */
+    fun groupWithNext(index: Int) = _uiState.update { state ->
+        state.copy(slots = Supersets.groupWithNext(state.slots, index))
+    }
+
+    /** Takes the slot at [index] back out of its planned superset. */
+    fun ungroup(index: Int) = _uiState.update { state ->
+        state.copy(slots = Supersets.ungroup(state.slots, index))
     }
 
     /** Appends a planned set (default [SetType.NORMAL]) to the slot, up to [MAX_TARGET_SETS]. */
@@ -175,9 +197,13 @@ class TemplateEditorViewModel @Inject constructor(
     fun moveSlot(from: Int, to: Int) = _uiState.update { state ->
         if (from !in state.slots.indices || to !in state.slots.indices) return@update state
         state.copy(
-            slots = state.slots.toMutableList().apply {
-                val tmp = this[from]; this[from] = this[to]; this[to] = tmp
-            },
+            // Reordering can pull a group's members apart; normalize re-derives the grouping from the
+            // new adjacency rather than letting a split group survive as two distant halves.
+            slots = Supersets.normalize(
+                state.slots.toMutableList().apply {
+                    val tmp = this[from]; this[from] = this[to]; this[to] = tmp
+                },
+            ),
         )
     }
 
@@ -193,6 +219,7 @@ class TemplateEditorViewModel @Inject constructor(
                     exerciseStableId = slot.exerciseStableId,
                     position = index,
                     setTypes = slot.setTypes,
+                    supersetGroupId = slot.supersetGroupId,
                 )
             },
         )

@@ -2,6 +2,7 @@ package dev.antonlammers.trainist.ui.workout
 
 import app.cash.turbine.test
 import dev.antonlammers.trainist.domain.SetPerformance
+import dev.antonlammers.trainist.domain.SupersetPlacement
 import dev.antonlammers.trainist.domain.model.Exercise
 import dev.antonlammers.trainist.domain.model.ExerciseType
 import dev.antonlammers.trainist.domain.model.SessionExercise
@@ -821,6 +822,161 @@ class WorkoutSessionViewModelTest {
         advanceUntilIdle()
         assertTrue(vm.finished.value)
         assertNull(vm.pendingTemplateUpdate.value)
+    }
+
+    // --- supersets ---
+
+    /** Starts a session holding [names] as separate, ungrouped exercises. */
+    private suspend fun WorkoutSessionViewModel.startedWith(scope: TestScope, vararg names: String) {
+        scope.advanceUntilIdle()
+        names.forEach { addExercise(exercise(it, it)) }
+        scope.advanceUntilIdle()
+    }
+
+    @Test
+    fun `grouping two exercises marks both as one superset and persists it`() = runTest {
+        val vm = viewModel()
+        subscribe(vm.uiState)
+        vm.startedWith(this, "bench", "row")
+
+        vm.groupWithNext(0)
+        advanceUntilIdle()
+
+        val exercises = vm.uiState.value.exercises
+        assertEquals(
+            listOf(SupersetPlacement(0, 1, 2), SupersetPlacement(0, 2, 2)),
+            exercises.map { it.superset },
+        )
+
+        // The grouping is part of the continuously persisted session, not just ui state.
+        val persisted = sessions.activeSession().first()!!
+        assertEquals(1, persisted.exercises.map { it.supersetGroupId }.distinct().single())
+    }
+
+    @Test
+    fun `an exercise with nothing after it cannot be grouped`() = runTest {
+        val vm = viewModel()
+        subscribe(vm.uiState)
+        vm.startedWith(this, "bench", "row")
+
+        assertEquals(listOf(true, false), vm.uiState.value.exercises.map { it.canGroupWithNext })
+    }
+
+    @Test
+    fun `ungrouping a pair dissolves the superset for both`() = runTest {
+        val vm = viewModel()
+        subscribe(vm.uiState)
+        vm.startedWith(this, "bench", "row")
+        vm.groupWithNext(0)
+        advanceUntilIdle()
+
+        vm.ungroup(0)
+        advanceUntilIdle()
+
+        assertEquals(listOf(null, null), vm.uiState.value.exercises.map { it.superset })
+    }
+
+    @Test
+    fun `removing one half of a superset leaves the other ungrouped`() = runTest {
+        val vm = viewModel()
+        subscribe(vm.uiState)
+        vm.startedWith(this, "bench", "row")
+        vm.groupWithNext(0)
+        advanceUntilIdle()
+
+        vm.removeExercise(1)
+        advanceUntilIdle()
+
+        val remaining = vm.uiState.value.exercises.single()
+        assertNull(remaining.superset)
+        assertNull(sessions.activeSession().first()!!.exercises.single().supersetGroupId)
+    }
+
+    @Test
+    fun `checking off a non-final superset exercise starts no rest`() = runTest {
+        val vm = viewModel()
+        subscribe(vm.uiState)
+        vm.startedWith(this, "bench", "row")
+        vm.groupWithNext(0)
+        advanceUntilIdle()
+
+        vm.restCommands.test {
+            // Inside a superset you move straight to the next exercise — no rest in between.
+            vm.toggleSetCompleted(0, 0)
+            advanceUntilIdle()
+            expectNoEvents()
+            cancelAndIgnoreRemainingEvents()
+        }
+        assertNull(vm.restTimer.value)
+    }
+
+    @Test
+    fun `checking off the final superset exercise starts the rest`() = runTest {
+        val vm = viewModel()
+        subscribe(vm.uiState)
+        vm.startedWith(this, "bench", "row")
+        vm.groupWithNext(0)
+        advanceUntilIdle()
+
+        vm.restCommands.test {
+            vm.toggleSetCompleted(1, 0)
+            assertEquals(runningSync("row", 180, FIXED_CLOCK + 180_000), awaitItem())
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `an ungrouped exercise still rests after every set`() = runTest {
+        val vm = viewModel()
+        subscribe(vm.uiState)
+        vm.startedWith(this, "bench", "row")
+
+        vm.restCommands.test {
+            vm.toggleSetCompleted(0, 0)
+            assertEquals(runningSync("bench", 180, FIXED_CLOCK + 180_000), awaitItem())
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `a session started from a template inherits its planned supersets`() = runTest {
+        val templateId = templates.save(
+            WorkoutTemplate(
+                stableId = "t",
+                name = "Push",
+                exercises = listOf(
+                    TemplateExercise("bench", 0, listOf(SetType.NORMAL), supersetGroupId = 1),
+                    TemplateExercise("row", 1, listOf(SetType.NORMAL), supersetGroupId = 1),
+                    TemplateExercise("curl", 2, listOf(SetType.NORMAL)),
+                ),
+            ),
+        )
+        val vm = viewModel(templateId)
+        subscribe(vm.uiState)
+        advanceUntilIdle()
+
+        assertEquals(
+            listOf(SupersetPlacement(0, 1, 2), SupersetPlacement(0, 2, 2), null),
+            vm.uiState.value.exercises.map { it.superset },
+        )
+    }
+
+    @Test
+    fun `a superset survives leaving and resuming the session`() = runTest {
+        val vm = viewModel()
+        subscribe(vm.uiState)
+        vm.startedWith(this, "bench", "row")
+        vm.groupWithNext(0)
+        advanceUntilIdle()
+
+        val resumed = viewModel()
+        subscribe(resumed.uiState)
+        advanceUntilIdle()
+
+        assertEquals(
+            listOf(SupersetPlacement(0, 1, 2), SupersetPlacement(0, 2, 2)),
+            resumed.uiState.value.exercises.map { it.superset },
+        )
     }
 
     private companion object {

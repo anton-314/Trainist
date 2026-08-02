@@ -42,12 +42,14 @@ object TemplateExerciseCsvFormat {
     const val POSITION = "position"
     const val TARGET_SETS = "target_sets"
     const val SET_TYPES = "set_types"
+    const val SUPERSET_GROUP_ID = "superset_group_id"
 
     /** Matches [ExerciseCsvFormat]'s list-cell convention — one line per row, so `|`, not a newline. */
     private const val LIST_SEPARATOR = "|"
 
     val HEADER: String =
-        listOf(TEMPLATE_STABLE_ID, EXERCISE_STABLE_ID, POSITION, TARGET_SETS, SET_TYPES).joinToString(",")
+        listOf(TEMPLATE_STABLE_ID, EXERCISE_STABLE_ID, POSITION, TARGET_SETS, SET_TYPES, SUPERSET_GROUP_ID)
+            .joinToString(",")
 
     fun toRow(templateStableId: String, exercise: TemplateExercise): String = listOf(
         templateStableId.escapeCsv(),
@@ -55,6 +57,7 @@ object TemplateExerciseCsvFormat {
         exercise.position,
         exercise.setTypes.size,
         exercise.setTypes.joinToString(LIST_SEPARATOR) { it.name }.escapeCsv(),
+        exercise.supersetGroupId ?: "",
     ).joinToString(",")
 
     /** A parsed slot together with the stable id of the template it belongs to. */
@@ -78,6 +81,9 @@ object TemplateExerciseCsvFormat {
                 exerciseStableId = exerciseStableId,
                 position = position,
                 setTypes = setTypes,
+                // Missing in backups written before planned supersets existed — null is exactly the
+                // "stands on its own" those templates had.
+                supersetGroupId = cols.csvInt(headers, SUPERSET_GROUP_ID),
             ),
         )
     }

@@ -35,15 +35,18 @@ data class WorkoutSession(
 
 /**
  * One exercise performed within a [WorkoutSession], referenced by [exerciseStableId]. [position] is
- * the order; [supersetGroupId] is reserved for future superset grouping (always null in v1).
+ * the order; [supersetGroupId] groups adjacent exercises into a superset (null = performed on its
+ * own) — see [dev.antonlammers.trainist.domain.Supersets] for the rules that maintain it.
  */
 data class SessionExercise(
     val id: Long = 0,
     val exerciseStableId: String,
     val position: Int,
-    val supersetGroupId: Int? = null,
+    override val supersetGroupId: Int? = null,
     val sets: List<SetEntry> = emptyList(),
-)
+) : SupersetMember<SessionExercise> {
+    override fun withSupersetGroupId(groupId: Int?) = copy(supersetGroupId = groupId)
+}
 
 /** A single logged set: effective inputs plus its [type] and whether it has been checked off. */
 data class SetEntry(

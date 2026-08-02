@@ -1,6 +1,7 @@
 package dev.antonlammers.trainist.ui.workout
 
 import androidx.lifecycle.SavedStateHandle
+import dev.antonlammers.trainist.domain.SupersetPlacement
 import dev.antonlammers.trainist.domain.model.Exercise
 import dev.antonlammers.trainist.domain.model.ExerciseType
 import dev.antonlammers.trainist.domain.model.SetType
@@ -256,6 +257,105 @@ class TemplateEditorViewModelTest {
         val saved = templates.templates().first().single()
         assertEquals("Renamed", saved.name)
         assertEquals("tpl-keep", saved.stableId)
+    }
+
+    // --- planned supersets ---
+
+    /** An editor holding [names] as separate, ungrouped slots. */
+    private suspend fun editorWithSlots(scope: TestScope, vararg names: String): TemplateEditorViewModel {
+        val vm = editorFor(0)
+        scope.subscribe(vm.uiState)
+        scope.advanceUntilIdle()
+        names.forEach { vm.addExercise(exercise(it, it)) }
+        scope.advanceUntilIdle()
+        return vm
+    }
+
+    @Test
+    fun `grouping two slots plans them as one superset`() = runTest {
+        val vm = editorWithSlots(this, "bench", "row")
+
+        vm.groupWithNext(0)
+        advanceUntilIdle()
+
+        assertEquals(
+            mapOf(0 to SupersetPlacement(0, 1, 2), 1 to SupersetPlacement(0, 2, 2)),
+            vm.uiState.value.supersets,
+        )
+    }
+
+    @Test
+    fun `a planned superset is persisted with the template`() = runTest {
+        val vm = editorWithSlots(this, "bench", "row", "curl")
+        vm.groupWithNext(0)
+        advanceUntilIdle()
+
+        vm.onNameChange("Push")
+        vm.save()
+        advanceUntilIdle()
+
+        val saved = templates.templates().first().single()
+        assertEquals(listOf(1, 1, null), saved.exercises.map { it.supersetGroupId })
+    }
+
+    @Test
+    fun `ungrouping a planned superset clears it for both slots`() = runTest {
+        val vm = editorWithSlots(this, "bench", "row")
+        vm.groupWithNext(0)
+        advanceUntilIdle()
+
+        vm.ungroup(1)
+        advanceUntilIdle()
+
+        assertTrue(vm.uiState.value.supersets.isEmpty())
+    }
+
+    @Test
+    fun `removing one slot of a planned superset dissolves it`() = runTest {
+        val vm = editorWithSlots(this, "bench", "row")
+        vm.groupWithNext(0)
+        advanceUntilIdle()
+
+        vm.removeExercise(0)
+        advanceUntilIdle()
+
+        assertTrue(vm.uiState.value.supersets.isEmpty())
+        assertEquals(listOf<Int?>(null), vm.uiState.value.slots.map { it.supersetGroupId })
+    }
+
+    @Test
+    fun `dragging a third slot between two grouped ones breaks the superset apart`() = runTest {
+        val vm = editorWithSlots(this, "bench", "row", "curl")
+        vm.groupWithNext(0) // bench + row
+        advanceUntilIdle()
+
+        // Move "curl" from the end into the middle — the group's members are no longer adjacent.
+        vm.moveSlot(2, 1)
+        advanceUntilIdle()
+
+        assertTrue(vm.uiState.value.supersets.isEmpty())
+    }
+
+    @Test
+    fun `a saved planned superset is read back when the template is reopened`() = runTest {
+        val id = templates.save(
+            WorkoutTemplate(
+                stableId = "tpl",
+                name = "Push",
+                exercises = listOf(
+                    TemplateExercise("bench", 0, normalSets(3), supersetGroupId = 1),
+                    TemplateExercise("row", 1, normalSets(3), supersetGroupId = 1),
+                ),
+            ),
+        )
+        val vm = editorFor(id)
+        subscribe(vm.uiState)
+        advanceUntilIdle()
+
+        assertEquals(
+            mapOf(0 to SupersetPlacement(0, 1, 2), 1 to SupersetPlacement(0, 2, 2)),
+            vm.uiState.value.supersets,
+        )
     }
 
     // --- picker ---

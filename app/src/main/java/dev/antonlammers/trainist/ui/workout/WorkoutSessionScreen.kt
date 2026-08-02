@@ -21,6 +21,8 @@ import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material.icons.rounded.Close
+import androidx.compose.material.icons.rounded.Link
+import androidx.compose.material.icons.rounded.LinkOff
 import androidx.compose.material.icons.rounded.Pause
 import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material.icons.rounded.RadioButtonUnchecked
@@ -221,6 +223,8 @@ fun WorkoutSessionScreen(
                         onToggleCompleted = { setIndex -> viewModel.toggleSetCompleted(index, setIndex) },
                         onSetTypeChange = { setIndex, type -> viewModel.setSetType(index, setIndex, type) },
                         onRestChange = { seconds -> viewModel.setExerciseRest(exercise.exerciseStableId, seconds) },
+                        onGroupWithNext = { viewModel.groupWithNext(index) },
+                        onUngroup = { viewModel.ungroup(index) },
                     )
                 }
                 item {
@@ -254,6 +258,8 @@ private fun ExerciseCard(
     onToggleCompleted: (Int) -> Unit,
     onSetTypeChange: (Int, SetType) -> Unit,
     onRestChange: (Int) -> Unit,
+    onGroupWithNext: () -> Unit,
+    onUngroup: () -> Unit,
 ) {
     val weightCaption = stringResource(
         if (exercise.type == ExerciseType.BODYWEIGHT) {
@@ -271,6 +277,7 @@ private fun ExerciseCard(
             .padding(12.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
+        exercise.superset?.let { SupersetBadge(it) }
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(
                 exercise.name,
@@ -278,6 +285,28 @@ private fun ExerciseCard(
                 modifier = Modifier.weight(1f).clickable(onClick = onOpenDetail),
             )
             RestDurationChip(restSeconds = exercise.restSeconds, onRestChange = onRestChange)
+            // Exactly one of the two ever shows: an ungrouped exercise can be joined to the next one,
+            // a grouped one can be released. The rest-duration chip stays visible either way, since a
+            // superset still rests once its last exercise is done.
+            if (exercise.superset != null) {
+                IconButton(onClick = onUngroup, modifier = Modifier.size(32.dp)) {
+                    Icon(
+                        Icons.Rounded.LinkOff,
+                        contentDescription = stringResource(R.string.workout_session_superset_ungroup_content_description),
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(18.dp),
+                    )
+                }
+            } else if (exercise.canGroupWithNext) {
+                IconButton(onClick = onGroupWithNext, modifier = Modifier.size(32.dp)) {
+                    Icon(
+                        Icons.Rounded.Link,
+                        contentDescription = stringResource(R.string.workout_session_superset_group_content_description),
+                        tint = MaterialTheme.colorScheme.outline,
+                        modifier = Modifier.size(18.dp),
+                    )
+                }
+            }
             IconButton(onClick = onRemove, modifier = Modifier.size(32.dp)) {
                 Icon(Icons.Rounded.Close, contentDescription = stringResource(R.string.workout_session_remove_exercise_content_description), tint = MaterialTheme.colorScheme.outline)
             }

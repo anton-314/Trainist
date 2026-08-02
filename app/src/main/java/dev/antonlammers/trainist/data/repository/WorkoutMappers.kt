@@ -70,7 +70,12 @@ internal object WorkoutMappers {
         stableId = template.stableId,
         name = template.name,
         exercises = exercises.sortedBy { it.position }.map {
-            TemplateExercise(it.exerciseStableId, it.position, it.setTypes.toSetTypes(it.targetSets))
+            TemplateExercise(
+                exerciseStableId = it.exerciseStableId,
+                position = it.position,
+                setTypes = it.setTypes.toSetTypes(it.targetSets),
+                supersetGroupId = it.supersetGroupId,
+            )
         },
     )
 
@@ -87,6 +92,7 @@ internal object WorkoutMappers {
                 position = index,
                 targetSets = e.setTypes.size,
                 setTypes = e.setTypes.joinToString(LIST_SEPARATOR) { it.name },
+                supersetGroupId = e.supersetGroupId,
             )
         }
 

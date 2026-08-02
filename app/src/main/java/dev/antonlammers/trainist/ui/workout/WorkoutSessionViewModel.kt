@@ -7,6 +7,8 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import dev.antonlammers.trainist.domain.InlineHistory
 import dev.antonlammers.trainist.domain.RestTimer
 import dev.antonlammers.trainist.domain.SetPerformance
+import dev.antonlammers.trainist.domain.SupersetPlacement
+import dev.antonlammers.trainist.domain.Supersets
 import dev.antonlammers.trainist.domain.TemplateUpdate
 import dev.antonlammers.trainist.domain.WorkoutMetrics
 import dev.antonlammers.trainist.domain.model.Exercise
@@ -62,6 +64,10 @@ data class SessionExerciseUi(
     val volumeKg: Double = 0.0,
     /** Highest Epley estimated 1RM over the performed sets, or null if nothing has been logged. */
     val estimatedOneRepMaxKg: Double? = null,
+    /** Where this exercise sits in its superset, or null when it is performed on its own. */
+    val superset: SupersetPlacement? = null,
+    /** True when there is a following exercise this one can be supersetted with. */
+    val canGroupWithNext: Boolean = false,
 )
 
 data class WorkoutSessionUiState(
@@ -216,10 +222,11 @@ class WorkoutSessionViewModel(
             WorkoutSessionUiState(loading = true)
         } else {
             val byStableId = catalogExercises.associateBy { it.stableId }
+            val supersets = Supersets.placements(session.exercises)
             WorkoutSessionUiState(
                 loading = false,
                 bodyWeightKg = bodyWeightKg,
-                exercises = session.exercises.map { se ->
+                exercises = session.exercises.mapIndexed { index, se ->
                     val exercise = byStableId[se.exerciseStableId]
                     val type = exercise?.type ?: ExerciseType.WEIGHT_REPS
                     SessionExerciseUi(
@@ -232,6 +239,8 @@ class WorkoutSessionViewModel(
                         restSeconds = exercise?.restSeconds ?: RestTimer.DEFAULT_REST_SECONDS,
                         volumeKg = WorkoutMetrics.volumeKg(se.sets, type, bodyWeightKg),
                         estimatedOneRepMaxKg = WorkoutMetrics.bestEstimatedOneRepMaxKg(se.sets, type, bodyWeightKg),
+                        superset = supersets[index],
+                        canGroupWithNext = Supersets.canGroupWithNext(session.exercises, index),
                     )
                 },
             )
@@ -287,11 +296,15 @@ class WorkoutSessionViewModel(
                     id = newId(),
                     exerciseStableId = te.exerciseStableId,
                     position = index,
+                    // The planned grouping is carried over as-is; normalize below re-derives it from
+                    // the session's own adjacency, so the ids stay canonical either way.
+                    supersetGroupId = te.supersetGroupId,
                     sets = te.setTypes.mapIndexed { setIndex, type ->
                         SetEntry(id = newId(), position = setIndex, weightKg = 0.0, reps = 0, type = type)
                     },
                 )
             }
+            ?.let { Supersets.normalize(it) }
             .orEmpty()
         return buildEmpty().copy(exercises = exercises, templateStableId = template?.stableId)
     }
@@ -314,6 +327,19 @@ class WorkoutSessionViewModel(
     fun removeExercise(exerciseIndex: Int) = mutate { session ->
         if (exerciseIndex !in session.exercises.indices) return@mutate session
         session.copy(exercises = reindexExercises(session.exercises.filterIndexed { i, _ -> i != exerciseIndex }))
+    }
+
+    /**
+     * Supersets the exercise at [exerciseIndex] with the one after it — the two are then performed
+     * back to back, and the rest timer only runs after the group's last exercise.
+     */
+    fun groupWithNext(exerciseIndex: Int) = mutate { session ->
+        session.copy(exercises = Supersets.groupWithNext(session.exercises, exerciseIndex))
+    }
+
+    /** Takes the exercise at [exerciseIndex] back out of its superset. */
+    fun ungroup(exerciseIndex: Int) = mutate { session ->
+        session.copy(exercises = Supersets.ungroup(session.exercises, exerciseIndex))
     }
 
     fun addSet(exerciseIndex: Int) = mutateExercise(exerciseIndex) { exercise ->
@@ -356,7 +382,11 @@ class WorkoutSessionViewModel(
                     reps = if (s.reps == 0 && hint != null) hint.reps else s.reps,
                 )
             }
-            startRest(exercise.exerciseStableId)
+            // Inside a superset the whole point is to move straight on to the next exercise, so only
+            // the group's last exercise ends a round and starts the rest.
+            if (Supersets.isLastInGroup(session.exercises, exerciseIndex)) {
+                startRest(exercise.exerciseStableId)
+            }
         }
     }
 
@@ -540,7 +570,11 @@ class WorkoutSessionViewModel(
             else exercise.copy(sets = exercise.sets.mapIndexed { i, s -> if (i == setIndex) block(s) else s })
         }
 
-    private fun reindexExercises(list: List<SessionExercise>) = list.mapIndexed { i, e -> e.copy(position = i) }
+    // Normalizing here is what keeps superset groups honest across structural changes: deleting one
+    // half of a superset leaves a lone member, which Supersets then dissolves back into a plain
+    // exercise rather than leaving a group of one behind.
+    private fun reindexExercises(list: List<SessionExercise>) =
+        Supersets.normalize(list).mapIndexed { i, e -> e.copy(position = i) }
     private fun reindexSets(list: List<SetEntry>) = list.mapIndexed { i, s -> s.copy(position = i) }
 
     private fun persistAsync() = viewModelScope.launch { persist() }

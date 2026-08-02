@@ -38,6 +38,81 @@ class TemplateUpdateTest {
             },
         )
 
+    // --- superset grouping ---
+
+    @Test
+    fun `a superset formed during the session is folded back into the template`() {
+        val tpl = template(slot("bench", 0, SetType.NORMAL), slot("row", 1, SetType.NORMAL))
+        val sess = session(
+            sessionExercise("bench", 0, SetType.NORMAL to true).copy(supersetGroupId = 1),
+            sessionExercise("row", 1, SetType.NORMAL to true).copy(supersetGroupId = 1),
+        )
+
+        val merged = TemplateUpdate.merge(tpl, sess)
+
+        assertEquals(listOf(1, 1), merged!!.exercises.map { it.supersetGroupId })
+    }
+
+    @Test
+    fun `a superset dissolved during the session is dissolved in the template too`() {
+        val tpl = template(
+            slot("bench", 0, SetType.NORMAL).copy(supersetGroupId = 1),
+            slot("row", 1, SetType.NORMAL).copy(supersetGroupId = 1),
+        )
+        val sess = session(
+            sessionExercise("bench", 0, SetType.NORMAL to true),
+            sessionExercise("row", 1, SetType.NORMAL to true),
+        )
+
+        val merged = TemplateUpdate.merge(tpl, sess)
+
+        assertEquals(listOf(null, null), merged!!.exercises.map { it.supersetGroupId })
+    }
+
+    @Test
+    fun `a session matching its template's supersets yields no update`() {
+        val tpl = template(
+            slot("bench", 0, SetType.NORMAL).copy(supersetGroupId = 1),
+            slot("row", 1, SetType.NORMAL).copy(supersetGroupId = 1),
+        )
+        val sess = session(
+            sessionExercise("bench", 0, SetType.NORMAL to true).copy(supersetGroupId = 1),
+            sessionExercise("row", 1, SetType.NORMAL to true).copy(supersetGroupId = 1),
+        )
+        assertNull(TemplateUpdate.merge(tpl, sess))
+    }
+
+    @Test
+    fun `a skipped slot between two grouped performed ones cannot leave a group of one`() {
+        // "bench" is skipped and keeps its group; "row" was performed alone. The surviving members of
+        // the old group are no longer adjacent-and-paired, so normalize must dissolve it rather than
+        // leave "bench" as a lone superset member.
+        val tpl = template(
+            slot("bench", 0, SetType.NORMAL).copy(supersetGroupId = 1),
+            slot("row", 1, SetType.NORMAL).copy(supersetGroupId = 1),
+        )
+        val sess = session(sessionExercise("row", 0, SetType.NORMAL to true))
+
+        val merged = TemplateUpdate.merge(tpl, sess)
+
+        assertEquals(listOf(null, null), merged!!.exercises.map { it.supersetGroupId })
+    }
+
+    @Test
+    fun `a live-added superset is appended to the template as a group`() {
+        val tpl = template(slot("bench", 0, SetType.NORMAL))
+        val sess = session(
+            sessionExercise("bench", 0, SetType.NORMAL to true),
+            sessionExercise("curl", 1, SetType.NORMAL to true).copy(supersetGroupId = 1),
+            sessionExercise("fly", 2, SetType.NORMAL to true).copy(supersetGroupId = 1),
+        )
+
+        val merged = TemplateUpdate.merge(tpl, sess)!!
+
+        assertEquals(listOf("bench", "curl", "fly"), merged.exercises.map { it.exerciseStableId })
+        assertEquals(listOf(null, 1, 1), merged.exercises.map { it.supersetGroupId })
+    }
+
     @Test
     fun `an unchanged session yields no update`() {
         val tpl = template(

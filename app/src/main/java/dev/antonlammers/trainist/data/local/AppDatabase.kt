@@ -31,7 +31,7 @@ import dev.antonlammers.trainist.data.local.entity.WorkoutTemplateEntity
         WorkoutSessionEntity::class, SessionExerciseEntity::class, SetEntryEntity::class,
         BodyMeasurementEntity::class,
     ],
-    version = 13,
+    version = 14,
     exportSchema = true,
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -208,6 +208,17 @@ abstract class AppDatabase : RoomDatabase() {
                     """.trimIndent()
                 )
                 db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS index_body_measurements_date_type ON body_measurements (date, type)")
+            }
+        }
+
+        /**
+         * Adds the planned superset grouping to a template exercise slot. Nullable/no backfill —
+         * every pre-existing slot stands on its own, which is exactly what a null means, so old
+         * templates keep working untouched.
+         */
+        val MIGRATION_13_14 = object : Migration(13, 14) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE template_exercises ADD COLUMN supersetGroupId INTEGER")
             }
         }
     }

@@ -3,6 +3,8 @@ package dev.antonlammers.trainist.ui.workout
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dev.antonlammers.trainist.domain.SupersetPlacement
+import dev.antonlammers.trainist.domain.Supersets
 import dev.antonlammers.trainist.domain.WorkoutMetrics
 import dev.antonlammers.trainist.domain.model.ExerciseType
 import dev.antonlammers.trainist.domain.model.SessionExercise
@@ -41,6 +43,8 @@ data class HistoryExerciseUi(
     val estimatedOneRepMaxKg: Double?,
     /** True when this exercise set a new max-weight PR in this session. */
     val isPersonalRecord: Boolean,
+    /** Where this exercise sat in its superset as performed, or null when it stood alone. */
+    val superset: SupersetPlacement? = null,
 )
 
 /** One session on the selected day. */
@@ -130,7 +134,8 @@ class WorkoutHistoryViewModel(
             .sortedBy { it.startedAtMs }
             .map { session ->
                 val bodyWeightKg = WorkoutMetrics.resolveBodyWeightKg(weights, session.date)
-                val exercises = session.exercises.map { se ->
+                val supersets = Supersets.placements(session.exercises)
+                val exercises = session.exercises.mapIndexed { index, se ->
                     val exercise = byStableId[se.exerciseStableId]
                     val type = exercise?.type ?: ExerciseType.WEIGHT_REPS
                     HistoryExerciseUi(
@@ -142,6 +147,7 @@ class WorkoutHistoryViewModel(
                         volumeKg = WorkoutMetrics.volumeKg(se.sets, type, bodyWeightKg),
                         estimatedOneRepMaxKg = WorkoutMetrics.bestEstimatedOneRepMaxKg(se.sets, type, bodyWeightKg),
                         isPersonalRecord = (session.stableId to se.exerciseStableId) in prs,
+                        superset = supersets[index],
                     )
                 }
                 HistorySessionUi(

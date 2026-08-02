@@ -27,7 +27,9 @@ internal enum class CsvType {
 
 internal fun detectCsvType(headers: Map<String, Int>): CsvType = when {
     // Training sections are matched first by their own unique columns: set_entries carries a
-    // `weight_kg` column too, so it must win over the weight-entries rule below.
+    // `weight_kg` column too, so it must win over the weight-entries rule below. For the same reason
+    // the `target_sets` rule must stay above the `superset_group_id` one — since planned supersets
+    // exist, template_exercises carries that column as well, and only `target_sets` is unique to it.
     ExerciseCsvFormat.IS_CUSTOM in headers -> CsvType.EXERCISES
     WorkoutTemplateCsvFormat.NAME in headers -> CsvType.WORKOUT_TEMPLATES
     TemplateExerciseCsvFormat.TARGET_SETS in headers -> CsvType.TEMPLATE_EXERCISES

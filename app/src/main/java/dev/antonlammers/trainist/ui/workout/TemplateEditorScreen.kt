@@ -21,6 +21,8 @@ import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.DragIndicator
+import androidx.compose.material.icons.rounded.Link
+import androidx.compose.material.icons.rounded.LinkOff
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -47,6 +49,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import dev.antonlammers.trainist.R
+import dev.antonlammers.trainist.domain.SupersetPlacement
 import dev.antonlammers.trainist.domain.model.SetType
 import dev.antonlammers.trainist.ui.components.DragReorderColumn
 
@@ -157,6 +160,8 @@ fun TemplateEditorScreen(
                     ) { index, slot, rowModifier, dragHandleModifier, isDragging ->
                         SlotCard(
                             slot = slot,
+                            superset = state.supersets[index],
+                            canGroupWithNext = index < state.slots.lastIndex,
                             isDragging = isDragging,
                             rowModifier = rowModifier,
                             dragHandleModifier = dragHandleModifier,
@@ -164,6 +169,8 @@ fun TemplateEditorScreen(
                             onAddSet = { viewModel.addSet(index) },
                             onRemoveSet = { setIndex -> viewModel.removeSet(index, setIndex) },
                             onSetTypeChange = { setIndex, type -> viewModel.setSetType(index, setIndex, type) },
+                            onGroupWithNext = { viewModel.groupWithNext(index) },
+                            onUngroup = { viewModel.ungroup(index) },
                         )
                     }
                 }
@@ -187,10 +194,15 @@ fun TemplateEditorScreen(
     }
 }
 
-/** A single exercise slot: header (drag handle, name, remove) + its planned per-set-type list. */
+/**
+ * A single exercise slot: header (drag handle, name, superset link, remove) + its planned
+ * per-set-type list, with a superset badge above the header once the slot is part of a group.
+ */
 @Composable
 private fun SlotCard(
     slot: TemplateSlot,
+    superset: SupersetPlacement?,
+    canGroupWithNext: Boolean,
     isDragging: Boolean,
     rowModifier: Modifier,
     dragHandleModifier: Modifier,
@@ -198,6 +210,8 @@ private fun SlotCard(
     onAddSet: () -> Unit,
     onRemoveSet: (Int) -> Unit,
     onSetTypeChange: (Int, SetType) -> Unit,
+    onGroupWithNext: () -> Unit,
+    onUngroup: () -> Unit,
 ) {
     Column(
         modifier = rowModifier
@@ -210,6 +224,8 @@ private fun SlotCard(
             .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(16.dp))
             .padding(start = 4.dp, end = 8.dp, top = 8.dp, bottom = 8.dp),
     ) {
+        superset?.let { SupersetBadge(it, modifier = Modifier.padding(start = 8.dp, bottom = 4.dp)) }
+
         Row(verticalAlignment = Alignment.CenterVertically) {
             Icon(
                 Icons.Rounded.DragIndicator,
@@ -225,6 +241,28 @@ private fun SlotCard(
                     .weight(1f)
                     .padding(horizontal = 8.dp),
             )
+
+            // Same vocabulary as the live session: link joins this slot to the next, unlink releases
+            // it. Exactly one of the two ever applies.
+            if (superset != null) {
+                IconButton(onClick = onUngroup) {
+                    Icon(
+                        Icons.Rounded.LinkOff,
+                        contentDescription = stringResource(R.string.workout_session_superset_ungroup_content_description),
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(18.dp),
+                    )
+                }
+            } else if (canGroupWithNext) {
+                IconButton(onClick = onGroupWithNext) {
+                    Icon(
+                        Icons.Rounded.Link,
+                        contentDescription = stringResource(R.string.workout_session_superset_group_content_description),
+                        tint = MaterialTheme.colorScheme.outline,
+                        modifier = Modifier.size(18.dp),
+                    )
+                }
+            }
 
             IconButton(onClick = onRemove) {
                 Icon(

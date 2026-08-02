@@ -376,6 +376,7 @@ private fun ExerciseBlock(
         },
     )
     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        exercise.superset?.let { SupersetBadge(it) }
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(
                 exercise.name,

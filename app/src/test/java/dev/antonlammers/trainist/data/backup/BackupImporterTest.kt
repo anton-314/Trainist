@@ -153,6 +153,22 @@ class BackupImporterTest {
         assertEquals(CsvType.SET_ENTRIES, detectCsvType(CsvFormat.parseHeaders(SetEntryCsvFormat.HEADER)))
     }
 
+    @Test
+    fun `a template-exercises row written before planned supersets still parses`() {
+        // Backward-compatibility contract: a missing column reads as its sensible default, and null
+        // is exactly the "stands on its own" every pre-superset template slot had.
+        val oldHeader = "template_stable_id,exercise_stable_id,position,target_sets,set_types"
+        val headers = CsvFormat.parseHeaders(oldHeader)
+
+        assertEquals(CsvType.TEMPLATE_EXERCISES, detectCsvType(headers))
+
+        val row = TemplateExerciseCsvFormat.fromRow("tpl,bench,0,3,WARMUP|NORMAL|NORMAL", headers)!!
+        assertEquals("tpl", row.templateStableId)
+        assertEquals("bench", row.exercise.exerciseStableId)
+        assertEquals(listOf(SetType.WARMUP, SetType.NORMAL, SetType.NORMAL), row.exercise.setTypes)
+        assertNull(row.exercise.supersetGroupId)
+    }
+
     // --- Training round-trips -------------------------------------------------------------------
 
     @Test
@@ -194,6 +210,8 @@ class BackupImporterTest {
         assertEquals(listOf("cat-squat", "custom-klimmzug"), template.exercises.map { it.exerciseStableId })
         assertEquals(listOf(0, 1), template.exercises.map { it.position })
         assertEquals(listOf(3, 4), template.exercises.map { it.setTypes.size })
+        // The planned superset survives too — otherwise a restore silently un-groups the plan.
+        assertEquals(listOf(1, 1), template.exercises.map { it.supersetGroupId })
 
         // Session graph rebuilt: exercises in order, each with its own sets reconnected by position.
         val session = sessions.sessions().first().single()
@@ -348,8 +366,9 @@ class BackupImporterTest {
         stableId = "custom-template",
         name = "Push Day",
         exercises = listOf(
-            TemplateExercise(exerciseStableId = "cat-squat", position = 0, setTypes = List(3) { SetType.NORMAL }),
-            TemplateExercise(exerciseStableId = "custom-klimmzug", position = 1, setTypes = List(4) { SetType.NORMAL }),
+            // Planned as one superset, so the round-trip covers the grouping too.
+            TemplateExercise("cat-squat", 0, List(3) { SetType.NORMAL }, supersetGroupId = 1),
+            TemplateExercise("custom-klimmzug", 1, List(4) { SetType.NORMAL }, supersetGroupId = 1),
         ),
     )
 

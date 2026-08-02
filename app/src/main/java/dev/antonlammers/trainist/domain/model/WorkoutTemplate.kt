@@ -16,10 +16,14 @@ data class WorkoutTemplate(
 /**
  * One exercise slot in a [WorkoutTemplate]. References the exercise by its [exerciseStableId] (never
  * the row id). [position] is the order within the template; [setTypes] the planned sets in order
- * (its size is the planned set count).
+ * (its size is the planned set count); [supersetGroupId] groups adjacent slots into a planned
+ * superset (null = performed on its own), which the session started from this template inherits.
  */
 data class TemplateExercise(
     val exerciseStableId: String,
     val position: Int,
     val setTypes: List<SetType>,
-)
+    override val supersetGroupId: Int? = null,
+) : SupersetMember<TemplateExercise> {
+    override fun withSupersetGroupId(groupId: Int?) = copy(supersetGroupId = groupId)
+}

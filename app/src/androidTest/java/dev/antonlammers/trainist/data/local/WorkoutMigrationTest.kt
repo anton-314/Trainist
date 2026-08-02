@@ -291,6 +291,58 @@ class WorkoutMigrationTest {
         db.close()
     }
 
+    @Test
+    fun migrate13to14_addsTemplateSupersetColumn_andPreservesExistingSlots() {
+        val db = openV7WithSeedData()
+        AppDatabase.MIGRATION_7_8.migrate(db)
+        AppDatabase.MIGRATION_8_9.migrate(db)
+        AppDatabase.MIGRATION_9_10.migrate(db)
+        AppDatabase.MIGRATION_10_11.migrate(db)
+        AppDatabase.MIGRATION_11_12.migrate(db)
+        AppDatabase.MIGRATION_12_13.migrate(db)
+        db.execSQL("INSERT INTO workout_templates (id, stableId, name, position) VALUES (5, 'tpl', 'Push Day', 0)")
+        db.execSQL(
+            "INSERT INTO template_exercises (templateId, exerciseStableId, position, targetSets, setTypes) " +
+                "VALUES (5, 'bench', 0, 3, 'WARMUP\nNORMAL\nNORMAL')",
+        )
+        db.execSQL(
+            "INSERT INTO template_exercises (templateId, exerciseStableId, position, targetSets, setTypes) " +
+                "VALUES (5, 'row', 1, 3, 'NORMAL\nNORMAL\nNORMAL')",
+        )
+
+        AppDatabase.MIGRATION_13_14.migrate(db)
+
+        val columns = db.query("PRAGMA table_info(template_exercises)").use { c ->
+            val nameIdx = c.getColumnIndex("name")
+            buildSet { while (c.moveToNext()) add(c.getString(nameIdx)) }
+        }
+        assertTrue(columns.contains("supersetGroupId"))
+
+        // Both pre-existing slots survived with their plan intact, and the new column defaults to
+        // null — which is exactly the "stands on its own" every pre-superset template had.
+        db.query(
+            "SELECT exerciseStableId, setTypes, supersetGroupId FROM template_exercises " +
+                "WHERE templateId = 5 ORDER BY position",
+        ).use { c ->
+            c.moveToFirst()
+            assertEquals("bench", c.getString(0))
+            assertEquals("WARMUP\nNORMAL\nNORMAL", c.getString(1))
+            assertTrue(c.isNull(2))
+            c.moveToNext()
+            assertEquals("row", c.getString(0))
+            assertTrue(c.isNull(2))
+        }
+
+        // Usable: the two slots can now be planned as one superset.
+        db.execSQL("UPDATE template_exercises SET supersetGroupId = 1 WHERE templateId = 5")
+        db.query("SELECT COUNT(*) FROM template_exercises WHERE supersetGroupId = 1").use { c ->
+            c.moveToFirst()
+            assertEquals(2, c.getInt(0))
+        }
+
+        db.close()
+    }
+
     /**
      * Creates a fresh database at schema version 7 with one representative row per pre-existing
      * table the later migrations touch or must leave alone: a food entry and the goal singleton.

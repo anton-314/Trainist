@@ -145,6 +145,9 @@
     <string name="workout_session_weight_caption_added">AJOUT</string>
     <string name="workout_session_weight_caption_kg">KG</string>
     <string name="workout_session_remove_exercise_content_description">Supprimer l\'exercice</string>
+    <string name="workout_superset_badge">SUPERSÉRIE %1$s · %2$d/%3$d</string>
+    <string name="workout_session_superset_group_content_description">Associer à l\'exercice suivant en supersérie</string>
+    <string name="workout_session_superset_ungroup_content_description">Dissocier la supersérie</string>
     <string name="workout_session_set_number_caption">SÉRIE</string>
     <string name="workout_session_reps_caption">REPS</string>
     <string name="workout_session_volume_label">VOLUME</string>

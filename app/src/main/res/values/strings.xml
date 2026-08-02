@@ -145,6 +145,9 @@
     <string name="workout_session_weight_caption_added">ZUSATZ</string>
     <string name="workout_session_weight_caption_kg">KG</string>
     <string name="workout_session_remove_exercise_content_description">Übung entfernen</string>
+    <string name="workout_superset_badge">SUPERSATZ %1$s · %2$d/%3$d</string>
+    <string name="workout_session_superset_group_content_description">Mit nächster Übung zum Supersatz verbinden</string>
+    <string name="workout_session_superset_ungroup_content_description">Supersatz auflösen</string>
     <string name="workout_session_set_number_caption">SATZ</string>
     <string name="workout_session_reps_caption">WDH</string>
     <string name="workout_session_volume_label">VOLUMEN</string>
