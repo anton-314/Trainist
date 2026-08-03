@@ -1,0 +1,39 @@
+<en-US>
+What's new:
+
+• Food search by name: type instead of hunting for a barcode, limited to products sold in your country. Your own history stays on top.
+• New "Shopping country" setting — detected automatically, adjustable any time.
+• Supersets: link exercises into a group. The rest timer starts after the group's last exercise.
+• Body measurements: a new Stats card, neck to calf in cm, with a trend chart and in your backup.
+• Sets now keep a fixed order, which keeps the exercise card clearer.
+</en-US>
+
+<de-DE>
+Neu in dieser Version:
+
+• Lebensmittelsuche nach Namen: eintippen statt Barcode suchen, mit Produkten aus deinem Land. Dein Verlauf bleibt oben.
+• Neue Einstellung „Einkaufsland“ – wird selbst erkannt, jederzeit anpassbar.
+• Supersätze: Übungen zu einer Gruppe verbinden. Die Pause startet nach der letzten Übung.
+• Körpermaße: neue Karte in der Statistik, von Hals bis Wade in cm, mit Verlauf und im Backup.
+• Sätze stehen jetzt in fester Reihenfolge – das macht die Übungskarte übersichtlicher.
+</de-DE>
+
+<es-ES>
+Novedades:
+
+• Búsqueda de alimentos por nombre: escribe en vez de buscar un código de barras, con resultados de tu país. Tu historial sigue primero.
+• Nuevo ajuste «País de compra»: se detecta solo y puedes cambiarlo.
+• Superseries: une ejercicios en un grupo. El descanso empieza tras el último ejercicio.
+• Medidas corporales: nueva tarjeta en Estadísticas, de cuello a pantorrilla en cm, con gráfico y en la copia.
+• Las series mantienen un orden fijo: la tarjeta del ejercicio queda más clara.
+</es-ES>
+
+<fr-FR>
+Nouveautés :
+
+• Recherche d'aliments par nom : tape au lieu du code-barres, limitée aux produits de ton pays. Ton historique reste en tête.
+• Nouveau réglage « Pays d'achat » : détecté tout seul, modifiable.
+• Superséries : associe des exercices en un groupe. Le repos démarre après le dernier exercice.
+• Mensurations : nouvelle carte dans les statistiques, du cou au mollet en cm, avec graphique et sauvegardées.
+• Les séries gardent un ordre fixe : la carte de l'exercice reste plus lisible.
+</fr-FR>
