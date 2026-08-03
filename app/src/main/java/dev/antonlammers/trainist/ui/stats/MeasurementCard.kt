@@ -40,48 +40,52 @@ internal fun MeasurementType.displayName(): String = stringResource(
 )
 
 /**
+ * The card's "+" — the one write path on the Stats screen. It rides in the enclosing card's header
+ * `trailing` slot rather than next to the type chips: there it lines up with the card title and the
+ * card's own right inset, the same place every other card puts its trailing content.
+ */
+@Composable
+internal fun MeasurementAddButton(onClick: () -> Unit) {
+    FilledIconButton(
+        onClick = onClick,
+        modifier = Modifier.size(32.dp),
+        colors = IconButtonDefaults.filledIconButtonColors(containerColor = MaterialTheme.colorScheme.primary),
+    ) {
+        Icon(
+            Icons.Rounded.Add,
+            contentDescription = stringResource(R.string.measurement_add_content_description),
+            tint = MaterialTheme.colorScheme.onPrimary,
+            modifier = Modifier.size(18.dp),
+        )
+    }
+}
+
+/**
  * Body of the **Körpermaße** card: a type selector (fixed set of chips — unlike the strength chart's
  * exercise selector, every [MeasurementType] is always offered, not just the ones with data), a
- * current/change summary, the time-proportional chart, and a "+" button opening the entry sheet.
+ * current/change summary and the time-proportional chart. The "+" opening the entry sheet is
+ * [MeasurementAddButton], in the card header.
  */
 @Composable
 internal fun MeasurementCard(
     state: MeasurementCardState,
     range: TimeRange,
     onSelectType: (MeasurementType) -> Unit,
-    onAddClick: () -> Unit,
 ) {
     Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
+        modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        Row(
-            modifier = Modifier.weight(1f, fill = false).horizontalScroll(rememberScrollState()),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            MeasurementType.entries.forEach { type ->
-                FilterChip(
-                    selected = type == state.selectedType,
-                    onClick = { onSelectType(type) },
-                    label = { Text(type.displayName(), style = MaterialTheme.typography.labelMedium, maxLines = 1) },
-                    shape = RoundedCornerShape(50),
-                    colors = FilterChipDefaults.filterChipColors(
-                        selectedContainerColor = MaterialTheme.colorScheme.primary,
-                        selectedLabelColor = MaterialTheme.colorScheme.onPrimary,
-                    ),
-                )
-            }
-        }
-        FilledIconButton(
-            onClick = onAddClick,
-            modifier = Modifier.size(32.dp),
-            colors = IconButtonDefaults.filledIconButtonColors(containerColor = MaterialTheme.colorScheme.primary),
-        ) {
-            Icon(
-                Icons.Rounded.Add,
-                contentDescription = stringResource(R.string.measurement_add_content_description),
-                tint = MaterialTheme.colorScheme.onPrimary,
-                modifier = Modifier.size(18.dp),
+        MeasurementType.entries.forEach { type ->
+            FilterChip(
+                selected = type == state.selectedType,
+                onClick = { onSelectType(type) },
+                label = { Text(type.displayName(), style = MaterialTheme.typography.labelMedium, maxLines = 1) },
+                shape = RoundedCornerShape(50),
+                colors = FilterChipDefaults.filterChipColors(
+                    selectedContainerColor = MaterialTheme.colorScheme.primary,
+                    selectedLabelColor = MaterialTheme.colorScheme.onPrimary,
+                ),
             )
         }
     }

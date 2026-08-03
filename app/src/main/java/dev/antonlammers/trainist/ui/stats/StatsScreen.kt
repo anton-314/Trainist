@@ -218,12 +218,17 @@ fun StatsScreen(
                         ) {
                             OverloadCard(state.overload)
                         }
-                        StatCardType.MEASUREMENTS -> ChartCard(stringResource(R.string.stats_card_measurements), rowModifier, dragHandleModifier, isDragging) {
+                        StatCardType.MEASUREMENTS -> ChartCard(
+                            title = stringResource(R.string.stats_card_measurements),
+                            rowModifier = rowModifier,
+                            dragHandleModifier = dragHandleModifier,
+                            isDragging = isDragging,
+                            trailing = { MeasurementAddButton(onClick = { showMeasurementSheet = true }) },
+                        ) {
                             MeasurementCard(
                                 state = state.measurement,
                                 range = state.timeRange,
                                 onSelectType = statsViewModel::setSelectedMeasurementType,
-                                onAddClick = { showMeasurementSheet = true },
                             )
                         }
                         StatCardType.STRENGTH -> ChartCard(stringResource(R.string.stats_card_strength), rowModifier, dragHandleModifier, isDragging) {
