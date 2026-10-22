@@ -197,14 +197,14 @@ class OverviewViewModelTest {
     }
 
     @Test
-    fun `previousDay shows entries from yesterday`() = runTest {
+    fun `selectDate shows that day's entries`() = runTest {
         val yesterday = LocalDate.now().minusDays(1)
         foodEntryRepo.add(buildEntry(kcal = 400.0, date = yesterday))
 
         viewModel.uiState.test {
             awaitItem() // today, empty
 
-            viewModel.previousDay()
+            viewModel.selectDate(yesterday)
             val state = awaitItem()
 
             assertEquals(yesterday, state.date)
@@ -214,17 +214,73 @@ class OverviewViewModelTest {
     }
 
     @Test
-    fun `nextDay navigates to tomorrow and shows no entries`() = runTest {
+    fun `selecting a future day shows no entries`() = runTest {
         val tomorrow = LocalDate.now().plusDays(1)
 
         viewModel.uiState.test {
             awaitItem() // today
 
-            viewModel.nextDay()
+            viewModel.selectDate(tomorrow)
             val state = awaitItem()
 
             assertEquals(tomorrow, state.date)
             assertTrue(state.entries.isEmpty())
+        }
+    }
+
+    @Test
+    fun `shiftWeek keeps the weekday and moves the strip`() = runTest {
+        val wednesday = LocalDate.of(2026, 10, 21)
+        viewModel.uiState.test {
+            awaitItem()
+            viewModel.selectDate(wednesday)
+            awaitItem()
+
+            viewModel.shiftWeek(-1)
+            val previous = awaitItem()
+            assertEquals(LocalDate.of(2026, 10, 14), previous.date)
+            assertEquals(LocalDate.of(2026, 10, 12), previous.week.first().date)
+
+            viewModel.shiftWeek(2)
+            val next = awaitItem()
+            assertEquals(LocalDate.of(2026, 10, 28), next.date)
+            assertEquals(LocalDate.of(2026, 11, 1), next.week.last().date)
+        }
+    }
+
+    @Test
+    fun `week sums each day's kcal for the strip`() = runTest {
+        val wednesday = LocalDate.of(2026, 10, 21)
+        foodEntryRepo.add(buildEntry(kcal = 300.0, date = LocalDate.of(2026, 10, 19)))
+        foodEntryRepo.add(buildEntry(kcal = 200.0, date = LocalDate.of(2026, 10, 19)))
+        foodEntryRepo.add(buildEntry(kcal = 900.0, date = wednesday))
+        foodEntryRepo.add(buildEntry(kcal = 700.0, date = LocalDate.of(2026, 10, 18))) // previous week
+        viewModel.selectDate(wednesday)
+
+        viewModel.uiState.test {
+            var state = awaitItem()
+            while (state.date != wednesday || state.week.sumOf { it.kcal } == 0.0) state = awaitItem()
+
+            assertEquals(7, state.week.size)
+            assertEquals(500.0, state.week[0].kcal, 0.001) // Monday
+            assertEquals(900.0, state.week[2].kcal, 0.001) // Wednesday
+            assertEquals(1400.0, state.week.sumOf { it.kcal }, 0.001)
+        }
+    }
+
+    @Test
+    fun `an entry pending deletion leaves the week strip too`() = runTest {
+        val today = LocalDate.now()
+        foodEntryRepo.add(buildEntry(kcal = 400.0, date = today))
+
+        viewModel.uiState.test {
+            var state = awaitItem()
+            while (state.entries.isEmpty()) state = awaitItem()
+
+            viewModel.deletePending(state.entries.first())
+            state = awaitItem()
+
+            assertEquals(0.0, state.week.single { it.date == today }.kcal, 0.001)
         }
     }
 
@@ -267,7 +323,7 @@ class OverviewViewModelTest {
         viewModel.uiState.test {
             awaitItem() // today
 
-            viewModel.previousDay()
+            viewModel.selectDate(LocalDate.now().minusDays(1))
             awaitItem() // yesterday
 
             viewModel.goToToday()

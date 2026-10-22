@@ -24,8 +24,6 @@ import androidx.compose.material.icons.rounded.FitnessCenter
 import androidx.compose.material.icons.rounded.MenuBook
 import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExtendedFloatingActionButton
-import androidx.compose.material3.FloatingActionButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -56,6 +54,9 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import dev.antonlammers.trainist.R
 import dev.antonlammers.trainist.ui.components.DragReorderColumn
+import dev.antonlammers.trainist.ui.navigation.FloatingNavClearance
+import dev.antonlammers.trainist.ui.navigation.FloatingNavSnackbarOffset
+import dev.antonlammers.trainist.ui.navigation.ProvidePrimaryAction
 import dev.antonlammers.trainist.ui.navigation.Screen
 import dev.antonlammers.trainist.ui.tutorial.TutorialTarget
 import dev.antonlammers.trainist.ui.tutorial.tutorialAnchor
@@ -65,7 +66,7 @@ import java.time.temporal.ChronoUnit
 
 /**
  * "Training" tab home — a resume hint for any running session plus the list of saved workout
- * templates. The FAB starts an empty workout; tapping a template starts a session from it; swiping a
+ * templates. The shell's plus button starts an empty workout; tapping a template starts a session from it; swiping a
  * template edits (StartToEnd) or deletes it (EndToStart, with undo); long-pressing the drag handle
  * reorders the list manually (persisted immediately, like every other reorderable list in the app).
  * Each card also shows when the template was last trained from, so the longest-neglected ones are
@@ -87,6 +88,12 @@ fun TemplatesScreen(
     // scope rather than a @Composable context, so stringResource() isn't callable there).
     val templateDeletedMessage = stringResource(R.string.templates_deleted_message)
     val undoLabel = stringResource(R.string.common_undo)
+
+    // The shell's plus button starts an empty workout on this tab.
+    ProvidePrimaryAction(
+        contentDescription = stringResource(R.string.templates_start_workout_button),
+        tutorialTarget = TutorialTarget.START_WORKOUT,
+    ) { navController.navigate(Screen.WorkoutSession.start(0)) }
 
     Scaffold(
         topBar = {
@@ -111,23 +118,13 @@ fun TemplatesScreen(
                 },
             )
         },
-        floatingActionButton = {
-            ExtendedFloatingActionButton(
-                onClick = { navController.navigate(Screen.WorkoutSession.start(0)) },
-                modifier = Modifier.tutorialAnchor(TutorialTarget.START_WORKOUT),
-                containerColor = MaterialTheme.colorScheme.primary,
-                contentColor = MaterialTheme.colorScheme.onPrimary,
-                elevation = FloatingActionButtonDefaults.elevation(0.dp, 0.dp, 0.dp, 0.dp),
-                shape = RoundedCornerShape(20.dp),
-                icon = { Icon(Icons.Rounded.PlayArrow, contentDescription = null) },
-                text = { Text(stringResource(R.string.templates_start_workout_button), style = MaterialTheme.typography.labelLarge) },
-            )
+        snackbarHost = {
+            SnackbarHost(snackbar, modifier = Modifier.padding(bottom = FloatingNavSnackbarOffset))
         },
-        snackbarHost = { SnackbarHost(snackbar) },
     ) { padding ->
         LazyColumn(
             modifier = Modifier.fillMaxSize().padding(padding),
-            contentPadding = PaddingValues(16.dp),
+            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 16.dp, bottom = FloatingNavClearance),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             activeSession?.let {

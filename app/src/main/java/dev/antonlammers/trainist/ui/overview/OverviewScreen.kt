@@ -1,15 +1,24 @@
 package dev.antonlammers.trainist.ui.overview
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.Easing
 import androidx.compose.animation.core.EaseOutCubic
 import androidx.compose.animation.core.EaseOutExpo
+import androidx.compose.animation.core.Easing
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
@@ -34,12 +43,11 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Add
+import androidx.compose.material.icons.outlined.MonitorWeight
+import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.rounded.ContentCopy
 import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.Edit
-import androidx.compose.material.icons.rounded.KeyboardArrowLeft
-import androidx.compose.material.icons.rounded.KeyboardArrowRight
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -47,11 +55,8 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FloatingActionButton
-import androidx.compose.material3.FloatingActionButtonDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
@@ -64,7 +69,6 @@ import androidx.compose.material3.SwipeToDismissBox
 import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
@@ -77,7 +81,6 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
@@ -85,10 +88,22 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
@@ -101,16 +116,23 @@ import dev.antonlammers.trainist.ui.components.NumericTextField
 import dev.antonlammers.trainist.ui.components.TagSelector
 import dev.antonlammers.trainist.ui.components.color
 import dev.antonlammers.trainist.ui.components.displayName
+import dev.antonlammers.trainist.ui.navigation.FloatingNavClearance
+import dev.antonlammers.trainist.ui.navigation.FloatingNavSnackbarOffset
+import dev.antonlammers.trainist.ui.navigation.ProvidePrimaryAction
 import dev.antonlammers.trainist.ui.navigation.Screen
 import dev.antonlammers.trainist.ui.theme.CarbsColor
 import dev.antonlammers.trainist.ui.theme.FatColor
 import dev.antonlammers.trainist.ui.theme.ProteinColor
 import dev.antonlammers.trainist.ui.tutorial.TutorialTarget
 import dev.antonlammers.trainist.ui.tutorial.tutorialAnchor
+import dev.antonlammers.trainist.ui.util.currentAppLocale
 import dev.antonlammers.trainist.ui.util.localizedDateFormatter
 import dev.antonlammers.trainist.util.normalizeDecimal
 import kotlinx.coroutines.launch
 import java.time.LocalDate
+import java.time.format.DateTimeFormatter
+import java.time.format.FormatStyle
+import java.time.format.TextStyle
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Entrance/replay motion. A single master "clock" (seconds) is restarted from 0
@@ -138,80 +160,69 @@ fun OverviewScreen(
     val snackbar = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
 
-    // UI-local replay trigger — bumped on a tap of the summary card. Day changes are
-    // already captured via `state.date`. Both key the animation clock in MacroSummaryCard.
+    // UI-local replay trigger — bumped on a tap of the calorie card. Day changes are already
+    // captured via `state.date`. Both restart the animation clock shared by the two summary cards.
     var replayTrigger by remember { mutableIntStateOf(0) }
+    val clock = remember { Animatable(0f) }
+    LaunchedEffect(state.date, replayTrigger) {
+        clock.snapTo(0f)
+        clock.animateTo(
+            targetValue = AnimTotalSeconds,
+            animationSpec = tween(
+                durationMillis = (AnimTotalSeconds * 1000).toInt(),
+                easing = LinearEasing,
+            ),
+        )
+    }
+    // Read lazily inside the cards, so only they recompose per animation frame.
+    val time = { clock.value }
 
     // Resolved here (not inside the snackbar-launching lambda below, which runs in a coroutine
     // scope rather than a @Composable context, so stringResource() isn't callable there).
     val entryDeletedMessage = stringResource(R.string.addfood_entry_deleted)
     val undoLabel = stringResource(R.string.common_undo)
 
+    // The shell's plus button logs food for the day being viewed, not always for today.
+    ProvidePrimaryAction(
+        contentDescription = stringResource(R.string.addfood_title),
+        tutorialTarget = TutorialTarget.ADD_FOOD,
+    ) { navController.navigate(Screen.AddFood.withDate(state.date)) }
+
     Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .tutorialAnchor(TutorialTarget.DAY_SWITCH),
-                    ) {
-                        IconButton(onClick = viewModel::previousDay) {
-                            Icon(Icons.Rounded.KeyboardArrowLeft, contentDescription = stringResource(R.string.overview_previous_day_content_description))
-                        }
-                        Text(
-                            state.date.format(localizedDateFormatter("EEE, d. MMM")),
-                            modifier = Modifier.weight(1f),
-                            textAlign = TextAlign.Center,
-                            style = MaterialTheme.typography.titleLarge,
-                        )
-                        IconButton(onClick = viewModel::nextDay) {
-                            Icon(Icons.Rounded.KeyboardArrowRight, contentDescription = stringResource(R.string.overview_next_day_content_description))
-                        }
-                    }
-                },
-                actions = {
-                    if (state.date != LocalDate.now()) {
-                        TextButton(onClick = viewModel::goToToday) { Text(stringResource(R.string.common_today)) }
-                    }
-                },
-            )
+        snackbarHost = {
+            SnackbarHost(snackbar, modifier = Modifier.padding(bottom = FloatingNavSnackbarOffset))
         },
-        floatingActionButton = {
-            FloatingActionButton(
-                onClick = { navController.navigate(Screen.AddFood.withDate(state.date)) },
-                modifier = Modifier.tutorialAnchor(TutorialTarget.ADD_FOOD),
-                shape = RoundedCornerShape(20.dp),
-                containerColor = MaterialTheme.colorScheme.primary,
-                contentColor = MaterialTheme.colorScheme.onPrimary,
-                elevation = FloatingActionButtonDefaults.elevation(0.dp, 0.dp, 0.dp, 0.dp),
-            ) {
-                Icon(Icons.Rounded.Add, contentDescription = stringResource(R.string.addfood_title))
-            }
-        },
-        snackbarHost = { SnackbarHost(snackbar) },
     ) { padding ->
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding),
-            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 88.dp),
+            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 12.dp, bottom = FloatingNavClearance),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             item {
-                MacroSummaryCard(
-                    state = state,
-                    replayTrigger = replayTrigger,
-                    onReplay = { replayTrigger++ },
+                OverviewHeader(
+                    date = state.date,
+                    weight = state.todayWeight,
+                    onSaveWeight = viewModel::saveWeight,
+                    onToday = viewModel::goToToday,
+                    onOpenSettings = { navController.navigate(Screen.Settings.route) },
                 )
             }
             item {
-                WeightCard(
-                    weight = state.todayWeight,
-                    onSave = viewModel::saveWeight,
-                    modifier = Modifier.tutorialAnchor(TutorialTarget.WEIGHT_CARD),
+                WeekStrip(
+                    week = state.week,
+                    selected = state.date,
+                    goalKcal = state.goal.kcal,
+                    onSelect = viewModel::selectDate,
+                    onShiftWeek = viewModel::shiftWeek,
                 )
+            }
+            item {
+                CalorieCard(state = state, time = time, onReplay = { replayTrigger++ })
+            }
+            item {
+                MacroCard(state = state, time = time)
             }
             if (state.entries.isEmpty() && state.copyableMeals.isEmpty()) {
                 item {
@@ -481,282 +492,95 @@ private fun EditFoodDialog(
 }
 
 @Composable
-private fun MacroSummaryCard(
-    state: OverviewUiState,
-    replayTrigger: Int,
-    onReplay: () -> Unit,
+private fun OverviewHeader(
+    date: LocalDate,
+    weight: WeightEntry?,
+    onSaveWeight: (Double) -> Unit,
+    onToday: () -> Unit,
+    onOpenSettings: () -> Unit,
 ) {
-    val clock = remember { Animatable(0f) }
-    // Restart the entrance animation on screen open, day change, or a tap on the card.
-    LaunchedEffect(state.date, replayTrigger) {
-        clock.snapTo(0f)
-        clock.animateTo(
-            targetValue = AnimTotalSeconds,
-            animationSpec = tween(
-                durationMillis = (AnimTotalSeconds * 1000).toInt(),
-                easing = LinearEasing,
-            ),
-        )
-    }
-    val time = clock.value
-    val interaction = remember { MutableInteractionSource() }
-
-    Card(
+    Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(interactionSource = interaction, indication = null, onClick = onReplay),
-        shape = RoundedCornerShape(24.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+            .padding(start = 4.dp, end = 4.dp, bottom = 8.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.Top,
     ) {
-        Column(
-            modifier = Modifier.padding(20.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(20.dp),
-        ) {
-            CalorieRing(
-                state = state,
-                time = time,
-                modifier = Modifier.tutorialAnchor(TutorialTarget.CALORIE_RING),
-            )
-
-            if (FoodTag.selectable.any { state.kcalForTag(it) > 0 }) {
-                CleanEatingSummary(cleanPercent = state.cleanPercent, time = time)
-            }
-
-            Column(
-                modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                MacroBar(stringResource(R.string.overview_macro_protein), state.totalProtein, state.goal.proteinG, "g", ProteinColor, time, 0.4f, 1.3f)
-                MacroBar(stringResource(R.string.overview_macro_carbs), state.totalCarbs, state.goal.carbsG, "g", CarbsColor, time, 0.55f, 1.45f)
-                MacroBar(stringResource(R.string.overview_macro_fat), state.totalFat, state.goal.fatG, "g", FatColor, time, 0.7f, 1.6f)
-            }
-
-            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceEvenly,
-            ) {
-                SecondaryMacro(stringResource(R.string.overview_sugar_label), state.totalSugar, "g")
-                SecondaryMacro(stringResource(R.string.overview_fiber_label), state.totalFiber, "g")
-                SecondaryMacro(stringResource(R.string.overview_salt_label), state.totalSalt, "g")
-            }
-        }
-    }
-}
-
-@Composable
-private fun CalorieRing(state: OverviewUiState, time: Float, modifier: Modifier = Modifier) {
-    val current = state.totalKcal
-    val goal = state.goal.kcal
-    val progress = if (goal > 0) (current / goal).toFloat().coerceIn(0f, 1f) else 0f
-    val totalSweep = 360f * progress
-
-    // Open track uses surface-2; consumed-but-untagged kcal use the darker `outline` so
-    // the eaten-untagged portion stays visually separate from the still-open remainder.
-    val trackColor = MaterialTheme.colorScheme.surfaceVariant
-    val untaggedConsumedColor = MaterialTheme.colorScheme.outline
-
-    // Consumed kcal split by tag, in ring order (green → orange → red → grey/untagged).
-    val segments = listOf(FoodTag.HEALTHY, FoodTag.NEUTRAL, FoodTag.UNHEALTHY, FoodTag.NONE)
-        .map { tag -> (if (tag == FoodTag.NONE) untaggedConsumedColor else tag.color()) to state.kcalForTag(tag) }
-        .filter { it.second > 0 }
-
-    Box(contentAlignment = Alignment.Center, modifier = modifier.size(176.dp)) {
-        Canvas(modifier = Modifier.fillMaxSize()) {
-            val strokeWidth = 15.5.dp.toPx()
-            val diameter = size.minDimension - strokeWidth
-            val topLeft = Offset((size.width - diameter) / 2f, (size.height - diameter) / 2f)
-            val arcSize = Size(diameter, diameter)
-
-            drawArc(
-                color = trackColor,
-                startAngle = -90f,
-                sweepAngle = 360f,
-                useCenter = false,
-                topLeft = topLeft,
-                size = arcSize,
-                style = Stroke(width = strokeWidth, cap = StrokeCap.Round),
-            )
-            if (current > 0) {
-                // Segments draw sequentially in kcal order; each grows into its fixed final
-                // position (butt caps so segments abut). The per-segment window is proportional
-                // to its kcal share across the 0.5–2.05s draw phase, so the fill stays in sync
-                // with the centre count-up regardless of which tags are present.
-                var cumKcal = 0.0
-                var cumSweep = 0f
-                segments.forEach { (color, kcal) ->
-                    val segStart = 0.5f + (cumKcal / current).toFloat() * 1.55f
-                    val segEnd = 0.5f + ((cumKcal + kcal) / current).toFloat() * 1.55f
-                    val segAnim = windowProgress(time, segStart, segEnd, EaseOutCubic)
-                    val finalSweep = (kcal / current).toFloat() * totalSweep
-                    if (segAnim > 0f) {
-                        drawArc(
-                            color = color,
-                            startAngle = -90f + cumSweep,
-                            sweepAngle = finalSweep * segAnim,
-                            useCenter = false,
-                            topLeft = topLeft,
-                            size = arcSize,
-                            style = Stroke(width = strokeWidth, cap = StrokeCap.Butt),
-                        )
-                    }
-                    cumKcal += kcal
-                    cumSweep += finalSweep
-                }
-            }
-        }
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            val shownKcal = (current * windowProgress(time, 0.4f, 2.0f, EaseOutExpo)).toInt()
+        Column(modifier = Modifier.weight(1f, fill = false)) {
             Text(
-                "$shownKcal",
-                style = MaterialTheme.typography.displayLarge,
+                date.format(localizedDateFormatter("EEEE")),
+                style = MaterialTheme.typography.displaySmall,
+                color = MaterialTheme.colorScheme.onBackground,
+                maxLines = 1,
             )
             Text(
-                stringResource(R.string.overview_kcal_label),
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.outline,
-            )
-            val subAlpha = windowProgress(time, 2.1f, 2.6f, EaseOutCubic)
-            val remaining = goal - current
-            val (caption, captionColor) = when {
-                remaining > 0 -> stringResource(R.string.overview_kcal_remaining, remaining.toInt()) to MaterialTheme.colorScheme.onSurfaceVariant
-                remaining < 0 -> stringResource(R.string.overview_kcal_over, (-remaining).toInt()) to MaterialTheme.colorScheme.error
-                else -> stringResource(R.string.overview_kcal_goal_reached) to MaterialTheme.colorScheme.primary
-            }
-            Text(
-                caption,
+                date.format(localizedDateFormatter("d. MMMM")),
                 style = MaterialTheme.typography.bodyMedium,
-                color = captionColor,
-                modifier = Modifier
-                    .padding(top = 2.dp)
-                    .alpha(subAlpha),
-            )
-        }
-    }
-}
-
-@Composable
-private fun CleanEatingSummary(cleanPercent: Int?, time: Float) {
-    val reveal = windowProgress(time, 2.6f, 3.2f, EaseOutCubic)
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .graphicsLayer {
-                alpha = reveal
-                translationY = (1f - reveal) * 16.dp.toPx()
-            },
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(6.dp),
-    ) {
-        if (cleanPercent != null) {
-            Text(
-                stringResource(R.string.overview_clean_percent, cleanPercent),
-                style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
-        Row(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-            FoodTag.selectable.forEach { tag ->
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(4.dp),
-                ) {
-                    Box(Modifier.size(7.dp).clip(CircleShape).background(tag.color()))
-                    Text(
-                        tag.displayName(),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
+        Row(
+            modifier = Modifier.padding(top = 2.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            if (date != LocalDate.now()) {
+                TextButton(onClick = onToday, modifier = Modifier.height(36.dp)) {
+                    Text(stringResource(R.string.common_today), color = MaterialTheme.colorScheme.primary)
                 }
             }
+            WeightChip(
+                weight = weight,
+                onSave = onSaveWeight,
+                modifier = Modifier.tutorialAnchor(TutorialTarget.WEIGHT),
+            )
+            HeaderIconButton(
+                icon = Icons.Outlined.Settings,
+                contentDescription = stringResource(R.string.settings_title),
+                onClick = onOpenSettings,
+                modifier = Modifier.tutorialAnchor(TutorialTarget.SETTINGS),
+            )
         }
     }
 }
 
+private val HeaderControlHeight = 36.dp
+
 @Composable
-private fun MacroBar(
-    label: String,
-    current: Double,
-    goal: Double,
-    unit: String,
-    color: Color,
-    time: Float,
-    startS: Float,
-    endS: Float,
+private fun HeaderIconButton(
+    icon: ImageVector,
+    contentDescription: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
-    val eased = windowProgress(time, startS, endS, EaseOutCubic)
-    val target = if (goal > 0) (current / goal).toFloat().coerceIn(0f, 1f) else 0f
-    val animatedProgress = target * eased
-    val shownValue = (current * eased).toInt()
-
-    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.Bottom,
-        ) {
-            Text(label, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
-            Text(
-                "$shownValue / ${goal.toInt()} $unit",
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(8.dp)
-                .clip(RoundedCornerShape(50))
-                .background(color.copy(alpha = 0.2f)),
-        ) {
-            if (animatedProgress > 0f) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth(animatedProgress)
-                        .fillMaxHeight()
-                        .clip(RoundedCornerShape(50))
-                        .background(color),
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun SecondaryMacro(label: String, value: Double, unit: String) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Row(verticalAlignment = Alignment.Bottom) {
-            Text(
-                "${value.toInt()}",
-                style = MaterialTheme.typography.titleMedium,
-            )
-            Text(
-                " $unit",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-        Text(
-            label,
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.outline,
+    Box(
+        modifier = modifier
+            .size(HeaderControlHeight)
+            .clip(CircleShape)
+            .background(MaterialTheme.colorScheme.surface)
+            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, CircleShape)
+            .clickable(onClick = onClick),
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(
+            icon,
+            contentDescription = contentDescription,
+            tint = MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier.size(18.dp),
         )
     }
 }
 
 @Composable
-private fun WeightCard(weight: WeightEntry?, onSave: (Double) -> Unit, modifier: Modifier = Modifier) {
+private fun WeightChip(weight: WeightEntry?, onSave: (Double) -> Unit, modifier: Modifier = Modifier) {
     var showDialog by remember { mutableStateOf(false) }
     var input by remember { mutableStateOf("") }
+    val dialogTitle = stringResource(R.string.overview_weight_dialog_title)
 
     if (showDialog) {
         AlertDialog(
             onDismissRequest = { showDialog = false },
-            title = { Text(stringResource(R.string.overview_weight_dialog_title)) },
+            title = { Text(dialogTitle) },
             text = {
                 NumericTextField(
                     value = input,
@@ -777,45 +601,429 @@ private fun WeightCard(weight: WeightEntry?, onSave: (Double) -> Unit, modifier:
         )
     }
 
-    Card(
+    val shape = RoundedCornerShape(50)
+    Row(
         modifier = modifier
-            .fillMaxWidth()
-            .clickable {
+            .height(HeaderControlHeight)
+            .clip(shape)
+            .background(MaterialTheme.colorScheme.surface)
+            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, shape)
+            .clickable(onClickLabel = dialogTitle) {
                 input = weight?.weightKg?.let {
                     if (it % 1.0 == 0.0) it.toInt().toString() else it.toString()
                 } ?: ""
                 showDialog = true
-            },
-        shape = RoundedCornerShape(18.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+            }
+            .padding(horizontal = 12.dp),
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
-        Row(
-            modifier = Modifier
-                .padding(horizontal = 20.dp, vertical = 14.dp)
-                .fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Text(stringResource(R.string.overview_weight_today_label), style = MaterialTheme.typography.titleSmall)
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
-            ) {
-                Text(
-                    weight?.let { "${it.weightKg} kg" } ?: "– kg",
-                    style = MaterialTheme.typography.titleMedium,
+        Icon(
+            Icons.Outlined.MonitorWeight,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.outline,
+            modifier = Modifier.size(16.dp),
+        )
+        Text(
+            weight?.let { "${it.weightKg} kg" } ?: "– kg",
+            style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold, fontSize = 13.sp),
+            color = MaterialTheme.colorScheme.onSurface,
+            maxLines = 1,
+        )
+    }
+}
+
+/**
+ * Monday–Sunday of the selected day's ISO week, each day with a mini progress bar against the kcal
+ * goal. Tapping a day selects it; a horizontal swipe moves a whole week, keeping the weekday.
+ */
+@Composable
+private fun WeekStrip(
+    week: List<DaySummary>,
+    selected: LocalDate,
+    goalKcal: Double,
+    onSelect: (LocalDate) -> Unit,
+    onShiftWeek: (Long) -> Unit,
+) {
+    val swipeThreshold = with(LocalDensity.current) { 48.dp.toPx() }
+    AnimatedContent(
+        targetState = week,
+        contentKey = { it.firstOrNull()?.date },
+        transitionSpec = {
+            val forward = (targetState.firstOrNull()?.date ?: LocalDate.MIN) >
+                (initialState.firstOrNull()?.date ?: LocalDate.MIN)
+            val sign = if (forward) 1 else -1
+            (slideInHorizontally { width -> sign * width } + fadeIn()) togetherWith
+                (slideOutHorizontally { width -> -sign * width } + fadeOut())
+        },
+        label = "weekStrip",
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(bottom = 8.dp)
+            .tutorialAnchor(TutorialTarget.DAY_SWITCH)
+            .pointerInput(Unit) {
+                var drag = 0f
+                detectHorizontalDragGestures(
+                    onDragStart = { drag = 0f },
+                    onDragEnd = {
+                        // Swiping right reveals the previous week, like turning back a page.
+                        when {
+                            drag > swipeThreshold -> onShiftWeek(-1)
+                            drag < -swipeThreshold -> onShiftWeek(1)
+                        }
+                    },
+                    onHorizontalDrag = { _, delta -> drag += delta },
                 )
-                Icon(
-                    Icons.Rounded.Edit,
-                    contentDescription = stringResource(R.string.common_edit),
-                    modifier = Modifier.size(16.dp),
-                    tint = MaterialTheme.colorScheme.outline,
+            },
+    ) { days ->
+        Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+            days.forEach { day ->
+                WeekDayCell(
+                    day = day,
+                    isSelected = day.date == selected,
+                    goalKcal = goalKcal,
+                    onClick = { onSelect(day.date) },
+                    modifier = Modifier.weight(1f),
                 )
             }
         }
     }
+}
+
+@Composable
+private fun WeekDayCell(
+    day: DaySummary,
+    isSelected: Boolean,
+    goalKcal: Double,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val scheme = MaterialTheme.colorScheme
+    val isFuture = day.date.isAfter(LocalDate.now())
+    val ratio = if (goalKcal > 0) (day.kcal / goalKcal).toFloat() else 0f
+    val background by animateColorAsState(
+        if (isSelected) scheme.onBackground else Color.Transparent,
+        animationSpec = tween(150),
+        label = "weekCell",
+    )
+    val abbreviationColor = if (isSelected) scheme.background else scheme.onSurfaceVariant
+    val numberColor = when {
+        isSelected -> scheme.background
+        isFuture -> scheme.outline
+        else -> scheme.onBackground
+    }
+    val trackColor = if (isSelected) scheme.onSurfaceVariant else scheme.surfaceVariant
+    val fillColor = when {
+        ratio > 1f -> scheme.error
+        isSelected -> scheme.background
+        else -> scheme.onSurfaceVariant
+    }
+    val locale = currentAppLocale()
+    val fullDate = day.date.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.FULL).withLocale(locale))
+    val shape = RoundedCornerShape(14.dp)
+
+    Column(
+        modifier = modifier
+            .clip(shape)
+            .background(background)
+            .clickable(onClick = onClick)
+            .clearAndSetSemantics {
+                contentDescription = fullDate
+                selected = isSelected
+                role = Role.Tab
+            }
+            .padding(vertical = 8.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        Text(
+            day.date.dayOfWeek.getDisplayName(TextStyle.SHORT, locale).take(2).uppercase(locale),
+            style = MaterialTheme.typography.labelSmall.copy(letterSpacing = 1.sp),
+            color = abbreviationColor,
+        )
+        Text(
+            "${day.date.dayOfMonth}",
+            style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold, fontSize = 15.sp),
+            color = numberColor,
+        )
+        Box(
+            modifier = Modifier
+                .size(width = 18.dp, height = 3.dp)
+                .clip(RoundedCornerShape(2.dp))
+                .background(trackColor),
+        ) {
+            if (!isFuture && ratio > 0f) {
+                Box(
+                    Modifier
+                        .fillMaxWidth(ratio.coerceAtMost(1f))
+                        .fillMaxHeight()
+                        .background(fillColor),
+                )
+            }
+        }
+    }
+}
+
+/** Shared shell of the two summary cards. */
+@Composable
+private fun SummaryCard(
+    modifier: Modifier = Modifier,
+    content: @Composable () -> Unit,
+) {
+    Card(
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+    ) { content() }
+}
+
+@Composable
+private fun CalorieCard(state: OverviewUiState, time: () -> Float, onReplay: () -> Unit) {
+    val interaction = remember { MutableInteractionSource() }
+    val current = state.totalKcal
+    val goal = state.goal.kcal
+    val isOver = goal > 0 && current > goal
+    val hasTags = FoodTag.selectable.any { state.kcalForTag(it) > 0 }
+
+    SummaryCard(
+        modifier = Modifier
+            .tutorialAnchor(TutorialTarget.CALORIES)
+            .clickable(interactionSource = interaction, indication = null, onClick = onReplay),
+    ) {
+        Column(
+            modifier = Modifier.padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            val t = time()
+            val reveal = windowProgress(t, 2.1f, 2.6f, EaseOutCubic)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.Bottom,
+            ) {
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    val shownKcal = (current * windowProgress(t, 0.4f, 2.0f, EaseOutExpo)).toInt()
+                    Text(
+                        "$shownKcal",
+                        style = MaterialTheme.typography.displayMedium,
+                        color = if (isOver) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier.alignByBaseline(),
+                    )
+                    Text(
+                        "/ ${goal.toInt()} " + stringResource(R.string.overview_kcal_label),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.outline,
+                        modifier = Modifier.alignByBaseline(),
+                    )
+                }
+                state.cleanPercent?.takeIf { hasTags }?.let { percent ->
+                    Text(
+                        stringResource(R.string.overview_clean_percent, percent),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier
+                            .padding(bottom = 8.dp)
+                            .revealUp(reveal),
+                    )
+                }
+            }
+
+            CalorieBar(state = state, time = t)
+
+            if (hasTags) {
+                Row(
+                    modifier = Modifier.revealUp(reveal),
+                    horizontalArrangement = Arrangement.spacedBy(14.dp),
+                ) {
+                    FoodTag.selectable.forEach { tag ->
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        ) {
+                            Box(Modifier.size(7.dp).clip(CircleShape).background(tag.color()))
+                            Text(
+                                tag.displayName(),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+/** Fades in while sliding up 16dp, driven by an already-eased [progress]. */
+private fun Modifier.revealUp(progress: Float) = graphicsLayer {
+    alpha = progress
+    translationY = (1f - progress) * 16.dp.toPx()
+}
+
+/**
+ * Consumed kcal against the goal as one segmented bar, split by tag in the order
+ * healthy → neutral → unhealthy → untagged. Past the goal the bar is full and the segments keep
+ * their proportions.
+ */
+@Composable
+private fun CalorieBar(state: OverviewUiState, time: Float) {
+    val current = state.totalKcal
+    val goal = state.goal.kcal
+    // Consumed-but-untagged kcal use the darker `outline`, so they stay distinct from the open track.
+    val untaggedColor = MaterialTheme.colorScheme.outline
+    val segments = listOf(FoodTag.HEALTHY, FoodTag.NEUTRAL, FoodTag.UNHEALTHY, FoodTag.NONE)
+        .map { tag -> (if (tag == FoodTag.NONE) untaggedColor else tag.color()) to state.kcalForTag(tag) }
+        .filter { it.second > 0 }
+    val scale = maxOf(current, goal)
+
+    Canvas(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(12.dp)
+            .clip(RoundedCornerShape(50))
+            .background(MaterialTheme.colorScheme.surfaceVariant),
+    ) {
+        if (current <= 0 || scale <= 0) return@Canvas
+        val gap = 2.dp.toPx()
+        // Segments draw one after another; each window is proportional to its kcal share across
+        // the 0.5–2.05s draw phase, so the fill stays in sync with the count-up.
+        var cumKcal = 0.0
+        segments.forEachIndexed { index, (color, kcal) ->
+            val segStart = 0.5f + (cumKcal / current).toFloat() * 1.55f
+            val segEnd = 0.5f + ((cumKcal + kcal) / current).toFloat() * 1.55f
+            val progress = windowProgress(time, segStart, segEnd, EaseOutCubic)
+            val startX = (cumKcal / scale).toFloat() * size.width
+            val trailingGap = if (index < segments.lastIndex) gap else 0f
+            val finalWidth = (kcal / scale).toFloat() * size.width - trailingGap
+            if (progress > 0f && finalWidth > 0f) {
+                drawRect(
+                    color = color,
+                    topLeft = Offset(startX, 0f),
+                    size = Size(finalWidth * progress, size.height),
+                )
+            }
+            cumKcal += kcal
+        }
+    }
+}
+
+@Composable
+private fun MacroCard(state: OverviewUiState, time: () -> Float) {
+    SummaryCard {
+        Column(
+            modifier = Modifier.padding(start = 12.dp, end = 12.dp, top = 18.dp, bottom = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp),
+        ) {
+            val t = time()
+            Row(modifier = Modifier.fillMaxWidth()) {
+                val ringModifier = Modifier.weight(1f)
+                MacroRing(stringResource(R.string.overview_macro_protein), state.totalProtein, state.goal.proteinG, ProteinColor, t, 0.4f, 1.3f, ringModifier)
+                MacroRing(stringResource(R.string.overview_macro_carbs), state.totalCarbs, state.goal.carbsG, CarbsColor, t, 0.55f, 1.45f, ringModifier)
+                MacroRing(stringResource(R.string.overview_macro_fat), state.totalFat, state.goal.fatG, FatColor, t, 0.7f, 1.6f, ringModifier)
+            }
+
+            HorizontalDivider(
+                modifier = Modifier.padding(horizontal = 8.dp),
+                color = MaterialTheme.colorScheme.outlineVariant,
+            )
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(18.dp, Alignment.CenterHorizontally),
+            ) {
+                SecondaryMacro(stringResource(R.string.overview_sugar_label), state.totalSugar)
+                SecondaryMacro(stringResource(R.string.overview_fiber_label), state.totalFiber)
+                SecondaryMacro(stringResource(R.string.overview_salt_label), state.totalSalt)
+            }
+        }
+    }
+}
+
+@Composable
+private fun MacroRing(
+    label: String,
+    current: Double,
+    goal: Double,
+    color: Color,
+    time: Float,
+    startS: Float,
+    endS: Float,
+    modifier: Modifier = Modifier,
+) {
+    val eased = windowProgress(time, startS, endS, EaseOutCubic)
+    val target = if (goal > 0) (current / goal).toFloat().coerceIn(0f, 1f) else 0f
+    val sweep = 360f * target * eased
+
+    Column(
+        modifier = modifier,
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Box(contentAlignment = Alignment.Center, modifier = Modifier.size(64.dp)) {
+            Canvas(modifier = Modifier.fillMaxSize()) {
+                val strokeWidth = 6.dp.toPx()
+                val diameter = size.minDimension - strokeWidth
+                val topLeft = Offset((size.width - diameter) / 2f, (size.height - diameter) / 2f)
+                val arcSize = Size(diameter, diameter)
+                drawArc(
+                    color = color.copy(alpha = 0.2f),
+                    startAngle = -90f,
+                    sweepAngle = 360f,
+                    useCenter = false,
+                    topLeft = topLeft,
+                    size = arcSize,
+                    style = Stroke(width = strokeWidth),
+                )
+                if (sweep > 0f) {
+                    drawArc(
+                        color = color,
+                        startAngle = -90f,
+                        sweepAngle = sweep,
+                        useCenter = false,
+                        topLeft = topLeft,
+                        size = arcSize,
+                        style = Stroke(width = strokeWidth, cap = StrokeCap.Round),
+                    )
+                }
+            }
+            Text(
+                "${(current * eased).toInt()}",
+                style = MaterialTheme.typography.titleLarge.copy(fontSize = 18.sp),
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+        }
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Text(
+                label,
+                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium, fontSize = 13.sp),
+                color = MaterialTheme.colorScheme.onSurface,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            Text(
+                "/ ${goal.toInt()} G",
+                style = MaterialTheme.typography.labelSmall.copy(letterSpacing = 1.2.sp),
+                color = MaterialTheme.colorScheme.outline,
+            )
+        }
+    }
+}
+
+@Composable
+private fun SecondaryMacro(label: String, valueG: Double) {
+    Text(
+        buildAnnotatedString {
+            append("$label ")
+            withStyle(
+                SpanStyle(color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Medium),
+            ) { append("${valueG.toInt()} g") }
+        },
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.outline,
+        maxLines = 1,
+    )
 }
 
 @Composable

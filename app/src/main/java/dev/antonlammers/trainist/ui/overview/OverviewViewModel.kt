@@ -34,19 +34,26 @@ class OverviewViewModel @Inject constructor(
 
     val uiState: StateFlow<OverviewUiState> = _date
         .flatMapLatest { date ->
+            val week = weekOf(date)
             combine(
-                foodEntryRepository.entriesForDate(date),
-                foodEntryRepository.entriesForDate(date.minusDays(1)),
+                combine(
+                    foodEntryRepository.entriesForDate(date),
+                    foodEntryRepository.entriesForDate(date.minusDays(1)),
+                    foodEntryRepository.entriesInRange(week.first(), week.last()),
+                    ::Triple,
+                ),
                 goalRepository.goal(),
                 weightRepository.entryForDate(date),
                 _pendingDelete,
-            ) { entries, previousEntries, goal, weight, pending ->
+            ) { (entries, previousEntries, weekEntries), goal, weight, pending ->
                 OverviewUiState(
                     entries = if (pending != null) entries.filter { it.id != pending.id } else entries,
                     previousDayEntries = previousEntries,
                     goal = goal,
                     date = date,
                     todayWeight = weight,
+                    // An entry pending deletion already left the day's list; the strip agrees.
+                    week = weekSummary(date, if (pending != null) weekEntries.filter { it.id != pending.id } else weekEntries),
                 )
             }
         }
@@ -56,8 +63,13 @@ class OverviewViewModel @Inject constructor(
             initialValue = OverviewUiState(),
         )
 
-    fun previousDay() = _date.update { it.minusDays(1) }
-    fun nextDay() = _date.update { it.plusDays(1) }
+    fun selectDate(date: LocalDate) {
+        _date.value = date
+    }
+
+    /** Moves the week strip by [weeks], keeping the weekday: Wednesday stays Wednesday. */
+    fun shiftWeek(weeks: Long) = _date.update { it.plusWeeks(weeks) }
+
     fun goToToday() = _date.update { LocalDate.now() }
 
     fun update(entry: FoodEntry) {
@@ -118,6 +130,8 @@ data class OverviewUiState(
     val goal: DailyGoal = DailyGoal(),
     val date: LocalDate = LocalDate.now(),
     val todayWeight: WeightEntry? = null,
+    /** The ISO week around [date], Monday first — drives the week strip. */
+    val week: List<DaySummary> = weekSummary(date, emptyList()),
 ) {
     val totalKcal get() = entries.sumOf { it.kcal }
     val totalProtein get() = entries.sumOf { it.proteinG }
@@ -133,7 +147,7 @@ data class OverviewUiState(
     fun kcalForMeal(category: MealCategory): Double =
         entriesForMeal(category).sumOf { it.kcal }
 
-    /** Consumed kcal attributed to each [FoodTag] — drives the segmented calorie ring. */
+    /** Consumed kcal attributed to each [FoodTag] — drives the segmented calorie bar. */
     fun kcalForTag(tag: FoodTag): Double =
         entries.filter { it.tag == tag }.sumOf { it.kcal }
 

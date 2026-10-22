@@ -8,8 +8,17 @@ import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+
+/**
+ * Whether the resolved shade is "Ink" (dark). For the few surfaces whose design maps *different*
+ * colour roles per shade (the floating navigation pill is dark in both) rather than the same role
+ * in both — everything else just reads `MaterialTheme.colorScheme`.
+ */
+val LocalInkTheme = staticCompositionLocalOf { true }
 
 // "Ink" — dark mode (default). Fixed monochrome surfaces; accent + data colors carry meaning.
 private val DarkColorScheme = darkColorScheme(
@@ -88,9 +97,11 @@ fun TrainistTheme(
         else -> LightColorScheme
     }
 
-    MaterialTheme(
-        colorScheme = colorScheme,
-        typography = Typography,
-        content = content
-    )
+    CompositionLocalProvider(LocalInkTheme provides darkTheme) {
+        MaterialTheme(
+            colorScheme = colorScheme,
+            typography = Typography,
+            content = content
+        )
+    }
 }

@@ -110,8 +110,6 @@
     <string name="barcode_scanner_overlay_caption">Barcode in den Rahmen halten</string>
 
     <!-- OverviewScreen (ui/overview/OverviewScreen.kt) -->
-    <string name="overview_previous_day_content_description">Vorheriger Tag</string>
-    <string name="overview_next_day_content_description">Nächster Tag</string>
     <string name="overview_empty_state">Noch keine Einträge heute</string>
     <string name="overview_copy_meal_button">%1$s von Gestern kopieren</string>
     <string name="overview_macro_protein">Protein</string>
@@ -121,12 +119,8 @@
     <string name="overview_fiber_label">Ballaststoffe</string>
     <string name="overview_salt_label">Salz</string>
     <string name="overview_kcal_label">KCAL</string>
-    <string name="overview_kcal_remaining">noch %1$d</string>
-    <string name="overview_kcal_over">+%1$d zuviel</string>
-    <string name="overview_kcal_goal_reached">Ziel erreicht</string>
     <string name="overview_clean_percent">%1$d %% CLEAN</string>
     <string name="overview_weight_dialog_title">Gewicht eintragen</string>
-    <string name="overview_weight_today_label">Gewicht heute</string>
 
     <!-- Shared workout-module strings (ui/workout/ExercisePicker.kt, reused across screens) -->
     <string name="workout_add_exercise_button">Übung hinzufügen</string>
@@ -341,11 +335,11 @@
     <string name="tutorial_add_food_title">Mahlzeit hinzufügen</string>
     <string name="tutorial_add_food_body">Über das Plus suchst du ein Lebensmittel, scannst einen Barcode oder wählst etwas aus deinem Verlauf — Menge eintippen, fertig.</string>
     <string name="tutorial_day_switch_title">Tag wechseln</string>
-    <string name="tutorial_day_switch_body">Mit den Pfeilen springst du zu einem anderen Tag — so trägst du auch nach, was du gestern gegessen hast.</string>
-    <string name="tutorial_calorie_ring_title">Dein Tag auf einen Blick</string>
-    <string name="tutorial_calorie_ring_body">Der Ring zeigt deine Kalorien im Verhältnis zum Ziel, eingefärbt nach der Clean-Bewertung deiner Lebensmittel. Darunter stehen Eiweiß, Kohlenhydrate und Fett.</string>
+    <string name="tutorial_day_switch_body">Im Wochenstreifen tippst du auf einen anderen Tag, ein Wisch blättert eine Woche weiter — so trägst du auch nach, was du gestern gegessen hast.</string>
+    <string name="tutorial_calories_title">Dein Tag auf einen Blick</string>
+    <string name="tutorial_calories_body">Der Balken zeigt deine Kalorien im Verhältnis zum Ziel, eingefärbt nach der Clean-Bewertung deiner Lebensmittel. Darunter stehen Eiweiß, Kohlenhydrate und Fett.</string>
     <string name="tutorial_weight_title">Gewicht eintragen</string>
-    <string name="tutorial_weight_body">Ein Tap auf diese Karte speichert dein heutiges Gewicht. Ein Wert pro Tag genügt — daraus entsteht deine Gewichtskurve.</string>
+    <string name="tutorial_weight_body">Ein Tap auf diesen Chip speichert dein heutiges Gewicht. Ein Wert pro Tag genügt — daraus entsteht deine Gewichtskurve.</string>
     <string name="tutorial_start_workout_title">Training starten</string>
     <string name="tutorial_start_workout_body">Hier startest du ein freies Training. Erledigte Sätze hakst du ab, danach läuft die Pausenuhr automatisch los.</string>
     <string name="tutorial_new_template_title">Vorlage anlegen</string>
@@ -355,7 +349,7 @@
     <string name="tutorial_stats_title">Statistik</string>
     <string name="tutorial_stats_body">Gewicht, Kalorien, Clean-Anteil und Kraftentwicklung als Diagramme — die Karten lassen sich in deine Wunschreihenfolge ziehen.</string>
     <string name="tutorial_settings_title">Einstellungen &amp; Hilfe</string>
-    <string name="tutorial_settings_body">Ziele, Sprache, Design und Backups — und das Hilfe-Center, in dem du diesen Rundgang jederzeit neu starten kannst.</string>
+    <string name="tutorial_settings_body">Oben rechts findest du Ziele, Sprache, Design und Backups — und das Hilfe-Center, in dem du diesen Rundgang jederzeit neu starten kannst.</string>
 
     <!-- BMR/TDEE calculator (ui/bmr/) -->
     <string name="bmr_wizard_title">Kalorienrechner</string>

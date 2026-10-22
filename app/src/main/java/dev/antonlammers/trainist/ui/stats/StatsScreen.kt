@@ -59,6 +59,7 @@ import androidx.navigation.NavController
 import dev.antonlammers.trainist.R
 import dev.antonlammers.trainist.domain.model.StatCardType
 import dev.antonlammers.trainist.ui.components.DragReorderColumn
+import dev.antonlammers.trainist.ui.navigation.FloatingNavClearance
 import dev.antonlammers.trainist.ui.theme.CalorieColor
 import dev.antonlammers.trainist.ui.theme.ProteinColor
 import dev.antonlammers.trainist.ui.theme.TagHealthyColor
@@ -263,8 +264,8 @@ fun StatsScreen(
                     }
                 }
 
-                // Extra bottom breathing room so the last card clears the navigation bar.
-                Spacer(Modifier.height(24.dp))
+                // Bottom clearance so the last card scrolls out from under the floating nav pill.
+                Spacer(Modifier.height(FloatingNavClearance))
             }
         }
     }

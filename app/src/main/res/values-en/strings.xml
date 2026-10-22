@@ -110,8 +110,6 @@
     <string name="barcode_scanner_overlay_caption">Hold barcode inside the frame</string>
 
     <!-- OverviewScreen (ui/overview/OverviewScreen.kt) -->
-    <string name="overview_previous_day_content_description">Previous day</string>
-    <string name="overview_next_day_content_description">Next day</string>
     <string name="overview_empty_state">No entries yet today</string>
     <string name="overview_copy_meal_button">Copy %1$s from yesterday</string>
     <string name="overview_macro_protein">Protein</string>
@@ -121,12 +119,8 @@
     <string name="overview_fiber_label">Fiber</string>
     <string name="overview_salt_label">Salt</string>
     <string name="overview_kcal_label">KCAL</string>
-    <string name="overview_kcal_remaining">%1$d left</string>
-    <string name="overview_kcal_over">+%1$d over</string>
-    <string name="overview_kcal_goal_reached">Goal reached</string>
     <string name="overview_clean_percent">%1$d %% CLEAN</string>
     <string name="overview_weight_dialog_title">Log weight</string>
-    <string name="overview_weight_today_label">Weight today</string>
 
     <!-- Shared workout-module strings (ui/workout/ExercisePicker.kt, reused across screens) -->
     <string name="workout_add_exercise_button">Add exercise</string>
@@ -341,11 +335,11 @@
     <string name="tutorial_add_food_title">Add a meal</string>
     <string name="tutorial_add_food_body">The plus button lets you search for a food, scan a barcode or pick something from your history — enter the amount and you\'re done.</string>
     <string name="tutorial_day_switch_title">Switch days</string>
-    <string name="tutorial_day_switch_body">The arrows take you to another day — that\'s also how you log what you ate yesterday.</string>
-    <string name="tutorial_calorie_ring_title">Your day at a glance</string>
-    <string name="tutorial_calorie_ring_body">The ring shows your calories against your goal, coloured by how clean your foods were. Protein, carbs and fat are right below it.</string>
+    <string name="tutorial_day_switch_body">Tap another day in the week strip, swipe it to move a week — that\'s also how you log what you ate yesterday.</string>
+    <string name="tutorial_calories_title">Your day at a glance</string>
+    <string name="tutorial_calories_body">The bar shows your calories against your goal, coloured by how clean your foods were. Protein, carbs and fat are right below it.</string>
     <string name="tutorial_weight_title">Log your weight</string>
-    <string name="tutorial_weight_body">Tap this card to save today\'s weight. One value a day is enough — it becomes your weight curve.</string>
+    <string name="tutorial_weight_body">Tap this chip to save today\'s weight. One value a day is enough — it becomes your weight curve.</string>
     <string name="tutorial_start_workout_title">Start a workout</string>
     <string name="tutorial_start_workout_body">This starts a free workout. Check off the sets you finish and the rest timer runs by itself.</string>
     <string name="tutorial_new_template_title">Create a template</string>
@@ -355,7 +349,7 @@
     <string name="tutorial_stats_title">Statistics</string>
     <string name="tutorial_stats_body">Weight, calories, clean share and strength progress as charts — drag the cards into the order you like.</string>
     <string name="tutorial_settings_title">Settings &amp; help</string>
-    <string name="tutorial_settings_body">Goals, language, appearance and backups — plus the Help Center, where you can restart this tour anytime.</string>
+    <string name="tutorial_settings_body">Top right: goals, language, appearance and backups — plus the Help Center, where you can restart this tour anytime.</string>
 
     <!-- BMR/TDEE calculator (ui/bmr/) -->
     <string name="bmr_wizard_title">Calorie calculator</string>

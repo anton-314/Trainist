@@ -2,32 +2,22 @@ package dev.antonlammers.trainist.ui.navigation
 
 import androidx.camera.core.ExperimentalGetImage
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.BarChart
 import androidx.compose.material.icons.outlined.FitnessCenter
 import androidx.compose.material.icons.outlined.Restaurant
-import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.rounded.BarChart
 import androidx.compose.material.icons.rounded.FitnessCenter
 import androidx.compose.material.icons.rounded.Restaurant
-import androidx.compose.material.icons.rounded.Settings
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
-import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavGraph.Companion.findStartDestination
@@ -52,7 +42,6 @@ import dev.antonlammers.trainist.ui.tutorial.TutorialAnchors
 import dev.antonlammers.trainist.ui.tutorial.TutorialOverlay
 import dev.antonlammers.trainist.ui.tutorial.TutorialTarget
 import dev.antonlammers.trainist.ui.tutorial.TutorialViewModel
-import dev.antonlammers.trainist.ui.tutorial.tutorialAnchor
 import dev.antonlammers.trainist.ui.workout.ExerciseCatalogScreen
 import dev.antonlammers.trainist.ui.workout.ExerciseDetailScreen
 import dev.antonlammers.trainist.ui.workout.TemplateEditorScreen
@@ -84,7 +73,7 @@ sealed class Screen(val route: String) {
     object Stats : Screen("stats")
     object Settings : Screen("settings")
 
-    // Settings sub-screens — absent from bottomNavItems, so the bar hides itself. Backup and
+    // Settings and its sub-screens — absent from bottomNavItems, so the bar hides itself. Backup and
     // language are bottom sheets on the hub instead; a screen is for a real form (the goal editor)
     // or long-form reading (the Help Center).
     object Goals : Screen("goals")
@@ -95,25 +84,15 @@ sealed class Screen(val route: String) {
     object BmrCalculator : Screen("bmr_calculator")
 }
 
-private data class BottomNavItem(
-    val screen: Screen,
-    val label: String,
-    val selectedIcon: androidx.compose.ui.graphics.vector.ImageVector,
-    val unselectedIcon: androidx.compose.ui.graphics.vector.ImageVector,
-    /** Set for the tabs the guided tour points at; null for the ones it reaches by content instead. */
-    val tutorialTarget: TutorialTarget? = null,
-)
-
 // Active tab uses the filled (Rounded) icon variant, inactive the outline variant. A @Composable
 // function (not a top-level val) since the labels need stringResource() and must reflect the
 // current app locale on every composition, not just whichever locale was active when the
-// containing class first loaded.
+// containing class first loaded. Settings is no tab: it is reached from the Overview header.
 @Composable
 private fun bottomNavItems() = listOf(
-    BottomNavItem(Screen.Overview, stringResource(R.string.nav_overview_label), Icons.Rounded.Restaurant, Icons.Outlined.Restaurant),
-    BottomNavItem(Screen.Workout, stringResource(R.string.templates_title), Icons.Rounded.FitnessCenter, Icons.Outlined.FitnessCenter),
-    BottomNavItem(Screen.Stats, stringResource(R.string.stats_title), Icons.Rounded.BarChart, Icons.Outlined.BarChart, TutorialTarget.STATS_TAB),
-    BottomNavItem(Screen.Settings, stringResource(R.string.settings_title), Icons.Rounded.Settings, Icons.Outlined.Settings, TutorialTarget.SETTINGS_TAB),
+    NavTab(Screen.Overview, stringResource(R.string.nav_overview_label), Icons.Rounded.Restaurant, Icons.Outlined.Restaurant),
+    NavTab(Screen.Workout, stringResource(R.string.templates_title), Icons.Rounded.FitnessCenter, Icons.Outlined.FitnessCenter),
+    NavTab(Screen.Stats, stringResource(R.string.stats_title), Icons.Rounded.BarChart, Icons.Outlined.BarChart, TutorialTarget.STATS_TAB),
 )
 
 @ExperimentalGetImage
@@ -132,6 +111,8 @@ fun AppNavigation(
     // anchors registry every screen below reports its highlightable elements to.
     val tutorialStep by tutorialViewModel.step.collectAsStateWithLifecycle()
     val tutorialAnchors = remember { TutorialAnchors() }
+    // Tab screens register what the shell's plus button does for them (see PrimaryAction).
+    val primaryActionHost = remember { PrimaryActionHost() }
     // Written before the screens below read it in their tutorialAnchor modifiers, so an element
     // sitting below the fold scrolls itself into the spotlight in the same frame.
     tutorialAnchors.currentTarget = tutorialStep?.target
@@ -156,12 +137,17 @@ fun AppNavigation(
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
-        CompositionLocalProvider(LocalTutorialAnchors provides tutorialAnchors) {
-            Column(modifier = Modifier.fillMaxSize()) {
+        CompositionLocalProvider(
+            LocalTutorialAnchors provides tutorialAnchors,
+            LocalPrimaryActionHost provides primaryActionHost,
+        ) {
+            // The NavHost fills the whole screen; the floating pill overlays it, so every tab
+            // screen leaves FloatingNavClearance below its content.
+            Box(modifier = Modifier.fillMaxSize()) {
                 NavHost(
                     navController = navController,
                     startDestination = Screen.Overview.route,
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier.fillMaxSize(),
                 ) {
                     composable(Screen.Overview.route) { OverviewScreen(navController) }
                     composable(
@@ -198,46 +184,21 @@ fun AppNavigation(
                     composable(Screen.BmrCalculator.route) { BmrCalculatorScreen(navController) }
                 }
                 if (showBottomNav) {
-                    // Flat nav bar: hairline top border replaces Material's tonal elevation.
-                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-                    NavigationBar(
-                        containerColor = MaterialTheme.colorScheme.surface,
-                        tonalElevation = 0.dp,
-                    ) {
-                        navItems.forEach { item ->
-                            val selected = currentRoute == item.screen.route
-                            NavigationBarItem(
-                                selected = selected,
-                                modifier = if (item.tutorialTarget != null) {
-                                    Modifier.tutorialAnchor(item.tutorialTarget)
-                                } else {
-                                    Modifier
-                                },
-                                onClick = {
-                                    navController.navigate(item.screen.route) {
-                                        popUpTo(navController.graph.findStartDestination().id) {
-                                            saveState = true
-                                        }
-                                        launchSingleTop = true
-                                        restoreState = true
-                                    }
-                                },
-                                // Icon-only nav: labels are dropped (the pictograms are self-explanatory);
-                                // the label text lives on as the icon's contentDescription for a11y.
-                                icon = {
-                                    Icon(
-                                        if (selected) item.selectedIcon else item.unselectedIcon,
-                                        contentDescription = item.label,
-                                    )
-                                },
-                                colors = NavigationBarItemDefaults.colors(
-                                    selectedIconColor = MaterialTheme.colorScheme.primary,
-                                    indicatorColor = Color.Transparent,
-                                    unselectedIconColor = MaterialTheme.colorScheme.outline,
-                                ),
-                            )
-                        }
-                    }
+                    FloatingNavBar(
+                        tabs = navItems,
+                        currentRoute = currentRoute,
+                        primaryAction = primaryActionHost.current,
+                        onSelect = { screen ->
+                            navController.navigate(screen.route) {
+                                popUpTo(navController.graph.findStartDestination().id) {
+                                    saveState = true
+                                }
+                                launchSingleTop = true
+                                restoreState = true
+                            }
+                        },
+                        modifier = Modifier.align(Alignment.BottomCenter),
+                    )
                 }
             }
         }

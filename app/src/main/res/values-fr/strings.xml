@@ -110,8 +110,6 @@
     <string name="barcode_scanner_overlay_caption">Place le code-barres dans le cadre</string>
 
     <!-- OverviewScreen (ui/overview/OverviewScreen.kt) -->
-    <string name="overview_previous_day_content_description">Jour précédent</string>
-    <string name="overview_next_day_content_description">Jour suivant</string>
     <string name="overview_empty_state">Pas encore d\'entrées aujourd\'hui</string>
     <string name="overview_copy_meal_button">Copier %1$s d\'hier</string>
     <string name="overview_macro_protein">Protéines</string>
@@ -121,12 +119,8 @@
     <string name="overview_fiber_label">Fibres</string>
     <string name="overview_salt_label">Sel</string>
     <string name="overview_kcal_label">KCAL</string>
-    <string name="overview_kcal_remaining">%1$d restantes</string>
-    <string name="overview_kcal_over">+%1$d en trop</string>
-    <string name="overview_kcal_goal_reached">Objectif atteint</string>
     <string name="overview_clean_percent">%1$d %% CLEAN</string>
     <string name="overview_weight_dialog_title">Enregistrer le poids</string>
-    <string name="overview_weight_today_label">Poids aujourd\'hui</string>
 
     <!-- Shared workout-module strings (ui/workout/ExercisePicker.kt, reused across screens) -->
     <string name="workout_add_exercise_button">Ajouter un exercice</string>
@@ -341,11 +335,11 @@
     <string name="tutorial_add_food_title">Ajouter un repas</string>
     <string name="tutorial_add_food_body">Le bouton plus te permet de chercher un aliment, de scanner un code-barres ou d\'en reprendre un de ton historique — saisis la quantité, c\'est tout.</string>
     <string name="tutorial_day_switch_title">Changer de jour</string>
-    <string name="tutorial_day_switch_body">Les flèches t\'emmènent à un autre jour — c\'est aussi ainsi que tu ajoutes ce que tu as mangé hier.</string>
-    <string name="tutorial_calorie_ring_title">Ta journée en un coup d\'œil</string>
-    <string name="tutorial_calorie_ring_body">L\'anneau montre tes calories par rapport à ton objectif, coloré selon la qualité de tes aliments. Protéines, glucides et lipides se trouvent juste en dessous.</string>
+    <string name="tutorial_day_switch_body">Touche un autre jour dans la bande de la semaine, fais-la glisser pour changer de semaine — c\'est aussi ainsi que tu ajoutes ce que tu as mangé hier.</string>
+    <string name="tutorial_calories_title">Ta journée en un coup d\'œil</string>
+    <string name="tutorial_calories_body">La barre montre tes calories par rapport à ton objectif, colorée selon la qualité de tes aliments. Protéines, glucides et lipides se trouvent juste en dessous.</string>
     <string name="tutorial_weight_title">Noter ton poids</string>
-    <string name="tutorial_weight_body">Un tap sur cette carte enregistre ton poids du jour. Une valeur par jour suffit — c\'est ce qui forme ta courbe de poids.</string>
+    <string name="tutorial_weight_body">Un tap sur cette puce enregistre ton poids du jour. Une valeur par jour suffit — c\'est ce qui forme ta courbe de poids.</string>
     <string name="tutorial_start_workout_title">Démarrer une séance</string>
     <string name="tutorial_start_workout_body">Ici tu lances une séance libre. Coche les séries terminées et le minuteur de repos démarre tout seul.</string>
     <string name="tutorial_new_template_title">Créer un modèle</string>
@@ -355,7 +349,7 @@
     <string name="tutorial_stats_title">Statistiques</string>
     <string name="tutorial_stats_body">Poids, calories, part clean et progression de force en graphiques — les cartes se réordonnent par glisser-déposer.</string>
     <string name="tutorial_settings_title">Paramètres &amp; aide</string>
-    <string name="tutorial_settings_body">Objectifs, langue, apparence et sauvegardes — ainsi que le centre d\'aide, où tu peux relancer cette visite à tout moment.</string>
+    <string name="tutorial_settings_body">En haut à droite : objectifs, langue, apparence et sauvegardes — ainsi que le centre d\'aide, où tu peux relancer cette visite à tout moment.</string>
 
     <!-- BMR/TDEE calculator (ui/bmr/) -->
     <string name="bmr_wizard_title">Calculateur de calories</string>

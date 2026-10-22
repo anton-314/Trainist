@@ -12,13 +12,13 @@ import dev.antonlammers.trainist.ui.navigation.Screen
 enum class TutorialTarget {
     ADD_FOOD,
     DAY_SWITCH,
-    CALORIE_RING,
-    WEIGHT_CARD,
+    CALORIES,
+    WEIGHT,
+    SETTINGS,
     START_WORKOUT,
     NEW_TEMPLATE,
     WORKOUT_HISTORY,
     STATS_TAB,
-    SETTINGS_TAB,
 }
 
 /** How the spotlight cuts the target out of the scrim: round for icons/FABs, a pill for wide rows. */
@@ -53,24 +53,33 @@ enum class TutorialStep(
         title = R.string.tutorial_day_switch_title,
         body = R.string.tutorial_day_switch_body,
     ),
-    CALORIE_RING(
+    CALORIES(
         route = Screen.Overview.route,
-        target = TutorialTarget.CALORIE_RING,
-        highlight = TutorialHighlight.CIRCLE,
-        title = R.string.tutorial_calorie_ring_title,
-        body = R.string.tutorial_calorie_ring_body,
+        target = TutorialTarget.CALORIES,
+        highlight = TutorialHighlight.ROUNDED,
+        title = R.string.tutorial_calories_title,
+        body = R.string.tutorial_calories_body,
     ),
     WEIGHT(
         route = Screen.Overview.route,
-        target = TutorialTarget.WEIGHT_CARD,
+        target = TutorialTarget.WEIGHT,
         highlight = TutorialHighlight.ROUNDED,
         title = R.string.tutorial_weight_title,
         body = R.string.tutorial_weight_body,
     ),
+    // Settings is no tab any more but a button in the Overview header, so it is shown while the
+    // tour is still on that tab rather than as a stop of its own at the end.
+    SETTINGS(
+        route = Screen.Overview.route,
+        target = TutorialTarget.SETTINGS,
+        highlight = TutorialHighlight.CIRCLE,
+        title = R.string.tutorial_settings_title,
+        body = R.string.tutorial_settings_body,
+    ),
     START_WORKOUT(
         route = Screen.Workout.route,
         target = TutorialTarget.START_WORKOUT,
-        highlight = TutorialHighlight.ROUNDED,
+        highlight = TutorialHighlight.CIRCLE,
         title = R.string.tutorial_start_workout_title,
         body = R.string.tutorial_start_workout_body,
     ),
@@ -94,13 +103,6 @@ enum class TutorialStep(
         highlight = TutorialHighlight.CIRCLE,
         title = R.string.tutorial_stats_title,
         body = R.string.tutorial_stats_body,
-    ),
-    SETTINGS(
-        route = Screen.Settings.route,
-        target = TutorialTarget.SETTINGS_TAB,
-        highlight = TutorialHighlight.CIRCLE,
-        title = R.string.tutorial_settings_title,
-        body = R.string.tutorial_settings_body,
     );
 
     /** 1-based position, for the "3 / 9" progress label. */
