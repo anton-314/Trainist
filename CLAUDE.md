@@ -19,25 +19,30 @@ Every feature or change follows this workflow — keep it in mind from the first
 
 ## Build & Test Commands
 
-```bash
-# Build debug APK
-JAVA_HOME=/opt/android-studio/jbr ./gradlew assembleDebug
+The toolchain lives on **Windows** (Android Studio's JBR + the SDK at `C:\Users\anon\AppData\Local\Android\Sdk`, which `local.properties` points to); there is no Linux JDK/SDK in WSL, and `gradlew.bat` cannot run on a `\\wsl.localhost` path. `scripts/gradlew-win.sh` therefore mirrors the checkout (incl. `.git`, which `versionCode` needs) to `C:\Users\anon\AppData\Local\Temp\trainist-build`, runs `gradlew.bat` there with `JAVA_HOME` set, and copies `app/build/outputs` + `app/build/reports` back. Arguments are passed straight to Gradle; the exit code is Gradle's. Override the paths with `TRAINIST_WIN_BUILD_DIR` / `TRAINIST_WIN_JAVA_HOME`.
 
-# Install on connected emulator and launch
-JAVA_HOME=/opt/android-studio/jbr ./gradlew installDebug
-/home/anon/Android/Sdk/platform-tools/adb shell am start -n dev.antonlammers.trainist/.MainActivity
+```bash
+# Build debug APK (→ app/build/outputs/apk/debug/app-debug.apk)
+scripts/gradlew-win.sh assembleDebug
+
+# Install on a connected emulator/device and launch (Windows adb)
+/mnt/c/Users/anon/AppData/Local/Android/Sdk/platform-tools/adb.exe install -r app/build/outputs/apk/debug/app-debug.apk
+/mnt/c/Users/anon/AppData/Local/Android/Sdk/platform-tools/adb.exe shell am start -n dev.antonlammers.trainist/.MainActivity
 
 # Run all unit tests
-JAVA_HOME=/opt/android-studio/jbr ./gradlew testDebugUnitTest
+scripts/gradlew-win.sh testDebugUnitTest
 
 # Run a specific test class
-JAVA_HOME=/opt/android-studio/jbr ./gradlew :app:testDebugUnitTest --tests "dev.antonlammers.trainist.ui.overview.OverviewViewModelTest"
+scripts/gradlew-win.sh :app:testDebugUnitTest --tests "dev.antonlammers.trainist.ui.overview.OverviewViewModelTest"
 
 # Release build + release unit tests (both pass — keep them working)
-JAVA_HOME=/opt/android-studio/jbr ./gradlew assembleRelease testReleaseUnitTest
+scripts/gradlew-win.sh assembleRelease testReleaseUnitTest
 
 # Lint
-JAVA_HOME=/opt/android-studio/jbr ./gradlew lint
+scripts/gradlew-win.sh lint
+
+# The usual full check in one run
+scripts/gradlew-win.sh assembleDebug testDebugUnitTest lint
 ```
 
 ## Architecture
