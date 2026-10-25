@@ -69,3 +69,5 @@ secrets.properties
 # ============================================================
 # Misc
 # ============================================================
+# Windows download markers (alternate data streams surfaced by WSL)
+*:Zone.Identifier
