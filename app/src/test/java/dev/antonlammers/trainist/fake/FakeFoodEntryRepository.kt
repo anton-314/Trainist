@@ -13,6 +13,9 @@ class FakeFoodEntryRepository : FoodEntryRepository {
     private val _entries = MutableStateFlow<List<FoodEntry>>(emptyList())
     private var nextId = 1L
 
+    /** When set, [add] throws it — lets a test reach a caller's save-failure path. */
+    var addFailure: Throwable? = null
+
     override fun entriesForDate(date: LocalDate): Flow<List<FoodEntry>> =
         _entries.map { list -> list.filter { it.date == date } }
 
@@ -29,6 +32,7 @@ class FakeFoodEntryRepository : FoodEntryRepository {
     override suspend fun allEntries(): List<FoodEntry> = _entries.value
 
     override suspend fun add(entry: FoodEntry) {
+        addFailure?.let { throw it }
         _entries.update { it + entry.copy(id = nextId++) }
     }
 

@@ -534,4 +534,25 @@
 
     <string name="help_section_contact">KONTAKT</string>
     <string name="help_contact_body">Keine passende Antwort gefunden, etwas funktioniert nicht oder dir fehlt eine Funktion? Schreib mir — ich lese und beantworte jede Nachricht selbst.</string>
+
+    <!-- Food import ("Öffnen mit Trainist" on a food-entries CSV) -->
+    <string name="foodimport_sheet_title">Lebensmittel importieren</string>
+    <string name="foodimport_confirm">Importieren</string>
+    <plurals name="foodimport_summary">
+        <item quantity="one">%1$d Eintrag · %2$d kcal</item>
+        <item quantity="other">%1$d Einträge · %2$d kcal</item>
+    </plurals>
+    <plurals name="foodimport_skipped">
+        <item quantity="one">%d Zeile konnte nicht gelesen werden und wird übersprungen.</item>
+        <item quantity="other">%d Zeilen konnten nicht gelesen werden und werden übersprungen.</item>
+    </plurals>
+    <plurals name="foodimport_done">
+        <item quantity="one">%d Eintrag importiert</item>
+        <item quantity="other">%d Einträge importiert</item>
+    </plurals>
+    <string name="foodimport_error_title">Import nicht möglich</string>
+    <string name="foodimport_error_unreadable">Die Datei konnte nicht geöffnet werden.</string>
+    <string name="foodimport_error_not_food_entries">Das ist keine Lebensmittel-CSV. Hier lassen sich nur Lebensmitteleinträge importieren – ein vollständiges Backup stellst du in den Einstellungen wieder her.</string>
+    <string name="foodimport_error_no_valid_rows">Die Datei enthält keine gültigen Lebensmitteleinträge. Jede Zeile braucht mindestens ein Datum (JJJJ-MM-TT) und einen Namen.</string>
+    <string name="foodimport_error_save_failed">Die Einträge konnten nicht gespeichert werden.</string>
 </resources>

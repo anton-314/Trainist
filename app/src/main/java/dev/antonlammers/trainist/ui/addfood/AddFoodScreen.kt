@@ -80,6 +80,7 @@ import dev.antonlammers.trainist.domain.model.MealCategory
 import dev.antonlammers.trainist.ui.components.NumericTextField
 import dev.antonlammers.trainist.ui.components.TagDot
 import dev.antonlammers.trainist.ui.components.TagSelector
+import dev.antonlammers.trainist.ui.components.displayName
 import dev.antonlammers.trainist.ui.navigation.Screen
 import dev.antonlammers.trainist.ui.util.currentAppLocale
 import dev.antonlammers.trainist.ui.util.localizedDateFormatter
@@ -878,13 +879,3 @@ private fun BarcodeError.messageRes(): Int = when (this) {
     BarcodeError.NETWORK_UNAVAILABLE -> R.string.addfood_barcode_error_network_unavailable
     BarcodeError.UNKNOWN -> R.string.addfood_barcode_error_unknown
 }
-
-@Composable
-private fun MealCategory.displayName() = stringResource(
-    when (this) {
-        MealCategory.BREAKFAST -> R.string.meal_category_breakfast
-        MealCategory.LUNCH -> R.string.meal_category_lunch
-        MealCategory.DINNER -> R.string.meal_category_dinner
-        MealCategory.SNACK -> R.string.meal_category_snack
-    },
-)

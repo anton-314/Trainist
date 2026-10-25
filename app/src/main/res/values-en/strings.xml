@@ -538,4 +538,25 @@
 
     <string name="help_section_contact">CONTACT</string>
     <string name="help_contact_body">Didn\'t find the right answer, something not working, or missing a feature? Write to me — I read and answer every message myself.</string>
+
+    <!-- Food import ("Öffnen mit Trainist" on a food-entries CSV) -->
+    <string name="foodimport_sheet_title">Import food</string>
+    <string name="foodimport_confirm">Import</string>
+    <plurals name="foodimport_summary">
+        <item quantity="one">%1$d entry · %2$d kcal</item>
+        <item quantity="other">%1$d entries · %2$d kcal</item>
+    </plurals>
+    <plurals name="foodimport_skipped">
+        <item quantity="one">%d row could not be read and will be skipped.</item>
+        <item quantity="other">%d rows could not be read and will be skipped.</item>
+    </plurals>
+    <plurals name="foodimport_done">
+        <item quantity="one">%d entry imported</item>
+        <item quantity="other">%d entries imported</item>
+    </plurals>
+    <string name="foodimport_error_title">Import not possible</string>
+    <string name="foodimport_error_unreadable">The file could not be opened.</string>
+    <string name="foodimport_error_not_food_entries">This is not a food CSV. Only food entries can be imported here – restore a full backup in Settings.</string>
+    <string name="foodimport_error_no_valid_rows">The file contains no valid food entries. Every row needs at least a date (YYYY-MM-DD) and a name.</string>
+    <string name="foodimport_error_save_failed">The entries could not be saved.</string>
 </resources>

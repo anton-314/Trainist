@@ -1027,16 +1027,6 @@ private fun SecondaryMacro(label: String, valueG: Double) {
 }
 
 @Composable
-private fun MealCategory.displayName() = stringResource(
-    when (this) {
-        MealCategory.BREAKFAST -> R.string.meal_category_breakfast
-        MealCategory.LUNCH -> R.string.meal_category_lunch
-        MealCategory.DINNER -> R.string.meal_category_dinner
-        MealCategory.SNACK -> R.string.meal_category_snack
-    },
-)
-
-@Composable
 private fun MealSectionHeader(name: String, kcal: Int) {
     Row(
         modifier = Modifier

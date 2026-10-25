@@ -538,4 +538,28 @@
 
     <string name="help_section_contact">CONTACT</string>
     <string name="help_contact_body">Pas trouvé la bonne réponse, quelque chose ne fonctionne pas ou une fonction te manque ? Écris-moi — je lis et réponds moi-même à chaque message.</string>
+
+    <!-- Food import ("Öffnen mit Trainist" on a food-entries CSV) -->
+    <string name="foodimport_sheet_title">Importer des aliments</string>
+    <string name="foodimport_confirm">Importer</string>
+    <plurals name="foodimport_summary">
+        <item quantity="one">%1$d entrée · %2$d kcal</item>
+        <item quantity="other">%1$d entrées · %2$d kcal</item>
+        <item quantity="many">%1$d entrées · %2$d kcal</item>
+    </plurals>
+    <plurals name="foodimport_skipped">
+        <item quantity="one">%d ligne n\'a pas pu être lue et sera ignorée.</item>
+        <item quantity="other">%d lignes n\'ont pas pu être lues et seront ignorées.</item>
+        <item quantity="many">%d lignes n\'ont pas pu être lues et seront ignorées.</item>
+    </plurals>
+    <plurals name="foodimport_done">
+        <item quantity="one">%d entrée importée</item>
+        <item quantity="other">%d entrées importées</item>
+        <item quantity="many">%d entrées importées</item>
+    </plurals>
+    <string name="foodimport_error_title">Importation impossible</string>
+    <string name="foodimport_error_unreadable">Le fichier n\'a pas pu être ouvert.</string>
+    <string name="foodimport_error_not_food_entries">Ce n\'est pas un CSV d\'aliments. Seules des entrées alimentaires peuvent être importées ici – restaure une sauvegarde complète dans les paramètres.</string>
+    <string name="foodimport_error_no_valid_rows">Le fichier ne contient aucune entrée alimentaire valide. Chaque ligne doit contenir au moins une date (AAAA-MM-JJ) et un nom.</string>
+    <string name="foodimport_error_save_failed">Les entrées n\'ont pas pu être enregistrées.</string>
 </resources>

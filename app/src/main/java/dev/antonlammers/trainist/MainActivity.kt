@@ -2,6 +2,7 @@ package dev.antonlammers.trainist
 
 import android.Manifest
 import android.content.Context
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.content.res.Configuration
 import android.graphics.Color as AndroidColor
@@ -70,6 +71,10 @@ class MainActivity : ComponentActivity() {
         // notification, so tearing anything down would kill a rest that is still running. The alert
         // notification auto-cancels on tap, and its ~2 s tone has all but finished by then anyway.
         val openWorkoutSession = intent.getBooleanExtra(RestTimerNotifier.EXTRA_OPEN_WORKOUT_SESSION, false)
+        // A CSV opened with the app ("Öffnen mit Trainist"). Only on a fresh start: after a
+        // configuration change the activity-scoped import ViewModel still holds the preview, and
+        // re-reading the intent would offer an already-imported file a second time.
+        val foodImportUri = intent.takeIf { savedInstanceState == null && it.action == Intent.ACTION_VIEW }?.dataString
         setContent {
             // App appearance: the user's choice wins over the system setting (ThemeMode.SYSTEM
             // defers to it). The value is known synchronously on the first composition, so a pinned
@@ -100,7 +105,10 @@ class MainActivity : ComponentActivity() {
                         OnboardingScreen(onFinished = onboardingViewModel::complete)
 
                     OnboardingState.Completed ->
-                        AppNavigation(openWorkoutSession = openWorkoutSession)
+                        AppNavigation(
+                            openWorkoutSession = openWorkoutSession,
+                            foodImportUri = foodImportUri,
+                        )
                 }
             }
         }

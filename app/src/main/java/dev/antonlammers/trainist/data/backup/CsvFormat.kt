@@ -52,7 +52,7 @@ object CsvFormat {
             fiberG = cols.csvDbl(headers, CsvColumns.FIBER_G) ?: 0.0,
             saltG = cols.csvDbl(headers, CsvColumns.SALT_G) ?: 0.0,
             mealCategory = cols.csvStr(headers, CsvColumns.MEAL_CATEGORY)
-                ?.let { runCatching { MealCategory.valueOf(it) }.getOrNull() }
+                ?.let { raw -> MealCategory.entries.firstOrNull { it.name.equals(raw, ignoreCase = true) } }
                 ?: MealCategory.SNACK,
             tag = FoodTag.parse(cols.csvStr(headers, CsvColumns.TAG)),
             date = date,
@@ -61,8 +61,16 @@ object CsvFormat {
         )
     }
 
+    /**
+     * Maps each column name to its index. Tolerates what hand- or AI-written files tend to carry:
+     * a UTF-8 byte-order mark (left in place it glues itself onto the first column name, which then
+     * silently matches nothing) and quoted column names.
+     */
     fun parseHeaders(headerLine: String): Map<String, Int> =
-        headerLine.split(",").mapIndexed { i, h -> h.trim() to i }.toMap()
+        parseLine(headerLine.removePrefix(BYTE_ORDER_MARK)).mapIndexed { i, h -> h.trim() to i }.toMap()
+
+    private const val BYTE_ORDER_MARK = "\uFEFF"
+
 
     // RFC-4180 parser: handles quoted fields with embedded commas and escaped quotes
     internal fun parseLine(line: String): List<String> {

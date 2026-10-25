@@ -12,6 +12,10 @@ import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.BarChart
 import androidx.compose.material.icons.outlined.FitnessCenter
@@ -26,7 +30,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavBackStackEntry
@@ -42,6 +48,8 @@ import dev.antonlammers.trainist.R
 import dev.antonlammers.trainist.ui.addfood.AddFoodScreen
 import dev.antonlammers.trainist.ui.addfood.BarcodeScannerScreen
 import dev.antonlammers.trainist.ui.bmr.BmrCalculatorScreen
+import dev.antonlammers.trainist.ui.foodimport.FoodImportHost
+import dev.antonlammers.trainist.ui.foodimport.FoodImportViewModel
 import dev.antonlammers.trainist.ui.overview.OverviewScreen
 import dev.antonlammers.trainist.ui.goals.GoalsScreen
 import dev.antonlammers.trainist.ui.help.HelpScreen
@@ -133,7 +141,9 @@ private fun AnimatedContentTransitionScope<NavBackStackEntry>.screenExit(): Exit
 fun AppNavigation(
     navController: NavHostController = rememberNavController(),
     openWorkoutSession: Boolean = false,
+    foodImportUri: String? = null,
     tutorialViewModel: TutorialViewModel = hiltViewModel(),
+    foodImportViewModel: FoodImportViewModel = hiltViewModel(),
 ) {
     val backStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = backStackEntry?.destination?.route
@@ -154,6 +164,24 @@ fun AppNavigation(
     // into the live session (which resumes the active one regardless of the templateId argument).
     LaunchedEffect(openWorkoutSession) {
         if (openWorkoutSession) navController.navigate(Screen.WorkoutSession.start(0))
+    }
+
+    // A CSV opened with the app: read it into a preview; nothing is saved before the user confirms.
+    // Hosted here rather than on a destination so the import works whichever screen is on top.
+    val foodImportState by foodImportViewModel.uiState.collectAsStateWithLifecycle()
+    val snackbarHostState = remember { SnackbarHostState() }
+    LaunchedEffect(foodImportUri) {
+        foodImportUri?.let(foodImportViewModel::open)
+    }
+    val importedCount = foodImportState.importedCount
+    val importedMessage = importedCount?.let { pluralStringResource(R.plurals.foodimport_done, it, it) }
+    LaunchedEffect(importedMessage) {
+        if (importedMessage != null) {
+            // Cleared only once shown: clearing first would change this effect's key and cancel
+            // the snackbar the moment it appears.
+            snackbarHostState.showSnackbar(importedMessage)
+            foodImportViewModel.clearImportedCount()
+        }
     }
 
     // Each step names the tab it plays on; switching there is the tour's job, not the user's. Uses
@@ -249,6 +277,20 @@ fun AppNavigation(
                 }
             }
         }
+
+        SnackbarHost(
+            hostState = snackbarHostState,
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .navigationBarsPadding()
+                .padding(bottom = if (showBottomNav) FloatingNavSnackbarOffset else 0.dp),
+        )
+
+        FoodImportHost(
+            phase = foodImportState.phase,
+            onConfirm = foodImportViewModel::confirm,
+            onDismiss = foodImportViewModel::dismiss,
+        )
 
         tutorialStep?.let { step ->
             TutorialOverlay(

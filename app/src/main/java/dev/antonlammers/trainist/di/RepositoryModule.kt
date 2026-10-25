@@ -6,6 +6,7 @@ import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import dev.antonlammers.trainist.data.backup.BackupExporterImpl
 import dev.antonlammers.trainist.data.backup.BackupImporterImpl
+import dev.antonlammers.trainist.data.backup.FoodEntryFileReaderImpl
 import dev.antonlammers.trainist.data.repository.BodyMeasurementRepositoryImpl
 import dev.antonlammers.trainist.data.repository.CustomFoodRepositoryImpl
 import dev.antonlammers.trainist.data.repository.ExerciseCatalogRepositoryImpl
@@ -23,6 +24,7 @@ import dev.antonlammers.trainist.data.seed.SeedVersionStore
 import dev.antonlammers.trainist.data.seed.SharedPrefsSeedVersionStore
 import dev.antonlammers.trainist.domain.backup.BackupExporter
 import dev.antonlammers.trainist.domain.backup.BackupImporter
+import dev.antonlammers.trainist.domain.backup.FoodEntryFileReader
 import dev.antonlammers.trainist.data.repository.WeightRepositoryImpl
 import dev.antonlammers.trainist.data.repository.WorkoutSessionRepositoryImpl
 import dev.antonlammers.trainist.data.repository.WorkoutTemplateRepositoryImpl
@@ -83,6 +85,9 @@ abstract class RepositoryModule {
 
     @Binds @Singleton
     abstract fun bindBackupImporter(impl: BackupImporterImpl): BackupImporter
+
+    @Binds @Singleton
+    abstract fun bindFoodEntryFileReader(impl: FoodEntryFileReaderImpl): FoodEntryFileReader
 
     @Binds @Singleton
     abstract fun bindSeedVersionStore(impl: SharedPrefsSeedVersionStore): SeedVersionStore
