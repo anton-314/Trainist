@@ -4,11 +4,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
-import androidx.compose.runtime.setValue
 import androidx.compose.runtime.staticCompositionLocalOf
+import androidx.lifecycle.viewmodel.compose.LocalViewModelStoreOwner
+import androidx.navigation.NavBackStackEntry
 import dev.antonlammers.trainist.ui.tutorial.TutorialTarget
 
 /**
@@ -24,24 +25,27 @@ class PrimaryAction(
 )
 
 /**
- * The registry between the tab screens and the shell: a screen registers its [PrimaryAction] while
- * it is composed, the shell shows the button for whatever is registered (and nothing on a tab that
- * registers nothing, e.g. Statistik).
+ * The registry between the tab screens and the shell: a screen registers its [PrimaryAction] under
+ * its own route while it is composed, and the shell shows the button for the **current** route
+ * (nothing on a tab that registers nothing, e.g. Statistik).
  *
- * During a tab switch both screens are briefly composed, and the incoming one may register before
- * the outgoing one is disposed — so [clear] only removes the action it is handed, never a newer one.
+ * Keyed by route rather than "whoever registered last" because a tab switch keeps the outgoing
+ * screen composed for the whole cross-fade: the button has to follow the route the user picked the
+ * moment they tap, not the moment the old screen is finally disposed. For the same reason [clear]
+ * only removes the action it is handed, never a newer registration under the same route.
  */
 @Stable
 class PrimaryActionHost {
-    var current: PrimaryAction? by mutableStateOf(null)
-        private set
+    private val actions = mutableStateMapOf<String?, PrimaryAction>()
 
-    fun register(action: PrimaryAction) {
-        current = action
+    fun actionFor(route: String?): PrimaryAction? = route?.let { actions[it] }
+
+    fun register(route: String?, action: PrimaryAction) {
+        actions[route] = action
     }
 
-    fun clear(action: PrimaryAction) {
-        if (current === action) current = null
+    fun clear(route: String?, action: PrimaryAction) {
+        if (actions[route] === action) actions.remove(route)
     }
 }
 
@@ -49,9 +53,10 @@ class PrimaryActionHost {
 val LocalPrimaryActionHost = staticCompositionLocalOf { PrimaryActionHost() }
 
 /**
- * Registers the shell's plus-button action for as long as the calling screen is composed. [onClick]
- * is read through [rememberUpdatedState], so the action always sees the screen's latest state
- * without re-registering on every recomposition.
+ * Registers the shell's plus-button action for as long as the calling screen is composed, under the
+ * route of the navigation destination it is composed in. [onClick] is read through
+ * [rememberUpdatedState], so the action always sees the screen's latest state without
+ * re-registering on every recomposition.
  */
 @Composable
 fun ProvidePrimaryAction(
@@ -60,12 +65,15 @@ fun ProvidePrimaryAction(
     onClick: () -> Unit,
 ) {
     val host = LocalPrimaryActionHost.current
+    // Inside a NavHost destination the owner is its back-stack entry; outside one (previews,
+    // tests) there is no route, and the shell simply never shows the action.
+    val route = (LocalViewModelStoreOwner.current as? NavBackStackEntry)?.destination?.route
     val latestOnClick by rememberUpdatedState(onClick)
     val action = remember(contentDescription, tutorialTarget) {
         PrimaryAction(contentDescription, tutorialTarget) { latestOnClick() }
     }
-    DisposableEffect(host, action) {
-        host.register(action)
-        onDispose { host.clear(action) }
+    DisposableEffect(host, route, action) {
+        host.register(route, action)
+        onDispose { host.clear(route, action) }
     }
 }

@@ -1,6 +1,15 @@
 package dev.antonlammers.trainist.ui.navigation
 
 import androidx.camera.core.ExperimentalGetImage
+import androidx.compose.animation.AnimatedContentTransitionScope
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material.icons.Icons
@@ -20,6 +29,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
@@ -95,6 +105,23 @@ private fun bottomNavItems() = listOf(
     NavTab(Screen.Stats, stringResource(R.string.stats_title), Icons.Rounded.BarChart, Icons.Outlined.BarChart, TutorialTarget.STATS_TAB),
 )
 
+/** Tab ↔ tab cross-fade — short, so the content keeps pace with the pill reacting to the tap. */
+private const val TAB_FADE_MS = 220
+
+/** Navigation-compose's own default cross-fade, kept for pushed screens. */
+private const val SCREEN_FADE_MS = 700
+
+private val tabRoutes = setOf(Screen.Overview.route, Screen.Workout.route, Screen.Stats.route)
+
+private fun AnimatedContentTransitionScope<NavBackStackEntry>.isTabSwitch() =
+    initialState.destination.route in tabRoutes && targetState.destination.route in tabRoutes
+
+private fun AnimatedContentTransitionScope<NavBackStackEntry>.screenEnter(): EnterTransition =
+    fadeIn(tween(if (isTabSwitch()) TAB_FADE_MS else SCREEN_FADE_MS))
+
+private fun AnimatedContentTransitionScope<NavBackStackEntry>.screenExit(): ExitTransition =
+    fadeOut(tween(if (isTabSwitch()) TAB_FADE_MS else SCREEN_FADE_MS))
+
 @ExperimentalGetImage
 @Composable
 fun AppNavigation(
@@ -148,6 +175,10 @@ fun AppNavigation(
                     navController = navController,
                     startDestination = Screen.Overview.route,
                     modifier = Modifier.fillMaxSize(),
+                    enterTransition = { screenEnter() },
+                    exitTransition = { screenExit() },
+                    popEnterTransition = { screenEnter() },
+                    popExitTransition = { screenExit() },
                 ) {
                     composable(Screen.Overview.route) { OverviewScreen(navController) }
                     composable(
@@ -183,11 +214,20 @@ fun AppNavigation(
                     }
                     composable(Screen.BmrCalculator.route) { BmrCalculatorScreen(navController) }
                 }
-                if (showBottomNav) {
+                // While the bar slides out towards a pushed screen it keeps showing the tab it
+                // left, rather than deselecting every chip on the way out.
+                val lastTabRoute = remember { LastValue(currentRoute) }
+                if (showBottomNav) lastTabRoute.value = currentRoute
+                AnimatedVisibility(
+                    visible = showBottomNav,
+                    enter = slideInVertically(tween(TAB_FADE_MS)) { it / 2 } + fadeIn(tween(TAB_FADE_MS)),
+                    exit = slideOutVertically(tween(TAB_FADE_MS)) { it / 2 } + fadeOut(tween(TAB_FADE_MS)),
+                    modifier = Modifier.align(Alignment.BottomCenter),
+                ) {
                     FloatingNavBar(
                         tabs = navItems,
-                        currentRoute = currentRoute,
-                        primaryAction = primaryActionHost.current,
+                        currentRoute = lastTabRoute.value,
+                        primaryAction = primaryActionHost.actionFor(currentRoute),
                         onSelect = { screen ->
                             navController.navigate(screen.route) {
                                 popUpTo(navController.graph.findStartDestination().id) {
@@ -197,7 +237,6 @@ fun AppNavigation(
                                 restoreState = true
                             }
                         },
-                        modifier = Modifier.align(Alignment.BottomCenter),
                     )
                 }
             }
