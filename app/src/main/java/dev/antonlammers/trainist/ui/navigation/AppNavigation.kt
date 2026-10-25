@@ -100,8 +100,14 @@ sealed class Screen(val route: String) {
 // containing class first loaded. Settings is no tab: it is reached from the Overview header.
 @Composable
 private fun bottomNavItems() = listOf(
-    NavTab(Screen.Overview, stringResource(R.string.nav_overview_label), Icons.Rounded.Restaurant, Icons.Outlined.Restaurant),
-    NavTab(Screen.Workout, stringResource(R.string.templates_title), Icons.Rounded.FitnessCenter, Icons.Outlined.FitnessCenter),
+    NavTab(
+        Screen.Overview, stringResource(R.string.nav_overview_label), Icons.Rounded.Restaurant, Icons.Outlined.Restaurant,
+        hasPrimaryAction = true,
+    ),
+    NavTab(
+        Screen.Workout, stringResource(R.string.templates_title), Icons.Rounded.FitnessCenter, Icons.Outlined.FitnessCenter,
+        hasPrimaryAction = true,
+    ),
     NavTab(Screen.Stats, stringResource(R.string.stats_title), Icons.Rounded.BarChart, Icons.Outlined.BarChart, TutorialTarget.STATS_TAB),
 )
 
@@ -220,8 +226,10 @@ fun AppNavigation(
                 if (showBottomNav) lastTabRoute.value = currentRoute
                 AnimatedVisibility(
                     visible = showBottomNav,
-                    enter = slideInVertically(tween(TAB_FADE_MS)) { it / 2 } + fadeIn(tween(TAB_FADE_MS)),
-                    exit = slideOutVertically(tween(TAB_FADE_MS)) { it / 2 } + fadeOut(tween(TAB_FADE_MS)),
+                    // Slide only, never fade: a fading parent renders the bar offscreen at its own
+                    // bounds and cuts the pill's shadow off.
+                    enter = slideInVertically(tween(TAB_FADE_MS)) { it },
+                    exit = slideOutVertically(tween(TAB_FADE_MS)) { it },
                     modifier = Modifier.align(Alignment.BottomCenter),
                 ) {
                     FloatingNavBar(

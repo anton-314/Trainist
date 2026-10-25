@@ -26,8 +26,9 @@ class PrimaryAction(
 
 /**
  * The registry between the tab screens and the shell: a screen registers its [PrimaryAction] under
- * its own route while it is composed, and the shell shows the button for the **current** route
- * (nothing on a tab that registers nothing, e.g. Statistik).
+ * its own route while it is composed, and the shell's button runs the one for the **current**
+ * route. *Whether* a tab has the button at all is declared on its `NavTab`, so the pill's geometry
+ * never waits for a registration; this registry only supplies what the button does.
  *
  * Keyed by route rather than "whoever registered last" because a tab switch keeps the outgoing
  * screen composed for the whole cross-fade: the button has to follow the route the user picked the
