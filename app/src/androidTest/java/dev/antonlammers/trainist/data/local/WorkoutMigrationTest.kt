@@ -398,6 +398,50 @@ class WorkoutMigrationTest {
         db.close()
     }
 
+    @Test
+    fun migrate15to16_addsMealLastUsedColumn_andPreservesExistingMeals() {
+        val db = openV7WithSeedData()
+        AppDatabase.MIGRATION_7_8.migrate(db)
+        AppDatabase.MIGRATION_8_9.migrate(db)
+        AppDatabase.MIGRATION_9_10.migrate(db)
+        AppDatabase.MIGRATION_10_11.migrate(db)
+        AppDatabase.MIGRATION_11_12.migrate(db)
+        AppDatabase.MIGRATION_12_13.migrate(db)
+        AppDatabase.MIGRATION_13_14.migrate(db)
+        AppDatabase.MIGRATION_14_15.migrate(db)
+        db.execSQL("INSERT INTO saved_meals (id, stableId, name) VALUES (1, 'meal-1', 'Müsli')")
+        db.execSQL(
+            "INSERT INTO saved_meal_items (mealId, position, foodName, brand, amountGrams, kcalPer100g, " +
+                "proteinPer100g, carbsPer100g, fatPer100g, sugarPer100g, fiberPer100g, saltPer100g, tag) " +
+                "VALUES (1, 0, 'Haferflocken', 'Kölln', 60, 370, 13.5, 59, 7, 1, 10, 0.02, 'HEALTHY')",
+        )
+
+        AppDatabase.MIGRATION_15_16.migrate(db)
+
+        // The meal and its ingredient survived; never logged since it was saved, so null.
+        db.query("SELECT name, lastUsedMs FROM saved_meals WHERE id = 1").use { c ->
+            c.moveToFirst()
+            assertEquals("Müsli", c.getString(0))
+            assertTrue(c.isNull(1))
+        }
+        db.query("SELECT COUNT(*) FROM saved_meal_items WHERE mealId = 1").use { c ->
+            c.moveToFirst()
+            assertEquals(1, c.getInt(0))
+        }
+
+        // Usable: logging stamps it, and the list query puts used meals first.
+        db.execSQL("INSERT INTO saved_meals (id, stableId, name) VALUES (2, 'meal-2', 'Abendbrot')")
+        db.execSQL("UPDATE saved_meals SET lastUsedMs = 1761600000000 WHERE id = 1")
+        db.query("SELECT name FROM saved_meals ORDER BY lastUsedMs IS NULL, lastUsedMs DESC, name COLLATE NOCASE ASC").use { c ->
+            c.moveToFirst()
+            assertEquals("Müsli", c.getString(0))
+            c.moveToNext()
+            assertEquals("Abendbrot", c.getString(0))
+        }
+
+        db.close()
+    }
+
     /**
      * Creates a fresh database at schema version 7 with one representative row per pre-existing
      * table the later migrations touch or must leave alone: a food entry and the goal singleton.

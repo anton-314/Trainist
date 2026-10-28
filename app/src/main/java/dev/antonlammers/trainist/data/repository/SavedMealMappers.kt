@@ -19,10 +19,11 @@ object SavedMealMappers {
         stableId = meal.stableId,
         name = meal.name,
         items = items.sortedBy { it.position }.map { it.toDomain() },
+        lastUsedMs = meal.lastUsedMs,
     )
 
     fun SavedMeal.toEntity(id: Long): SavedMealEntity =
-        SavedMealEntity(id = id, stableId = stableId, name = name)
+        SavedMealEntity(id = id, stableId = stableId, name = name, lastUsedMs = lastUsedMs)
 
     fun SavedMeal.itemEntities(mealId: Long): List<SavedMealItemEntity> =
         items.mapIndexed { index, item ->

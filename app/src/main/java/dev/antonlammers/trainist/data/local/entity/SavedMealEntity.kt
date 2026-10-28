@@ -13,4 +13,6 @@ data class SavedMealEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val stableId: String,
     val name: String,
+    /** When the meal was last logged (epoch ms); null = never since it was saved. */
+    val lastUsedMs: Long? = null,
 )

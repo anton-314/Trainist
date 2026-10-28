@@ -1,10 +1,12 @@
 package dev.antonlammers.trainist.ui.navigation
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandHorizontally
 import androidx.compose.animation.shrinkHorizontally
 import androidx.compose.foundation.background
@@ -61,13 +63,21 @@ import dev.antonlammers.trainist.ui.tutorial.tutorialAnchor
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 
-/** One tab of the floating pill. */
+/** One tab of a [FloatingPillBar]: what it is called and how it looks, nothing about where it leads. */
+internal data class PillTab(
+    val label: String,
+    val selectedIcon: ImageVector,
+    val unselectedIcon: ImageVector,
+    /** Set for the tabs the guided tour points at; null for the ones it reaches by content instead. */
+    val tutorialTarget: TutorialTarget? = null,
+)
+
+/** One tab of the app's floating navigation. */
 internal data class NavTab(
     val screen: Screen,
     val label: String,
     val selectedIcon: ImageVector,
     val unselectedIcon: ImageVector,
-    /** Set for the tabs the guided tour points at; null for the ones it reaches by content instead. */
     val tutorialTarget: TutorialTarget? = null,
     /**
      * Whether this tab shows the round plus button. Declared here rather than inferred from the
@@ -75,7 +85,9 @@ internal data class NavTab(
      * same frame — a registration only lands a frame after the incoming screen first composes.
      */
     val hasPrimaryAction: Boolean = false,
-)
+) {
+    val pill: PillTab get() = PillTab(label, selectedIcon, unselectedIcon, tutorialTarget)
+}
 
 /** Clearance a tab screen leaves below its last item so it can scroll out from under the pill. */
 val FloatingNavClearance = 110.dp
@@ -104,6 +116,9 @@ private fun <T> navSpring(stiffness: Float = Spring.StiffnessMediumLow) = spring
  */
 private const val TRAILING_EDGE_STIFFNESS = 260f
 
+/** Plus ↔ close on the action button, in step with the menu it opens. */
+private const val ICON_SWAP_MS = 150
+
 /**
  * The floating navigation: a dark pill with the tabs and, beside it, the round plus button for the
  * current tab's [primaryAction] (the pill takes the full width on a tab without one). Meant to be
@@ -117,13 +132,39 @@ internal fun FloatingNavBar(
     onSelect: (Screen) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val colors = navPillColors()
     val selectedIndex = tabs.indexOfFirst { it.screen.route == currentRoute }
-    val showsAction = tabs.getOrNull(selectedIndex)?.hasPrimaryAction == true
+    FloatingPillBar(
+        tabs = tabs.map { it.pill },
+        selectedIndex = selectedIndex,
+        onSelect = { onSelect(tabs[it].screen) },
+        action = primaryAction,
+        showsAction = tabs.getOrNull(selectedIndex)?.hasPrimaryAction == true,
+        modifier = modifier,
+    )
+}
+
+/**
+ * The floating pill bar itself, independent of navigation: a dark pill with [tabs] and, beside it,
+ * the round [action] button while [showsAction] (the pill takes the full width otherwise). Shared by
+ * the app's tab navigation and screens with tabs of their own (AddFood), so both move and look
+ * exactly alike. [actionIcon] lets a screen turn the plus into a close while the button's own menu
+ * is open.
+ */
+@Composable
+internal fun FloatingPillBar(
+    tabs: List<PillTab>,
+    selectedIndex: Int,
+    onSelect: (Int) -> Unit,
+    action: PrimaryAction?,
+    showsAction: Boolean,
+    modifier: Modifier = Modifier,
+    actionIcon: ImageVector = Icons.Rounded.Add,
+) {
+    val colors = navPillColors()
     // The button keeps showing the last action while it animates out (and for the frame before the
     // incoming tab has registered its own), so it never blinks empty.
-    val lastAction = remember { LastValue(primaryAction) }
-    if (primaryAction != null) lastAction.value = primaryAction
+    val lastAction = remember { LastValue(action) }
+    if (action != null) lastAction.value = action
     val actionProgress = animateFloatAsState(
         targetValue = if (showsAction) 1f else 0f,
         animationSpec = navSpring(),
@@ -142,12 +183,13 @@ internal fun FloatingNavBar(
             onSelect = onSelect,
             modifier = Modifier.weight(1f),
         )
-        lastAction.value?.let { action ->
+        lastAction.value?.let { shown ->
             PrimaryActionButton(
-                action = action,
+                action = shown,
+                icon = actionIcon,
                 progress = actionProgress,
                 // Only the live action is clickable and a tour target; a leaving one is decoration.
-                live = showsAction && primaryAction != null,
+                live = showsAction && action != null,
             )
         }
     }
@@ -164,10 +206,10 @@ internal fun FloatingNavBar(
  */
 @Composable
 private fun NavPill(
-    tabs: List<NavTab>,
+    tabs: List<PillTab>,
     selectedIndex: Int,
     colors: NavPillColors,
-    onSelect: (Screen) -> Unit,
+    onSelect: (Int) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     // Left/right x of every tab, relative to the rows; written on placement, read when drawing.
@@ -241,7 +283,7 @@ private fun NavPill(
                         interactionSource = null,
                         indication = null,
                         role = Role.Tab,
-                        onClick = { onSelect(tab.screen) },
+                        onClick = { onSelect(index) },
                     )
             },
         )
@@ -275,12 +317,12 @@ private fun interpolateEdge(edges: List<Float>, position: Float): Float {
  */
 @Composable
 private fun NavTabRow(
-    tabs: List<NavTab>,
+    tabs: List<PillTab>,
     selectedIndex: Int,
     contentColor: Color,
     focused: Boolean,
     modifier: Modifier = Modifier,
-    tabModifier: @Composable (index: Int, tab: NavTab) -> Modifier = { _, _ -> Modifier },
+    tabModifier: @Composable (index: Int, tab: PillTab) -> Modifier = { _, _ -> Modifier },
 ) {
     Row(
         modifier = modifier.fillMaxSize(),
@@ -333,7 +375,7 @@ private fun NavTabRow(
  * slot as the pill grows, never overlaps the pill, and needs no transparency to disappear.
  */
 @Composable
-private fun PrimaryActionButton(action: PrimaryAction, progress: State<Float>, live: Boolean) {
+private fun PrimaryActionButton(action: PrimaryAction, icon: ImageVector, progress: State<Float>, live: Boolean) {
     Box(
         modifier = Modifier
             // Read in the layout/draw phases only, so the animation never recomposes the bar.
@@ -366,12 +408,14 @@ private fun PrimaryActionButton(action: PrimaryAction, progress: State<Float>, l
             .clickable(enabled = live, onClick = action.onClick),
         contentAlignment = Alignment.Center,
     ) {
-        Icon(
-            Icons.Rounded.Add,
-            contentDescription = action.contentDescription,
-            tint = MaterialTheme.colorScheme.onPrimary,
-            modifier = Modifier.size(28.dp),
-        )
+        Crossfade(targetState = icon, animationSpec = tween(ICON_SWAP_MS), label = "navActionIcon") { shown ->
+            Icon(
+                shown,
+                contentDescription = action.contentDescription,
+                tint = MaterialTheme.colorScheme.onPrimary,
+                modifier = Modifier.size(28.dp),
+            )
+        }
     }
 }
 

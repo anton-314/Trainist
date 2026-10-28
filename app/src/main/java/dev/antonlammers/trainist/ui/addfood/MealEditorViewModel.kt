@@ -173,6 +173,7 @@ data class MealDraft(
             stableId = existing?.stableId ?: UUID.randomUUID().toString(),
             name = name.trim(),
             items = parsedItems.filterNotNull(),
+            lastUsedMs = existing?.lastUsedMs,
         )
     }
 }

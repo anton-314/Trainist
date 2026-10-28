@@ -21,6 +21,25 @@ class SavedMealBackupTest {
     }
 
     @Test
+    fun `when a meal was last used round-trips, and never-used stays null`() {
+        val meals = listOf(muesli().copy(lastUsedMs = 1_761_600_000_123), meal("b", "Abendbrot", listOf(item("Brot", 80.0))))
+
+        val assembled = SavedMealBackup.assemble(mealLines(meals), itemLines(meals))
+
+        assertEquals(listOf(1_761_600_000_123, null), assembled.map { it.lastUsedMs })
+    }
+
+    @Test
+    fun `a meals section from before last_used_ms imports as never used`() {
+        val legacy = listOf("meal_stable_id,meal_name", "a,Müsli")
+
+        val assembled = SavedMealBackup.assemble(legacy, itemLines(listOf(muesli())))
+
+        assertEquals("Müsli", assembled.single().name)
+        assertNull(assembled.single().lastUsedMs)
+    }
+
+    @Test
     fun `ingredients are re-ordered by position, not by row order`() {
         val meal = muesli()
         val rows = itemLines(listOf(meal))

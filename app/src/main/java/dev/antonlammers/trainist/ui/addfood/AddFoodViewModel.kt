@@ -103,6 +103,9 @@ class AddFoodViewModel @Inject constructor(
         }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
+    /** Bumped by [retryRemoteSearch] to send the current query to Open Food Facts once more. */
+    private val _remoteRetry = MutableStateFlow(0)
+
     /**
      * Open Food Facts hits for the current query, below the local results.
      *
@@ -116,6 +119,8 @@ class AddFoodViewModel @Inject constructor(
         .map { it.query.trim() }
         .distinctUntilChanged()
         .debounce { if (it.length >= MIN_REMOTE_QUERY_LENGTH) SEARCH_DEBOUNCE_MS else 0L }
+        // A retry re-emits the same query, which the flatMapLatest below then requests again.
+        .combine(_remoteRetry) { query, _ -> query }
         .flatMapLatest { query ->
             if (query.length < MIN_REMOTE_QUERY_LENGTH) {
                 flowOf(RemoteSearchState())
@@ -134,6 +139,12 @@ class AddFoodViewModel @Inject constructor(
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), RemoteSearchState())
 
     fun onQueryChange(query: String) = _uiState.update { it.copy(query = query) }
+
+    /** Which result group the search shows; kept across queries until the user picks another. */
+    fun onSearchSourceChange(source: SearchSource) = _uiState.update { it.copy(searchSource = source) }
+
+    /** Asks Open Food Facts again after a failed search; a no-op while the query is too short. */
+    fun retryRemoteSearch() = _remoteRetry.update { it + 1 }
 
     fun selectFood(food: Food) = _uiState.update {
         it.copy(selectedFood = food, amountGrams = "100", mealCategory = defaultMealCategory(), tag = food.tag)
@@ -245,15 +256,17 @@ class AddFoodViewModel @Inject constructor(
         val portions = draft.portions()
         if (portions.isEmpty()) return
         viewModelScope.launch {
+            val nowMs = System.currentTimeMillis()
             foodEntryRepository.addAll(
                 FoodPortions.mealEntries(
                     items = portions.map { it.first },
                     amounts = portions.map { it.second },
                     mealCategory = state.mealCategory,
                     date = targetDate,
-                    nowMs = System.currentTimeMillis(),
+                    nowMs = nowMs,
                 ),
             )
+            savedMealRepository.markUsed(draft.meal.id, nowMs)
             _uiState.update { it.copy(mealToLog = null, mealCategory = defaultMealCategory(), entryAdded = true) }
         }
     }
@@ -329,6 +342,7 @@ enum class BarcodeError {
 
 data class AddFoodUiState(
     val query: String = "",
+    val searchSource: SearchSource = SearchSource.ALL,
     val isLoading: Boolean = false,
     val error: BarcodeError? = null,
     val selectedFood: Food? = null,

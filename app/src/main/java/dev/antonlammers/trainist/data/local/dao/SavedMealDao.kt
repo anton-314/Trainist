@@ -13,7 +13,7 @@ import kotlinx.coroutines.flow.Flow
 @Dao
 interface SavedMealDao {
     @Transaction
-    @Query("SELECT * FROM saved_meals ORDER BY name COLLATE NOCASE ASC")
+    @Query("SELECT * FROM saved_meals ORDER BY lastUsedMs IS NULL, lastUsedMs DESC, name COLLATE NOCASE ASC")
     fun allMeals(): Flow<List<SavedMealWithItems>>
 
     @Query("SELECT id FROM saved_meals WHERE stableId = :stableId LIMIT 1")
@@ -30,6 +30,9 @@ interface SavedMealDao {
 
     @Query("DELETE FROM saved_meal_items WHERE mealId = :mealId")
     suspend fun deleteItems(mealId: Long)
+
+    @Query("UPDATE saved_meals SET lastUsedMs = :atMs WHERE id = :id")
+    suspend fun markUsed(id: Long, atMs: Long)
 
     @Query("DELETE FROM saved_meals WHERE id = :id")
     suspend fun deleteMeal(id: Long)

@@ -1,8 +1,10 @@
 package dev.antonlammers.trainist.ui.addfood
 
+import androidx.compose.runtime.remember
 import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
+import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -133,5 +135,54 @@ class SavedMealSheetsTest {
 
         compose.onNodeWithText("Mahlzeit bearbeiten").assertIsDisplayed()
         compose.onNodeWithText(string(R.string.addfood_create_kind_food)).assertDoesNotExist()
+    }
+
+    @Test
+    fun theCustomFoodSaveButtonIsDisplayedAndOnlyEnabledOnceTheRequiredFieldsAreFilled() {
+        val form = CustomFoodFormState(prefillName = "Granola")
+        var saved: Food? = null
+        compose.setContent {
+            CreateSheet(
+                kind = CreateKind.FOOD,
+                kindSwitchable = true,
+                title = "Neues Lebensmittel",
+                onKindChange = {},
+                onDismiss = {},
+            ) {
+                CustomFoodForm(state = form, onSave = { saved = it })
+            }
+        }
+
+        compose.onNodeWithText(string(R.string.common_save)).assertIsDisplayed().assertIsNotEnabled()
+
+        compose.runOnIdle {
+            form.kcal = "452"
+            form.protein = "11"
+            form.carbs = "58"
+            form.fat = "19"
+        }
+
+        compose.onNodeWithText(string(R.string.common_save)).assertIsDisplayed().assertIsEnabled().performClick()
+        assertEquals("Granola", saved?.name)
+    }
+
+    @Test
+    fun theOptionalNutrientsUnfoldOnTap() {
+        compose.setContent {
+            CreateSheet(
+                kind = CreateKind.FOOD,
+                kindSwitchable = false,
+                title = "Neues Lebensmittel",
+                onKindChange = {},
+                onDismiss = {},
+            ) {
+                CustomFoodForm(state = remember { CustomFoodFormState() }, onSave = {})
+            }
+        }
+        compose.onNodeWithText(string(R.string.addfood_tile_salt)).assertDoesNotExist()
+
+        compose.onNodeWithText(string(R.string.addfood_optional_nutrients)).performClick()
+
+        compose.onNodeWithText(string(R.string.addfood_tile_salt)).performScrollTo().assertIsDisplayed()
     }
 }

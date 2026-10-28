@@ -33,5 +33,7 @@ class SavedMealRepositoryImpl @Inject constructor(
         mealId
     }
 
+    override suspend fun markUsed(id: Long, atMs: Long) = dao.markUsed(id, atMs)
+
     override suspend fun delete(id: Long) = dao.deleteMeal(id)
 }

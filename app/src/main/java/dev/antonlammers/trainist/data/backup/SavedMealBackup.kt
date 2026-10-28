@@ -18,11 +18,15 @@ object SavedMealCsvFormat {
     const val STABLE_ID = "meal_stable_id"
     const val NAME = "meal_name"
 
-    val HEADER: String = listOf(STABLE_ID, NAME).joinToString(",")
+    /** Optional; empty or missing (every backup from before it existed) = never logged. */
+    const val LAST_USED_MS = "last_used_ms"
+
+    val HEADER: String = listOf(STABLE_ID, NAME, LAST_USED_MS).joinToString(",")
 
     fun toRow(meal: SavedMeal): String = listOf(
         meal.stableId.escapeCsv(),
         meal.name.escapeCsv(),
+        meal.lastUsedMs?.toString().orEmpty(),
     ).joinToString(",")
 
     /** Parses a header row into a meal without ingredients (attached on assembly). */
@@ -30,7 +34,12 @@ object SavedMealCsvFormat {
         val cols = CsvFormat.parseLine(row)
         val stableId = cols.csvStr(headers, STABLE_ID)?.takeIf { it.isNotBlank() } ?: return null
         val name = cols.csvStr(headers, NAME)?.takeIf { it.isNotBlank() } ?: return null
-        return SavedMeal(stableId = stableId, name = name, items = emptyList())
+        return SavedMeal(
+            stableId = stableId,
+            name = name,
+            items = emptyList(),
+            lastUsedMs = cols.csvLong(headers, LAST_USED_MS),
+        )
     }
 }
 

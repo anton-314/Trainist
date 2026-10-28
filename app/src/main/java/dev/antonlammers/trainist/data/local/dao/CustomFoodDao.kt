@@ -9,7 +9,7 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface CustomFoodDao {
-    @Query("SELECT * FROM custom_foods ORDER BY name ASC")
+    @Query("SELECT * FROM custom_foods ORDER BY name COLLATE NOCASE ASC")
     fun allFoods(): Flow<List<CustomFoodEntity>>
 
     @Insert

@@ -13,7 +13,13 @@ class FakeSavedMealRepository : SavedMealRepository {
     private val _meals = MutableStateFlow<List<SavedMeal>>(emptyList())
     private var nextId = 1L
 
-    override fun meals(): Flow<List<SavedMeal>> = _meals.map { it.sortedBy { m -> m.name.lowercase() } }
+    override fun meals(): Flow<List<SavedMeal>> = _meals.map { list ->
+        list.sortedWith(
+            compareBy<SavedMeal> { it.lastUsedMs == null }
+                .thenByDescending { it.lastUsedMs }
+                .thenBy { it.name.lowercase() },
+        )
+    }
 
     override suspend fun save(meal: SavedMeal): Long {
         val existing = _meals.value.firstOrNull { it.id == meal.id && meal.id != 0L }
@@ -21,6 +27,10 @@ class FakeSavedMealRepository : SavedMealRepository {
         val id = existing?.id ?: nextId++
         _meals.update { list -> list.filterNot { it.id == id } + meal.copy(id = id) }
         return id
+    }
+
+    override suspend fun markUsed(id: Long, atMs: Long) {
+        _meals.update { list -> list.map { if (it.id == id) it.copy(lastUsedMs = atMs) else it } }
     }
 
     override suspend fun delete(id: Long) {

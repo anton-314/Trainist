@@ -626,6 +626,49 @@ class AddFoodViewModelTest {
         assertEquals(listOf("apfel"), searchRepo.searchedQueries)
     }
 
+    @Test
+    fun `retrying a failed search asks Open Food Facts again with the same query`() = runTest {
+        searchRepo.respondWith(Result.failure(BarcodeException.NetworkUnavailable))
+        viewModel = viewModel()
+        backgroundScope.launch { viewModel.remoteSearchResults.collect {} }
+        viewModel.onQueryChange("apfel")
+        advanceUntilIdle()
+        assertTrue(viewModel.remoteSearchResults.value.failed)
+
+        searchRepo.respondWith(Result.success(listOf(apple())))
+        viewModel.retryRemoteSearch()
+        advanceUntilIdle()
+
+        assertEquals(listOf("apfel", "apfel"), searchRepo.searchedQueries)
+        assertEquals(listOf(apple()), viewModel.remoteSearchResults.value.results)
+        assertFalse(viewModel.remoteSearchResults.value.failed)
+    }
+
+    @Test
+    fun `retrying with a too short query sends nothing`() = runTest {
+        viewModel = viewModel()
+        backgroundScope.launch { viewModel.remoteSearchResults.collect {} }
+        viewModel.onQueryChange("ap")
+        advanceUntilIdle()
+
+        viewModel.retryRemoteSearch()
+        advanceUntilIdle()
+
+        assertTrue(searchRepo.searchedQueries.isEmpty())
+    }
+
+    @Test
+    fun `the search source filter starts at all and is kept across queries`() = runTest {
+        viewModel = viewModel()
+        assertEquals(SearchSource.ALL, viewModel.uiState.value.searchSource)
+
+        viewModel.onSearchSourceChange(SearchSource.HISTORY)
+        viewModel.onQueryChange("apfel")
+        viewModel.onQueryChange("milch")
+
+        assertEquals(SearchSource.HISTORY, viewModel.uiState.value.searchSource)
+    }
+
     // --- saved meals ---
 
     @Test
@@ -679,6 +722,24 @@ class AddFoodViewModelTest {
         assertNull(viewModel.uiState.value.mealToLog)
         // Logging never changes the meal itself.
         assertEquals(60.0, mealRepo.meals().first().single().items.first().amountGrams, 0.0)
+    }
+
+    @Test
+    fun `logging a meal moves it to the top of the meals list`() = runTest {
+        mealRepo.save(muesli())
+        mealRepo.save(muesli().copy(stableId = "meal-abendbrot", name = "Abendbrot"))
+        viewModel = viewModel()
+        backgroundScope.launch { viewModel.savedMeals.collect {} }
+        advanceUntilIdle()
+        // Never logged: by name.
+        assertEquals(listOf("Abendbrot", "Müsli"), viewModel.savedMeals.value.map { it.name })
+
+        viewModel.selectMeal(viewModel.savedMeals.value.single { it.name == "Müsli" })
+        viewModel.confirmLogMeal()
+        advanceUntilIdle()
+
+        assertEquals(listOf("Müsli", "Abendbrot"), viewModel.savedMeals.value.map { it.name })
+        assertNotNull(viewModel.savedMeals.value.first().lastUsedMs)
     }
 
     @Test

@@ -96,4 +96,19 @@ class NumericTextFieldTest {
 
         assertEquals("12", current())
     }
+
+    @Test
+    fun theBareVariantAlsoReplacesAPreFilledValue() {
+        // The custom-drawn fields (macro tiles, ingredient amounts) must keep the app-wide rule.
+        var text = "150"
+        compose.setContent {
+            var state by remember { mutableStateOf("150") }
+            BareNumericTextField(value = state, onValueChange = { state = it; text = it })
+        }
+
+        field.performClick()
+        field.performTextInput("2")
+
+        assertEquals("2", text)
+    }
 }

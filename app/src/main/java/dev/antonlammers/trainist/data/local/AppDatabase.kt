@@ -34,7 +34,7 @@ import dev.antonlammers.trainist.data.local.entity.WorkoutTemplateEntity
         WorkoutSessionEntity::class, SessionExerciseEntity::class, SetEntryEntity::class,
         BodyMeasurementEntity::class, SavedMealEntity::class, SavedMealItemEntity::class,
     ],
-    version = 15,
+    version = 16,
     exportSchema = true,
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -237,6 +237,17 @@ abstract class AppDatabase : RoomDatabase() {
                 db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS `index_saved_meals_stableId` ON `saved_meals` (`stableId`)")
                 db.execSQL("CREATE TABLE IF NOT EXISTS `saved_meal_items` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `mealId` INTEGER NOT NULL, `position` INTEGER NOT NULL, `foodName` TEXT NOT NULL, `brand` TEXT, `amountGrams` REAL NOT NULL, `kcalPer100g` REAL NOT NULL, `proteinPer100g` REAL NOT NULL, `carbsPer100g` REAL NOT NULL, `fatPer100g` REAL NOT NULL, `sugarPer100g` REAL NOT NULL, `fiberPer100g` REAL NOT NULL, `saltPer100g` REAL NOT NULL, `tag` TEXT NOT NULL, FOREIGN KEY(`mealId`) REFERENCES `saved_meals`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )")
                 db.execSQL("CREATE INDEX IF NOT EXISTS `index_saved_meal_items_mealId` ON `saved_meal_items` (`mealId`)")
+            }
+        }
+
+        /**
+         * Adds when a saved meal was last logged, so "Meine Mahlzeiten" can list the most recently
+         * used first. Nullable/no backfill — a meal saved before this simply hasn't been used since,
+         * and sorts after the used ones (by name, as before).
+         */
+        val MIGRATION_15_16 = object : Migration(15, 16) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE saved_meals ADD COLUMN lastUsedMs INTEGER")
             }
         }
     }

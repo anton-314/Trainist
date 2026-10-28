@@ -258,6 +258,20 @@ class MealEditorViewModelTest {
     }
 
     @Test
+    fun `editing a meal keeps when it was last used`() = runTest {
+        val id = mealRepo.save(muesli())
+        mealRepo.markUsed(id, atMs = 42)
+        val vm = viewModel()
+        vm.edit(mealRepo.meals().first().single())
+        vm.onNameChange("Müsli groß")
+
+        vm.save()
+        advanceUntilIdle()
+
+        assertEquals(42L, mealRepo.meals().first().single().lastUsedMs)
+    }
+
+    @Test
     fun `an invalid draft is not saved`() = runTest {
         val vm = viewModel()
         vm.startNew()

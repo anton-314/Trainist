@@ -10,13 +10,15 @@ package dev.antonlammers.trainist.domain.model
  * into one ordinary [FoodEntry] per ingredient, so nothing downstream knows meals exist.
  *
  * [stableId] (a UUID) is the backup-stable key — re-importing a backup replaces a meal instead of
- * duplicating it. [id] is the Room row id (0 = not yet stored).
+ * duplicating it. [id] is the Room row id (0 = not yet stored). [lastUsedMs] is when it was last
+ * logged (null = never), which orders the list most-recently-used first.
  */
 data class SavedMeal(
     val id: Long = 0,
     val stableId: String,
     val name: String,
     val items: List<SavedMealItem>,
+    val lastUsedMs: Long? = null,
 )
 
 /** One ingredient: the food's per-100 g snapshot (incl. its [FoodTag]) and the planned amount. */

@@ -65,6 +65,30 @@ class SavedMealRepositoryTest {
     }
 
     @Test
+    fun `used meals come first, most recent on top, unused ones after them by name`() = runTest {
+        val porridge = repo.save(muesli().copy(stableId = "b", name = "porridge"))
+        repo.save(muesli().copy(stableId = "a", name = "Abendbrot"))
+        val muesli = repo.save(muesli().copy(stableId = "c", name = "Müsli"))
+        repo.save(muesli().copy(stableId = "d", name = "Brot"))
+
+        repo.markUsed(porridge, atMs = 1_000)
+        repo.markUsed(muesli, atMs = 2_000)
+
+        assertEquals(listOf("Müsli", "porridge", "Abendbrot", "Brot"), repo.meals().first().map { it.name })
+        assertEquals(2_000L, repo.meals().first().first().lastUsedMs)
+    }
+
+    @Test
+    fun `saving an edit keeps when the meal was last used`() = runTest {
+        val id = repo.save(muesli())
+        repo.markUsed(id, atMs = 5_000)
+
+        repo.save(repo.meals().first().single().copy(name = "Müsli groß"))
+
+        assertEquals(5_000L, repo.meals().first().single().lastUsedMs)
+    }
+
+    @Test
     fun `delete removes the meal and its ingredients`() = runTest {
         val id = repo.save(muesli())
 
@@ -95,7 +119,10 @@ private class PassThroughTransactionRunner : TransactionRunner {
     override suspend fun <R> transaction(block: suspend () -> R): R = block()
 }
 
-/** In-memory [SavedMealDao]: unique stableId, name ordering (NOCASE) and the FK cascade on delete. */
+/**
+ * In-memory [SavedMealDao]: unique stableId, the query's ordering (most recently used first, never
+ * used after them by name, NOCASE) and the FK cascade on delete.
+ */
 private class FakeSavedMealDao : SavedMealDao {
     val meals = MutableStateFlow<List<SavedMealEntity>>(emptyList())
     val items = MutableStateFlow<List<SavedMealItemEntity>>(emptyList())
@@ -103,7 +130,11 @@ private class FakeSavedMealDao : SavedMealDao {
     private var nextItemId = 1L
 
     override fun allMeals(): Flow<List<SavedMealWithItems>> = meals.map { list ->
-        list.sortedBy { it.name.lowercase() }.map { meal ->
+        list.sortedWith(
+            compareBy<SavedMealEntity> { it.lastUsedMs == null }
+                .thenByDescending { it.lastUsedMs }
+                .thenBy { it.name.lowercase() },
+        ).map { meal ->
             // Deliberately unordered, like @Relation: the mapper has to sort by position.
             SavedMealWithItems(meal, items.value.filter { it.mealId == meal.id }.shuffled())
         }
@@ -128,6 +159,10 @@ private class FakeSavedMealDao : SavedMealDao {
 
     override suspend fun deleteItems(mealId: Long) {
         items.value = items.value.filterNot { it.mealId == mealId }
+    }
+
+    override suspend fun markUsed(id: Long, atMs: Long) {
+        meals.value = meals.value.map { if (it.id == id) it.copy(lastUsedMs = atMs) else it }
     }
 
     override suspend fun deleteMeal(id: Long) {
