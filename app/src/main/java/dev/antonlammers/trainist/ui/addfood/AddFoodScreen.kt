@@ -1,7 +1,6 @@
 package dev.antonlammers.trainist.ui.addfood
 
 import androidx.activity.compose.BackHandler
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -38,6 +37,7 @@ import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -298,119 +298,119 @@ fun AddFoodScreen(
         SearchSections.of(localSearchResults, remoteSearch, includeMeals = !picking)
     }
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background),
-    ) {
-        Column(modifier = Modifier.fillMaxSize().statusBarsPadding()) {
-            val mealName = mealState.draft?.name?.trim().orEmpty()
-            AddFoodHeader(
-                title = when {
-                    !picking -> stringResource(tab.titleRes())
-                    mealName.isEmpty() -> stringResource(R.string.addfood_pick_ingredient_title_unnamed)
-                    else -> stringResource(R.string.addfood_pick_ingredient_title, mealName)
-                },
-                subtitle = if (picking) {
-                    stringResource(R.string.addfood_pick_ingredient_subtitle)
-                } else {
-                    stringResource(R.string.addfood_subtitle, viewModel.targetDate.formatRelative(), state.mealCategory.displayName())
-                },
-                closeContentDescription = stringResource(
-                    if (picking) R.string.addfood_pick_ingredient_cancel_content_description else R.string.addfood_close_content_description,
-                ),
-                onClose = { if (picking) mealEditor.cancelPicking() else navController.popBackStack() },
-            )
-            SearchRow(
-                query = state.query,
-                onQueryChange = viewModel::onQueryChange,
-                onScanClick = actions.scanBarcode,
-            )
-            if (searching && !state.isLoading) {
-                SourceChips(sections, state.searchSource, viewModel::onSearchSourceChange)
-            }
+    // A Surface rather than a plain background: without a Scaffold above it, it is what provides
+    // `onBackground` as the content colour — otherwise every uncoloured Text falls back to black.
+    Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+        Box(modifier = Modifier.fillMaxSize()) {
+            Column(modifier = Modifier.fillMaxSize().statusBarsPadding()) {
+                val mealName = mealState.draft?.name?.trim().orEmpty()
+                AddFoodHeader(
+                    title = when {
+                        !picking -> stringResource(tab.titleRes())
+                        mealName.isEmpty() -> stringResource(R.string.addfood_pick_ingredient_title_unnamed)
+                        else -> stringResource(R.string.addfood_pick_ingredient_title, mealName)
+                    },
+                    subtitle = if (picking) {
+                        stringResource(R.string.addfood_pick_ingredient_subtitle)
+                    } else {
+                        stringResource(R.string.addfood_subtitle, viewModel.targetDate.formatRelative(), state.mealCategory.displayName())
+                    },
+                    closeContentDescription = stringResource(
+                        if (picking) R.string.addfood_pick_ingredient_cancel_content_description else R.string.addfood_close_content_description,
+                    ),
+                    onClose = { if (picking) mealEditor.cancelPicking() else navController.popBackStack() },
+                )
+                SearchRow(
+                    query = state.query,
+                    onQueryChange = viewModel::onQueryChange,
+                    onScanClick = actions.scanBarcode,
+                )
+                if (searching && !state.isLoading) {
+                    SourceChips(sections, state.searchSource, viewModel::onSearchSourceChange)
+                }
 
-            val bottomInset = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
-            // A fresh list per tab (and for the search), so each one starts at its top.
-            key(searching, tab) {
-                LazyColumn(
-                    modifier = Modifier.fillMaxSize().imePadding(),
-                    contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = LIST_BOTTOM_CLEARANCE + bottomInset),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    when {
-                        state.isLoading -> item {
-                            Box(Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) {
-                                CircularProgressIndicator()
+                val bottomInset = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
+                // A fresh list per tab (and for the search), so each one starts at its top.
+                key(searching, tab) {
+                    LazyColumn(
+                        modifier = Modifier.fillMaxSize().imePadding(),
+                        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = LIST_BOTTOM_CLEARANCE + bottomInset),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        when {
+                            state.isLoading -> item {
+                                Box(Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) {
+                                    CircularProgressIndicator()
+                                }
                             }
+                            searching -> searchItems(state.query, sections, state.searchSource, actions)
+                            tab == AddFoodTab.HISTORY -> historyItems(historyDays(recentEntries), actions)
+                            tab == AddFoodTab.FOODS -> foodItems(customFoods, actions)
+                            else -> mealItems(savedMeals, actions)
                         }
-                        searching -> searchItems(state.query, sections, state.searchSource, actions)
-                        tab == AddFoodTab.HISTORY -> historyItems(historyDays(recentEntries), actions)
-                        tab == AddFoodTab.FOODS -> foodItems(customFoods, actions)
-                        else -> mealItems(savedMeals, actions)
                     }
                 }
             }
-        }
 
-        BottomFade()
+            BottomFade()
 
-        AddMenu(
-            visible = menuOpen && !picking,
-            items = listOf(
-                AddMenuItem(
-                    Icons.Rounded.EggAlt,
-                    stringResource(R.string.addfood_create_food),
-                    stringResource(R.string.addfood_create_food_hint),
-                ) { openCreateFood() },
-                AddMenuItem(
-                    Icons.Rounded.RestaurantMenu,
-                    stringResource(R.string.addfood_create_meal),
-                    stringResource(R.string.addfood_create_meal_hint),
-                ) { openCreateMeal() },
-            ),
-            onDismiss = { menuOpen = false },
-        )
+            AddMenu(
+                visible = menuOpen && !picking,
+                items = listOf(
+                    AddMenuItem(
+                        Icons.Rounded.EggAlt,
+                        stringResource(R.string.addfood_create_food),
+                        stringResource(R.string.addfood_create_food_hint),
+                    ) { openCreateFood() },
+                    AddMenuItem(
+                        Icons.Rounded.RestaurantMenu,
+                        stringResource(R.string.addfood_create_meal),
+                        stringResource(R.string.addfood_create_meal_hint),
+                    ) { openCreateMeal() },
+                ),
+                onDismiss = { menuOpen = false },
+            )
 
-        val pillTabs = tabs.map { it.pillTab() }
-        val actionDescription = stringResource(
-            when {
-                menuOpen -> R.string.addfood_menu_close_content_description
-                tab == AddFoodTab.HISTORY -> R.string.addfood_create_content_description
-                tab == AddFoodTab.FOODS -> R.string.addfood_create_food
-                else -> R.string.addfood_create_meal
-            },
-        )
-        val action = remember(actionDescription, tab, menuOpen) {
-            PrimaryAction(actionDescription, tutorialTarget = null) {
+            val pillTabs = tabs.map { it.pillTab() }
+            val actionDescription = stringResource(
                 when {
-                    menuOpen -> menuOpen = false
-                    tab == AddFoodTab.HISTORY -> menuOpen = true
-                    tab == AddFoodTab.FOODS -> openCreateFood()
-                    else -> openCreateMeal()
+                    menuOpen -> R.string.addfood_menu_close_content_description
+                    tab == AddFoodTab.HISTORY -> R.string.addfood_create_content_description
+                    tab == AddFoodTab.FOODS -> R.string.addfood_create_food
+                    else -> R.string.addfood_create_meal
+                },
+            )
+            val action = remember(actionDescription, tab, menuOpen) {
+                PrimaryAction(actionDescription, tutorialTarget = null) {
+                    when {
+                        menuOpen -> menuOpen = false
+                        tab == AddFoodTab.HISTORY -> menuOpen = true
+                        tab == AddFoodTab.FOODS -> openCreateFood()
+                        else -> openCreateMeal()
+                    }
                 }
             }
-        }
-        FloatingPillBar(
-            tabs = pillTabs,
-            selectedIndex = tabs.indexOf(tab),
-            onSelect = { index ->
-                menuOpen = false
-                selectedTab = tabs[index]
-            },
-            action = action,
-            showsAction = !picking,
-            actionIcon = if (menuOpen) Icons.Rounded.Close else Icons.Rounded.Add,
-            modifier = Modifier.align(Alignment.BottomCenter),
-        )
+            FloatingPillBar(
+                tabs = pillTabs,
+                selectedIndex = tabs.indexOf(tab),
+                onSelect = { index ->
+                    menuOpen = false
+                    selectedTab = tabs[index]
+                },
+                action = action,
+                showsAction = !picking,
+                actionIcon = if (menuOpen) Icons.Rounded.Close else Icons.Rounded.Add,
+                modifier = Modifier.align(Alignment.BottomCenter),
+            )
 
-        SnackbarHost(
-            snackbar,
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .navigationBarsPadding()
-                .padding(bottom = FloatingNavSnackbarOffset),
-        )
+            SnackbarHost(
+                snackbar,
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .navigationBarsPadding()
+                    .padding(bottom = FloatingNavSnackbarOffset),
+            )
+        }
     }
 }
 
