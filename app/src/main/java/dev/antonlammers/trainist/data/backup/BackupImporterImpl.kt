@@ -9,6 +9,7 @@ import dev.antonlammers.trainist.domain.repository.CustomFoodRepository
 import dev.antonlammers.trainist.domain.repository.ExerciseCatalogRepository
 import dev.antonlammers.trainist.domain.repository.FoodEntryRepository
 import dev.antonlammers.trainist.domain.repository.GoalRepository
+import dev.antonlammers.trainist.domain.repository.SavedMealRepository
 import dev.antonlammers.trainist.domain.repository.WeightRepository
 import dev.antonlammers.trainist.domain.repository.WorkoutSessionRepository
 import dev.antonlammers.trainist.domain.repository.WorkoutTemplateRepository
@@ -22,6 +23,7 @@ internal enum class CsvType {
     EXERCISES, WORKOUT_TEMPLATES, TEMPLATE_EXERCISES,
     WORKOUT_SESSIONS, SESSION_EXERCISES, SET_ENTRIES,
     BODY_MEASUREMENTS,
+    SAVED_MEALS, SAVED_MEAL_ITEMS,
     UNKNOWN,
 }
 
@@ -37,6 +39,10 @@ internal fun detectCsvType(headers: Map<String, Int>): CsvType = when {
     SessionExerciseCsvFormat.SUPERSET_GROUP_ID in headers -> CsvType.SESSION_EXERCISES
     SetEntryCsvFormat.EXERCISE_POSITION in headers -> CsvType.SET_ENTRIES
     BodyMeasurementCsvFormat.VALUE_CM in headers -> CsvType.BODY_MEASUREMENTS
+    // Saved-meal ingredients carry the custom-food columns (incl. `kcal_per_100g`), so both meal
+    // rules must stay above the CUSTOM_FOODS one; the header section is the one with `meal_name`.
+    SavedMealCsvFormat.NAME in headers -> CsvType.SAVED_MEALS
+    SavedMealItemCsvFormat.MEAL_STABLE_ID in headers -> CsvType.SAVED_MEAL_ITEMS
     CsvColumns.FOOD_NAME in headers -> CsvType.FOOD_ENTRIES
     "weight_kg" in headers -> CsvType.WEIGHT_ENTRIES
     "kcal_per_100g" in headers -> CsvType.CUSTOM_FOODS
@@ -54,6 +60,7 @@ internal class ImportTargets(
     val workoutTemplateRepository: WorkoutTemplateRepository,
     val workoutSessionRepository: WorkoutSessionRepository,
     val bodyMeasurementRepository: BodyMeasurementRepository,
+    val savedMealRepository: SavedMealRepository,
 )
 
 @Singleton
@@ -67,12 +74,13 @@ class BackupImporterImpl @Inject constructor(
     private val workoutTemplateRepository: WorkoutTemplateRepository,
     private val workoutSessionRepository: WorkoutSessionRepository,
     private val bodyMeasurementRepository: BodyMeasurementRepository,
+    private val savedMealRepository: SavedMealRepository,
 ) : BackupImporter {
 
     private val targets = ImportTargets(
         foodEntryRepository, weightRepository, goalRepository, customFoodRepository,
         exerciseCatalogRepository, workoutTemplateRepository, workoutSessionRepository,
-        bodyMeasurementRepository,
+        bodyMeasurementRepository, savedMealRepository,
     )
 
     override suspend fun import(uri: String): BackupImporter.Result {
@@ -162,6 +170,13 @@ internal suspend fun importZipEntries(input: InputStream, targets: ImportTargets
         }
     }
 
+    // Saved meals upsert on their stable key, so importing the same backup twice doesn't duplicate them.
+    val savedMeals = SavedMealBackup.assemble(
+        sections[SavedMealBackupEntries.SAVED_MEALS],
+        sections[SavedMealBackupEntries.SAVED_MEAL_ITEMS],
+    )
+    savedMeals.forEach { targets.savedMealRepository.save(it.copy(id = 0)) }
+
     var measurementsImported = 0
     sections["body_measurements.csv"]?.let { lines ->
         if (lines.size > 1) {
@@ -196,6 +211,7 @@ internal suspend fun importZipEntries(input: InputStream, targets: ImportTargets
         templatesImported = templatesImported,
         sessionsImported = sessionsImported,
         measurementsImported = measurementsImported,
+        savedMealsImported = savedMeals.size,
     )
 }
 
@@ -230,8 +246,8 @@ private suspend fun importWorkoutSections(
  * Imports a single CSV (already split into non-blank lines), routing by detected type.
  * Pure with respect to Android so it is directly unit-testable.
  *
- * Relational training sections (templates/sessions and their children) only reassemble as a whole
- * ZIP and so are no-ops here; the standalone exercise catalog CSV does import on its own.
+ * Relational sections (training templates/sessions and their children, saved meals and their
+ * ingredients) only reassemble as a whole ZIP and so are no-ops here; the standalone exercise catalog CSV does import on its own.
  */
 internal suspend fun importCsvLines(lines: List<String>, targets: ImportTargets): BackupImporter.Result {
     if (lines.size < 2) return BackupImporter.Result()
@@ -286,6 +302,7 @@ internal suspend fun importCsvLines(lines: List<String>, targets: ImportTargets)
         // Recognised but not standalone-importable — these reassemble only as a full backup ZIP.
         CsvType.WORKOUT_TEMPLATES, CsvType.TEMPLATE_EXERCISES,
         CsvType.WORKOUT_SESSIONS, CsvType.SESSION_EXERCISES, CsvType.SET_ENTRIES,
+        CsvType.SAVED_MEALS, CsvType.SAVED_MEAL_ITEMS,
         CsvType.UNKNOWN,
         -> BackupImporter.Result()
     }

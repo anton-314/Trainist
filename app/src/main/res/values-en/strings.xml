@@ -65,7 +65,7 @@
     <!-- AddFoodScreen (ui/addfood/AddFoodScreen.kt) -->
     <string name="addfood_title">Add meal</string>
     <string name="addfood_title_for_date">Entry for %1$s</string>
-    <string name="addfood_add_custom_food_content_description">Custom food</string>
+    <string name="addfood_create_content_description">Create food or meal</string>
     <string name="addfood_tab_history">History</string>
     <string name="addfood_tab_custom_foods">My foods</string>
     <string name="addfood_empty_custom_foods">No custom foods yet.\nTap + to create one.</string>
@@ -98,6 +98,25 @@
     <string name="addfood_barcode_error_server_unavailable">Open Food Facts unavailable</string>
     <string name="addfood_barcode_error_network_unavailable">No internet connection</string>
     <string name="addfood_barcode_error_unknown">Unknown error</string>
+    <string name="addfood_tab_saved_meals">My meals</string>
+    <string name="addfood_empty_saved_meals">No meals yet.\nTap + and choose “Meal” to create one.</string>
+    <string name="addfood_saved_meal_deleted">Meal deleted</string>
+    <string name="addfood_create_kind_food">Food</string>
+    <string name="addfood_create_kind_meal">Meal</string>
+    <string name="addfood_meal_dialog_title_new">New meal</string>
+    <string name="addfood_meal_dialog_title_edit">Edit meal</string>
+    <string name="addfood_meal_add_ingredient">Add ingredient</string>
+    <string name="addfood_meal_no_ingredients">No ingredients yet. Add the foods you always eat together.</string>
+    <string name="addfood_meal_remove_ingredient_content_description">Remove ingredient</string>
+    <string name="addfood_pick_ingredient_title">Ingredient for “%1$s”</string>
+    <string name="addfood_pick_ingredient_title_unnamed">Choose ingredient</string>
+    <string name="addfood_pick_ingredient_cancel_content_description">Cancel choosing an ingredient</string>
+    <string name="addfood_add_to_meal_button">Add to meal</string>
+    <string name="addfood_meal_log_hint">These amounts only apply to this entry. Clear a field to leave that ingredient out.</string>
+    <plurals name="addfood_meal_detail">
+        <item quantity="one">%1$d ingredient · %2$d kcal</item>
+        <item quantity="other">%1$d ingredients · %2$d kcal</item>
+    </plurals>
 
     <!-- BarcodeScannerScreen (ui/addfood/BarcodeScannerScreen.kt) -->
     <string name="barcode_scanner_torch_off_content_description">Turn off flashlight</string>
@@ -112,6 +131,8 @@
     <!-- OverviewScreen (ui/overview/OverviewScreen.kt) -->
     <string name="overview_empty_state">No entries yet today</string>
     <string name="overview_copy_meal_button">Copy %1$s from yesterday</string>
+    <string name="overview_save_as_meal_content_description">Save %1$s as a meal</string>
+    <string name="overview_meal_saved">“%1$s” saved to My meals</string>
     <string name="overview_macro_protein">Protein</string>
     <string name="overview_macro_carbs">Carbs</string>
     <string name="overview_macro_fat">Fat</string>
@@ -228,6 +249,7 @@
     <string name="data_import_weight_entries">%1$d weight entries</string>
     <string name="data_import_goal_restored">Goals restored</string>
     <string name="data_import_custom_foods">%1$d custom foods</string>
+    <string name="data_import_saved_meals">%1$d meals</string>
     <string name="data_import_exercises">%1$d custom exercises</string>
     <string name="data_import_templates">%1$d templates</string>
     <string name="data_import_sessions">%1$d sessions</string>
@@ -475,6 +497,8 @@
     <string name="help_nutrition_a_tags">Those are the clean tags. Green counts fully towards your clean share, amber counts half, red not at all. You\'ll see the share as a percentage on the calorie ring and as its own stats card. A tag applies from the moment you set it — older entries stay as they were.</string>
     <string name="help_nutrition_q_copy">Can I reuse a meal from yesterday?</string>
     <string name="help_nutrition_a_copy">Yes. If a main meal is still empty today but had entries yesterday, a copy button appears in its place. Snacks deliberately don\'t offer this.</string>
+    <string name="help_nutrition_q_saved_meals">How do I save a meal I eat often?</string>
+    <string name="help_nutrition_a_saved_meals">When adding food, tap + and switch to “Meal”. Give it a name and add the ingredients through the normal search – barcodes included. It\'s even quicker from the overview: the bookmark next to a meal saves all of its entries at once. Under “My meals” you log it with one tap; every ingredient becomes its own diary entry, and you can adjust the amounts first.</string>
 
     <string name="help_section_training">TRAINING</string>
     <string name="help_training_q_start">How do I start a workout?</string>

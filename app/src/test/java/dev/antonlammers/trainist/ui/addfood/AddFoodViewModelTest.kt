@@ -7,11 +7,16 @@ import dev.antonlammers.trainist.domain.model.Food
 import dev.antonlammers.trainist.domain.model.FoodEntry
 import dev.antonlammers.trainist.domain.model.FoodTag
 import dev.antonlammers.trainist.domain.model.MealCategory
+import dev.antonlammers.trainist.domain.model.SavedMeal
+import dev.antonlammers.trainist.domain.model.SavedMealItem
 import dev.antonlammers.trainist.fake.FakeCustomFoodRepository
 import dev.antonlammers.trainist.fake.FakeFoodEntryRepository
 import dev.antonlammers.trainist.fake.FakeFoodSearchRepository
+import dev.antonlammers.trainist.fake.FakeSavedMealRepository
+import java.time.LocalDate
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceTimeBy
@@ -27,7 +32,6 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
-import java.time.LocalDate
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class AddFoodViewModelTest {
@@ -36,6 +40,7 @@ class AddFoodViewModelTest {
     private lateinit var searchRepo: FakeFoodSearchRepository
     private lateinit var entryRepo: FakeFoodEntryRepository
     private lateinit var customRepo: FakeCustomFoodRepository
+    private lateinit var mealRepo: FakeSavedMealRepository
     private lateinit var viewModel: AddFoodViewModel
 
     @Before
@@ -43,6 +48,7 @@ class AddFoodViewModelTest {
         Dispatchers.setMain(testDispatcher)
         entryRepo = FakeFoodEntryRepository()
         customRepo = FakeCustomFoodRepository()
+        mealRepo = FakeSavedMealRepository()
         searchRepo = FakeFoodSearchRepository()
     }
 
@@ -620,11 +626,174 @@ class AddFoodViewModelTest {
         assertEquals(listOf("apfel"), searchRepo.searchedQueries)
     }
 
-    private fun viewModel() = AddFoodViewModel(
-        SavedStateHandle(mapOf("date" to LocalDate.now().toString())),
+    // --- saved meals ---
+
+    @Test
+    fun `localSearchResults lists matching saved meals before custom foods and history`() = runTest {
+        mealRepo.save(muesli())
+        customRepo.save(haferflocken().copy(name = "Müsliriegel"))
+        viewModel = viewModel()
+        backgroundScope.launch { viewModel.localSearchResults.collect {} }
+
+        viewModel.onQueryChange("müsli")
+        advanceUntilIdle()
+
+        val results = viewModel.localSearchResults.value
+        assertEquals(2, results.size)
+        assertEquals("Müsli", (results[0] as LocalSearchResult.SavedMealResult).meal.name)
+        assertTrue(results[1] is LocalSearchResult.CustomFoodResult)
+    }
+
+    @Test
+    fun `selectMeal opens the log sheet with every saved amount`() = runTest {
+        viewModel = viewModel()
+        viewModel.onMealCategoryChange(MealCategory.DINNER)
+
+        viewModel.selectMeal(muesli())
+
+        val draft = viewModel.uiState.value.mealToLog!!
+        assertEquals(listOf("60", "150", "200.5"), draft.amounts)
+        // The category follows the time of day again, like for a single food.
+        assertEquals(mealCategoryForHour(java.time.LocalTime.now().hour), viewModel.uiState.value.mealCategory)
+    }
+
+    @Test
+    fun `confirmLogMeal adds one entry per ingredient with the edited amounts`() = runTest {
+        val date = LocalDate.parse("2026-10-27")
+        mealRepo.save(muesli())
+        viewModel = viewModel(date)
+        viewModel.selectMeal(mealRepo.meals().first().single())
+        viewModel.onMealLogAmountChange(0, "80")
+        viewModel.onMealCategoryChange(MealCategory.SNACK)
+
+        viewModel.confirmLogMeal()
+        advanceUntilIdle()
+
+        val logged = entryRepo.allEntries()
+        assertEquals(listOf("Haferflocken", "Magerquark", "Milch"), logged.map { it.foodName })
+        assertEquals(listOf(80.0, 150.0, 200.5), logged.map { it.amountGrams })
+        assertEquals(296.0, logged[0].kcal, 0.001)
+        assertEquals(listOf(FoodTag.HEALTHY, FoodTag.NEUTRAL, FoodTag.NONE), logged.map { it.tag })
+        assertTrue(logged.all { it.date == date && it.mealCategory == MealCategory.SNACK })
+        assertTrue(viewModel.uiState.value.entryAdded)
+        assertNull(viewModel.uiState.value.mealToLog)
+        // Logging never changes the meal itself.
+        assertEquals(60.0, mealRepo.meals().first().single().items.first().amountGrams, 0.0)
+    }
+
+    @Test
+    fun `a cleared or zero amount leaves that ingredient out of this entry`() = runTest {
+        viewModel = viewModel()
+        viewModel.selectMeal(muesli())
+        viewModel.onMealLogAmountChange(1, "")
+        viewModel.onMealLogAmountChange(2, "0")
+
+        viewModel.confirmLogMeal()
+        advanceUntilIdle()
+
+        assertEquals(listOf("Haferflocken"), entryRepo.allEntries().map { it.foodName })
+    }
+
+    @Test
+    fun `confirmLogMeal does nothing when every ingredient was cleared`() = runTest {
+        viewModel = viewModel()
+        viewModel.selectMeal(muesli())
+        repeat(3) { viewModel.onMealLogAmountChange(it, "") }
+
+        viewModel.confirmLogMeal()
+        advanceUntilIdle()
+
+        assertTrue(entryRepo.allEntries().isEmpty())
+        assertFalse(viewModel.uiState.value.entryAdded)
+        assertNotNull(viewModel.uiState.value.mealToLog)
+    }
+
+    @Test
+    fun `dismissMealLog closes the sheet without logging`() = runTest {
+        viewModel = viewModel()
+        viewModel.selectMeal(muesli())
+
+        viewModel.dismissMealLog()
+        viewModel.confirmLogMeal()
+        advanceUntilIdle()
+
+        assertNull(viewModel.uiState.value.mealToLog)
+        assertTrue(entryRepo.allEntries().isEmpty())
+    }
+
+    @Test
+    fun `deleting a meal hides it at once, undo restores it, confirm removes it`() = runTest {
+        mealRepo.save(muesli())
+        viewModel = viewModel()
+        backgroundScope.launch { viewModel.savedMeals.collect {} }
+        advanceUntilIdle()
+        val meal = viewModel.savedMeals.value.single()
+
+        viewModel.deletePendingMeal(meal)
+        advanceUntilIdle()
+        assertTrue(viewModel.savedMeals.value.isEmpty())
+
+        viewModel.undoDeleteMeal(meal)
+        advanceUntilIdle()
+        assertEquals(1, viewModel.savedMeals.value.size)
+
+        viewModel.deletePendingMeal(meal)
+        viewModel.confirmDeleteMeal(meal)
+        advanceUntilIdle()
+        assertTrue(viewModel.savedMeals.value.isEmpty())
+        assertTrue(mealRepo.meals().first().isEmpty())
+    }
+
+    // --- picking an ingredient ---
+
+    @Test
+    fun `takeIngredient hands the selection over with its amount and tag instead of logging it`() = runTest {
+        viewModel = viewModel()
+        viewModel.onQueryChange("hafer")
+        viewModel.selectFood(haferflocken())
+        viewModel.onAmountChange("45,5")
+        viewModel.onTagChange(FoodTag.HEALTHY)
+
+        val item = viewModel.takeIngredient()!!
+        advanceUntilIdle()
+
+        assertEquals("Haferflocken", item.food.name)
+        assertEquals(45.5, item.amountGrams, 0.0)
+        assertEquals(FoodTag.HEALTHY, item.food.tag)
+        assertNull(viewModel.uiState.value.selectedFood)
+        assertEquals("", viewModel.uiState.value.query)
+        assertTrue(entryRepo.allEntries().isEmpty())
+        assertFalse(viewModel.uiState.value.entryAdded)
+    }
+
+    @Test
+    fun `takeIngredient returns nothing without a valid amount`() = runTest {
+        viewModel = viewModel()
+        assertNull(viewModel.takeIngredient())
+
+        viewModel.selectFood(haferflocken())
+        viewModel.onAmountChange("0")
+
+        assertNull(viewModel.takeIngredient())
+        assertNotNull(viewModel.uiState.value.selectedFood)
+    }
+
+    private fun muesli() = SavedMeal(
+        stableId = "meal-muesli",
+        name = "Müsli",
+        items = listOf(
+            SavedMealItem(haferflocken().copy(tag = FoodTag.HEALTHY), 60.0),
+            SavedMealItem(haferflocken().copy(name = "Magerquark", kcalPer100g = 68.0, tag = FoodTag.NEUTRAL), 150.0),
+            SavedMealItem(haferflocken().copy(name = "Milch", kcalPer100g = 47.0), 200.5),
+        ),
+    )
+
+    private fun viewModel(date: LocalDate = LocalDate.now()) = AddFoodViewModel(
+        SavedStateHandle(mapOf("date" to date.toString())),
         searchRepo,
         entryRepo,
         customRepo,
+        mealRepo,
     )
 
     private fun apple() = Food(

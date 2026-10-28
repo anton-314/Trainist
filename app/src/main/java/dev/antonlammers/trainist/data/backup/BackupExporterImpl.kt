@@ -9,6 +9,7 @@ import dev.antonlammers.trainist.domain.model.DailyGoal
 import dev.antonlammers.trainist.domain.model.Exercise
 import dev.antonlammers.trainist.domain.model.Food
 import dev.antonlammers.trainist.domain.model.FoodEntry
+import dev.antonlammers.trainist.domain.model.SavedMeal
 import dev.antonlammers.trainist.domain.model.WeightEntry
 import dev.antonlammers.trainist.domain.model.WorkoutSession
 import dev.antonlammers.trainist.domain.model.WorkoutTemplate
@@ -17,6 +18,7 @@ import dev.antonlammers.trainist.domain.repository.CustomFoodRepository
 import dev.antonlammers.trainist.domain.repository.ExerciseCatalogRepository
 import dev.antonlammers.trainist.domain.repository.FoodEntryRepository
 import dev.antonlammers.trainist.domain.repository.GoalRepository
+import dev.antonlammers.trainist.domain.repository.SavedMealRepository
 import dev.antonlammers.trainist.domain.repository.WeightRepository
 import dev.antonlammers.trainist.domain.repository.WorkoutSessionRepository
 import dev.antonlammers.trainist.domain.repository.WorkoutTemplateRepository
@@ -39,6 +41,7 @@ class BackupExporterImpl @Inject constructor(
     private val workoutTemplateRepository: WorkoutTemplateRepository,
     private val workoutSessionRepository: WorkoutSessionRepository,
     private val bodyMeasurementRepository: BodyMeasurementRepository,
+    private val savedMealRepository: SavedMealRepository,
 ) : BackupExporter {
     override suspend fun export(): String {
         val foodEntries = foodEntryRepository.allEntries()
@@ -47,6 +50,7 @@ class BackupExporterImpl @Inject constructor(
         val goal = goalRepository.goal().first()
         val customFoods = customFoodRepository.allFoods().first()
         val measurements = bodyMeasurementRepository.allEntries()
+        val savedMeals = savedMealRepository.meals().first()
 
         val templates = workoutTemplateRepository.templates().first()
         val sessions = workoutSessionRepository.sessions().first()
@@ -61,6 +65,8 @@ class BackupExporterImpl @Inject constructor(
             zip.putEntry("weight_entries.csv", buildWeightCsv(weightEntries))
             zip.putEntry("daily_goal.csv", buildGoalCsv(goal))
             zip.putEntry("custom_foods.csv", buildCustomFoodCsv(customFoods))
+            zip.putEntry(SavedMealBackupEntries.SAVED_MEALS, buildSavedMealsCsv(savedMeals))
+            zip.putEntry(SavedMealBackupEntries.SAVED_MEAL_ITEMS, buildSavedMealItemsCsv(savedMeals))
             zip.putEntry("body_measurements.csv", buildMeasurementsCsv(measurements))
             zip.putEntry(WorkoutBackupEntries.EXERCISES, buildExercisesCsv(exercises))
             zip.putEntry(WorkoutBackupEntries.WORKOUT_TEMPLATES, buildTemplatesCsv(templates))
@@ -97,6 +103,18 @@ class BackupExporterImpl @Inject constructor(
     private fun buildCustomFoodCsv(foods: List<Food>) = buildString {
         appendLine(CustomFoodCsvFormat.HEADER)
         foods.forEach { appendLine(CustomFoodCsvFormat.toRow(it)) }
+    }
+
+    private fun buildSavedMealsCsv(meals: List<SavedMeal>) = buildString {
+        appendLine(SavedMealCsvFormat.HEADER)
+        meals.forEach { appendLine(SavedMealCsvFormat.toRow(it)) }
+    }
+
+    private fun buildSavedMealItemsCsv(meals: List<SavedMeal>) = buildString {
+        appendLine(SavedMealItemCsvFormat.HEADER)
+        meals.forEach { meal ->
+            meal.items.forEachIndexed { index, item -> appendLine(SavedMealItemCsvFormat.toRow(meal.stableId, index, item)) }
+        }
     }
 
     private fun buildMeasurementsCsv(entries: List<BodyMeasurementEntry>) = buildString {

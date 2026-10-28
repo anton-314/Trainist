@@ -65,7 +65,7 @@
     <!-- AddFoodScreen (ui/addfood/AddFoodScreen.kt) -->
     <string name="addfood_title">Mahlzeit hinzufügen</string>
     <string name="addfood_title_for_date">Eintrag für %1$s</string>
-    <string name="addfood_add_custom_food_content_description">Eigenes Lebensmittel</string>
+    <string name="addfood_create_content_description">Lebensmittel oder Mahlzeit anlegen</string>
     <string name="addfood_tab_history">Verlauf</string>
     <string name="addfood_tab_custom_foods">Meine Lebensmittel</string>
     <string name="addfood_empty_custom_foods">Noch keine eigenen Lebensmittel.\nTippe auf + um eines anzulegen.</string>
@@ -98,6 +98,25 @@
     <string name="addfood_barcode_error_server_unavailable">Open Food Facts nicht erreichbar</string>
     <string name="addfood_barcode_error_network_unavailable">Keine Internetverbindung</string>
     <string name="addfood_barcode_error_unknown">Unbekannter Fehler</string>
+    <string name="addfood_tab_saved_meals">Meine Mahlzeiten</string>
+    <string name="addfood_empty_saved_meals">Noch keine Mahlzeiten.\nTippe auf + und wähle „Mahlzeit“, um eine anzulegen.</string>
+    <string name="addfood_saved_meal_deleted">Mahlzeit gelöscht</string>
+    <string name="addfood_create_kind_food">Lebensmittel</string>
+    <string name="addfood_create_kind_meal">Mahlzeit</string>
+    <string name="addfood_meal_dialog_title_new">Neue Mahlzeit</string>
+    <string name="addfood_meal_dialog_title_edit">Mahlzeit bearbeiten</string>
+    <string name="addfood_meal_add_ingredient">Zutat hinzufügen</string>
+    <string name="addfood_meal_no_ingredients">Noch keine Zutaten. Füge die Lebensmittel hinzu, die du immer zusammen isst.</string>
+    <string name="addfood_meal_remove_ingredient_content_description">Zutat entfernen</string>
+    <string name="addfood_pick_ingredient_title">Zutat für „%1$s“</string>
+    <string name="addfood_pick_ingredient_title_unnamed">Zutat wählen</string>
+    <string name="addfood_pick_ingredient_cancel_content_description">Zutatenauswahl abbrechen</string>
+    <string name="addfood_add_to_meal_button">Zur Mahlzeit hinzufügen</string>
+    <string name="addfood_meal_log_hint">Die Mengen gelten nur für diesen Eintrag. Leere ein Feld, um die Zutat wegzulassen.</string>
+    <plurals name="addfood_meal_detail">
+        <item quantity="one">%1$d Zutat · %2$d kcal</item>
+        <item quantity="other">%1$d Zutaten · %2$d kcal</item>
+    </plurals>
 
     <!-- BarcodeScannerScreen (ui/addfood/BarcodeScannerScreen.kt) -->
     <string name="barcode_scanner_torch_off_content_description">Taschenlampe ausschalten</string>
@@ -112,6 +131,8 @@
     <!-- OverviewScreen (ui/overview/OverviewScreen.kt) -->
     <string name="overview_empty_state">Noch keine Einträge heute</string>
     <string name="overview_copy_meal_button">%1$s von Gestern kopieren</string>
+    <string name="overview_save_as_meal_content_description">%1$s als Mahlzeit speichern</string>
+    <string name="overview_meal_saved">„%1$s“ unter Meine Mahlzeiten gespeichert</string>
     <string name="overview_macro_protein">Protein</string>
     <string name="overview_macro_carbs">Kohlenhydrate</string>
     <string name="overview_macro_fat">Fett</string>
@@ -228,6 +249,7 @@
     <string name="data_import_weight_entries">%1$d Gewichtseinträge</string>
     <string name="data_import_goal_restored">Ziele wiederhergestellt</string>
     <string name="data_import_custom_foods">%1$d eigene Lebensmittel</string>
+    <string name="data_import_saved_meals">%1$d Mahlzeiten</string>
     <string name="data_import_exercises">%1$d eigene Übungen</string>
     <string name="data_import_templates">%1$d Vorlagen</string>
     <string name="data_import_sessions">%1$d Einheiten</string>
@@ -471,6 +493,8 @@
     <string name="help_nutrition_a_tags">Das sind die Clean-Tags. Grün zählt voll in deinen Clean-Anteil, gelb zur Hälfte, rot gar nicht. Den Anteil siehst du als Prozentwert am Kalorienring und als eigene Statistik-Karte. Ein Tag gilt ab dem Moment, in dem du ihn setzt — ältere Einträge bleiben unverändert.</string>
     <string name="help_nutrition_q_copy">Kann ich eine Mahlzeit von gestern übernehmen?</string>
     <string name="help_nutrition_a_copy">Ja. Ist eine Hauptmahlzeit heute noch leer und war sie gestern gefüllt, erscheint an ihrer Stelle ein Knopf zum Kopieren. Für Snacks gibt es das bewusst nicht.</string>
+    <string name="help_nutrition_q_saved_meals">Wie lege ich eine Mahlzeit an, die ich oft esse?</string>
+    <string name="help_nutrition_a_saved_meals">Tippe beim Hinzufügen auf + und schalte auf „Mahlzeit“ um. Gib ihr einen Namen und füge die Zutaten über die normale Suche hinzu – auch per Barcode. Schneller geht es aus der Übersicht: Das Lesezeichen neben einer Mahlzeit speichert alle ihre Einträge auf einmal. Unter „Meine Mahlzeiten“ trägst du sie mit einem Tipp ein; jede Zutat landet als eigener Eintrag im Tagebuch, und die Mengen kannst du vorher anpassen.</string>
 
     <string name="help_section_training">TRAINING</string>
     <string name="help_training_q_start">Wie starte ich ein Training?</string>

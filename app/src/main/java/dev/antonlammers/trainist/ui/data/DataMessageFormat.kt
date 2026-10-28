@@ -20,6 +20,7 @@ fun DataMessage.toDisplayString(context: Context): String = when (this) {
             if (weightImported > 0) add(context.getString(R.string.data_import_weight_entries, weightImported))
             if (goalRestored) add(context.getString(R.string.data_import_goal_restored))
             if (customFoodsImported > 0) add(context.getString(R.string.data_import_custom_foods, customFoodsImported))
+            if (savedMealsImported > 0) add(context.getString(R.string.data_import_saved_meals, savedMealsImported))
             if (exercisesImported > 0) add(context.getString(R.string.data_import_exercises, exercisesImported))
             if (templatesImported > 0) add(context.getString(R.string.data_import_templates, templatesImported))
             if (sessionsImported > 0) add(context.getString(R.string.data_import_sessions, sessionsImported))

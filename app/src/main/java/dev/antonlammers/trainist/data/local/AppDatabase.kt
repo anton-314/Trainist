@@ -9,6 +9,7 @@ import dev.antonlammers.trainist.data.local.dao.CustomFoodDao
 import dev.antonlammers.trainist.data.local.dao.DailyGoalDao
 import dev.antonlammers.trainist.data.local.dao.ExerciseDao
 import dev.antonlammers.trainist.data.local.dao.FoodEntryDao
+import dev.antonlammers.trainist.data.local.dao.SavedMealDao
 import dev.antonlammers.trainist.data.local.dao.WeightEntryDao
 import dev.antonlammers.trainist.data.local.dao.WorkoutSessionDao
 import dev.antonlammers.trainist.data.local.dao.WorkoutTemplateDao
@@ -17,6 +18,8 @@ import dev.antonlammers.trainist.data.local.entity.CustomFoodEntity
 import dev.antonlammers.trainist.data.local.entity.DailyGoalEntity
 import dev.antonlammers.trainist.data.local.entity.ExerciseEntity
 import dev.antonlammers.trainist.data.local.entity.FoodEntryEntity
+import dev.antonlammers.trainist.data.local.entity.SavedMealEntity
+import dev.antonlammers.trainist.data.local.entity.SavedMealItemEntity
 import dev.antonlammers.trainist.data.local.entity.SessionExerciseEntity
 import dev.antonlammers.trainist.data.local.entity.SetEntryEntity
 import dev.antonlammers.trainist.data.local.entity.TemplateExerciseEntity
@@ -29,9 +32,9 @@ import dev.antonlammers.trainist.data.local.entity.WorkoutTemplateEntity
         FoodEntryEntity::class, DailyGoalEntity::class, WeightEntryEntity::class, CustomFoodEntity::class,
         ExerciseEntity::class, WorkoutTemplateEntity::class, TemplateExerciseEntity::class,
         WorkoutSessionEntity::class, SessionExerciseEntity::class, SetEntryEntity::class,
-        BodyMeasurementEntity::class,
+        BodyMeasurementEntity::class, SavedMealEntity::class, SavedMealItemEntity::class,
     ],
-    version = 14,
+    version = 15,
     exportSchema = true,
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -43,6 +46,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun workoutTemplateDao(): WorkoutTemplateDao
     abstract fun workoutSessionDao(): WorkoutSessionDao
     abstract fun bodyMeasurementDao(): BodyMeasurementDao
+    abstract fun savedMealDao(): SavedMealDao
 
     companion object {
         val MIGRATION_1_2 = object : Migration(1, 2) {
@@ -219,6 +223,20 @@ abstract class AppDatabase : RoomDatabase() {
         val MIGRATION_13_14 = object : Migration(13, 14) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL("ALTER TABLE template_exercises ADD COLUMN supersetGroupId INTEGER")
+            }
+        }
+
+        /**
+         * Adds the two saved-meal tables ("Meine Mahlzeiten"): the meal header keyed by a unique
+         * stableId and its ingredients as per-100 g snapshots. Purely additive — no existing table
+         * is touched. CREATE statements copied verbatim from Room's generated v15 schema.
+         */
+        val MIGRATION_14_15 = object : Migration(14, 15) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("CREATE TABLE IF NOT EXISTS `saved_meals` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `stableId` TEXT NOT NULL, `name` TEXT NOT NULL)")
+                db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS `index_saved_meals_stableId` ON `saved_meals` (`stableId`)")
+                db.execSQL("CREATE TABLE IF NOT EXISTS `saved_meal_items` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `mealId` INTEGER NOT NULL, `position` INTEGER NOT NULL, `foodName` TEXT NOT NULL, `brand` TEXT, `amountGrams` REAL NOT NULL, `kcalPer100g` REAL NOT NULL, `proteinPer100g` REAL NOT NULL, `carbsPer100g` REAL NOT NULL, `fatPer100g` REAL NOT NULL, `sugarPer100g` REAL NOT NULL, `fiberPer100g` REAL NOT NULL, `saltPer100g` REAL NOT NULL, `tag` TEXT NOT NULL, FOREIGN KEY(`mealId`) REFERENCES `saved_meals`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_saved_meal_items_mealId` ON `saved_meal_items` (`mealId`)")
             }
         }
     }

@@ -9,6 +9,7 @@ import dev.antonlammers.trainist.data.backup.BackupImporterImpl
 import dev.antonlammers.trainist.data.backup.FoodEntryFileReaderImpl
 import dev.antonlammers.trainist.data.repository.BodyMeasurementRepositoryImpl
 import dev.antonlammers.trainist.data.repository.CustomFoodRepositoryImpl
+import dev.antonlammers.trainist.data.repository.SavedMealRepositoryImpl
 import dev.antonlammers.trainist.data.repository.ExerciseCatalogRepositoryImpl
 import dev.antonlammers.trainist.data.repository.FoodEntryRepositoryImpl
 import dev.antonlammers.trainist.data.remote.AppSearchLocaleProvider
@@ -30,6 +31,7 @@ import dev.antonlammers.trainist.data.repository.WorkoutSessionRepositoryImpl
 import dev.antonlammers.trainist.data.repository.WorkoutTemplateRepositoryImpl
 import dev.antonlammers.trainist.domain.repository.BodyMeasurementRepository
 import dev.antonlammers.trainist.domain.repository.CustomFoodRepository
+import dev.antonlammers.trainist.domain.repository.SavedMealRepository
 import dev.antonlammers.trainist.domain.repository.ExerciseCatalogRepository
 import dev.antonlammers.trainist.domain.repository.FoodEntryRepository
 import dev.antonlammers.trainist.domain.repository.FoodSearchRepository
@@ -64,6 +66,9 @@ abstract class RepositoryModule {
 
     @Binds @Singleton
     abstract fun bindCustomFoodRepository(impl: CustomFoodRepositoryImpl): CustomFoodRepository
+
+    @Binds @Singleton
+    abstract fun bindSavedMealRepository(impl: SavedMealRepositoryImpl): SavedMealRepository
 
     @Binds @Singleton
     abstract fun bindSettingsRepository(impl: SettingsRepositoryImpl): SettingsRepository

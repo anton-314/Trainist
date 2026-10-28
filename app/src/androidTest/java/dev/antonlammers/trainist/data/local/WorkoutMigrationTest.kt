@@ -343,6 +343,61 @@ class WorkoutMigrationTest {
         db.close()
     }
 
+    @Test
+    fun migrate14to15_addsSavedMealTables_andPreservesExistingData() {
+        val db = openV7WithSeedData()
+        AppDatabase.MIGRATION_7_8.migrate(db)
+        AppDatabase.MIGRATION_8_9.migrate(db)
+        AppDatabase.MIGRATION_9_10.migrate(db)
+        AppDatabase.MIGRATION_10_11.migrate(db)
+        AppDatabase.MIGRATION_11_12.migrate(db)
+        AppDatabase.MIGRATION_12_13.migrate(db)
+        AppDatabase.MIGRATION_13_14.migrate(db)
+
+        AppDatabase.MIGRATION_14_15.migrate(db)
+
+        val tables = db.query("SELECT name FROM sqlite_master WHERE type = 'table'").use { c ->
+            buildSet { while (c.moveToNext()) add(c.getString(0)) }
+        }
+        assertTrue(tables.containsAll(listOf("saved_meals", "saved_meal_items")))
+
+        // Purely additive: the pre-existing food entry and goal are untouched.
+        db.query("SELECT foodName, kcal FROM food_entries").use { c ->
+            assertEquals(1, c.count)
+            c.moveToFirst()
+            assertEquals("Apfel", c.getString(0))
+            assertEquals(52.0, c.getDouble(1), 0.0)
+        }
+        db.query("SELECT kcal FROM daily_goal WHERE id = 1").use { c ->
+            c.moveToFirst()
+            assertEquals(2200.0, c.getDouble(0), 0.0)
+        }
+
+        // Usable: a meal with an ingredient can be stored ...
+        db.execSQL("INSERT INTO saved_meals (id, stableId, name) VALUES (1, 'meal-1', 'Müsli')")
+        db.execSQL(
+            "INSERT INTO saved_meal_items (mealId, position, foodName, brand, amountGrams, kcalPer100g, " +
+                "proteinPer100g, carbsPer100g, fatPer100g, sugarPer100g, fiberPer100g, saltPer100g, tag) " +
+                "VALUES (1, 0, 'Haferflocken', 'Kölln', 60, 370, 13.5, 59, 7, 1, 10, 0.02, 'HEALTHY')",
+        )
+
+        // ... the stable key is unique, which the backup re-import relies on to replace, not duplicate ...
+        val duplicate = runCatching {
+            db.execSQL("INSERT INTO saved_meals (stableId, name) VALUES ('meal-1', 'Kopie')")
+        }
+        assertTrue(duplicate.isFailure)
+
+        // ... and deleting the meal cascades to its ingredients.
+        db.execSQL("PRAGMA foreign_keys = ON")
+        db.execSQL("DELETE FROM saved_meals WHERE id = 1")
+        db.query("SELECT COUNT(*) FROM saved_meal_items").use { c ->
+            c.moveToFirst()
+            assertEquals(0, c.getInt(0))
+        }
+
+        db.close()
+    }
+
     /**
      * Creates a fresh database at schema version 7 with one representative row per pre-existing
      * table the later migrations touch or must leave alone: a food entry and the goal singleton.

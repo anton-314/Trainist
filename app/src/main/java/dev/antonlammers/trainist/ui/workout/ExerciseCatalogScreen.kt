@@ -401,7 +401,7 @@ private fun EmptyHint(text: String) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Custom-exercise editor sheet (create / edit) — CustomFoodDialog pattern
+// Custom-exercise editor sheet (create / edit) — same pattern as the custom-food sheet
 // ─────────────────────────────────────────────────────────────────────────────
 
 /** Raw editor result; the ViewModel owns id minting and persistence. */

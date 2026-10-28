@@ -97,7 +97,18 @@ object CsvFormat {
 
 }
 
-// Shared CSV helpers — used by CsvFormat and CustomFoodCsvFormat
+// Shared CSV helpers — used by every *CsvFormat and the relational section reassembly
+
+/**
+ * Parses every data row of a section (its non-blank lines including the header; null/empty when the
+ * section is absent), dropping rows that fail to parse.
+ */
+internal inline fun <T> parseCsvRows(lines: List<String>?, parse: (String, Map<String, Int>) -> T?): List<T> {
+    if (lines == null || lines.size < 2) return emptyList()
+    val headers = CsvFormat.parseHeaders(lines.first())
+    return lines.drop(1).mapNotNull { runCatching { parse(it, headers) }.getOrNull() }
+}
+
 internal fun String.escapeCsv(): String =
     if (any { it == ',' || it == '"' || it == '\n' })
         "\"${replace("\"", "\"\"")}\""

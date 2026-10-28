@@ -28,16 +28,16 @@ object WorkoutBackupEntries {
 object WorkoutBackup {
 
     fun parseExercises(lines: List<String>?): List<Exercise> =
-        parseRows(lines) { row, headers -> ExerciseCsvFormat.fromRow(row, headers) }
+        parseCsvRows(lines) { row, headers -> ExerciseCsvFormat.fromRow(row, headers) }
 
     fun assembleTemplates(
         templateLines: List<String>?,
         templateExerciseLines: List<String>?,
     ): List<WorkoutTemplate> {
-        val headers = parseRows(templateLines) { row, h -> WorkoutTemplateCsvFormat.fromRow(row, h) }
+        val headers = parseCsvRows(templateLines) { row, h -> WorkoutTemplateCsvFormat.fromRow(row, h) }
         if (headers.isEmpty()) return emptyList()
 
-        val slotsByTemplate = parseRows(templateExerciseLines) { row, h ->
+        val slotsByTemplate = parseCsvRows(templateExerciseLines) { row, h ->
             TemplateExerciseCsvFormat.fromRow(row, h)
         }.groupBy { it.templateStableId }
 
@@ -54,15 +54,15 @@ object WorkoutBackup {
         sessionExerciseLines: List<String>?,
         setLines: List<String>?,
     ): List<WorkoutSession> {
-        val headers = parseRows(sessionLines) { row, h -> WorkoutSessionCsvFormat.fromRow(row, h) }
+        val headers = parseCsvRows(sessionLines) { row, h -> WorkoutSessionCsvFormat.fromRow(row, h) }
         if (headers.isEmpty()) return emptyList()
 
-        val exercisesBySession = parseRows(sessionExerciseLines) { row, h ->
+        val exercisesBySession = parseCsvRows(sessionExerciseLines) { row, h ->
             SessionExerciseCsvFormat.fromRow(row, h)
         }.groupBy { it.sessionStableId }
 
         // Sets keyed by (session, that exercise's position within the session).
-        val setsByExercise = parseRows(setLines) { row, h -> SetEntryCsvFormat.fromRow(row, h) }
+        val setsByExercise = parseCsvRows(setLines) { row, h -> SetEntryCsvFormat.fromRow(row, h) }
             .groupBy { it.sessionStableId to it.exercisePosition }
 
         return headers.map { session ->
@@ -76,12 +76,5 @@ object WorkoutBackup {
                 }
             session.copy(exercises = exercises)
         }
-    }
-
-    /** Parses every data row (skipping the header), dropping rows that fail to parse. */
-    private inline fun <T> parseRows(lines: List<String>?, parse: (String, Map<String, Int>) -> T?): List<T> {
-        if (lines == null || lines.size < 2) return emptyList()
-        val headers = CsvFormat.parseHeaders(lines.first())
-        return lines.drop(1).mapNotNull { runCatching { parse(it, headers) }.getOrNull() }
     }
 }

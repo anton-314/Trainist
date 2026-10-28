@@ -45,6 +45,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.MonitorWeight
 import androidx.compose.material.icons.outlined.Settings
+import androidx.compose.material.icons.rounded.BookmarkAdd
 import androidx.compose.material.icons.rounded.ContentCopy
 import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.Edit
@@ -57,6 +58,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
@@ -90,6 +92,7 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
@@ -112,6 +115,7 @@ import dev.antonlammers.trainist.domain.model.FoodEntry
 import dev.antonlammers.trainist.domain.model.FoodTag
 import dev.antonlammers.trainist.domain.model.MealCategory
 import dev.antonlammers.trainist.domain.model.WeightEntry
+import dev.antonlammers.trainist.ui.addfood.SAVED_MEAL_NAME_RESULT
 import dev.antonlammers.trainist.ui.components.NumericTextField
 import dev.antonlammers.trainist.ui.components.TagSelector
 import dev.antonlammers.trainist.ui.components.color
@@ -128,11 +132,11 @@ import dev.antonlammers.trainist.ui.tutorial.tutorialAnchor
 import dev.antonlammers.trainist.ui.util.currentAppLocale
 import dev.antonlammers.trainist.ui.util.localizedDateFormatter
 import dev.antonlammers.trainist.util.normalizeDecimal
-import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
 import java.time.format.TextStyle
+import kotlinx.coroutines.launch
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Entrance/replay motion. A single master "clock" (seconds) is restarted from 0
@@ -181,6 +185,19 @@ fun OverviewScreen(
     // scope rather than a @Composable context, so stringResource() isn't callable there).
     val entryDeletedMessage = stringResource(R.string.addfood_entry_deleted)
     val undoLabel = stringResource(R.string.common_undo)
+    val context = LocalContext.current
+
+    // A meal section saved as "Meine Mahlzeiten" via its bookmark comes back here from AddFood,
+    // carrying the meal's name for the confirmation.
+    val backStackHandle = navController.currentBackStackEntry?.savedStateHandle
+    LaunchedEffect(backStackHandle) {
+        backStackHandle?.getStateFlow<String?>(SAVED_MEAL_NAME_RESULT, null)?.collect { name ->
+            if (name != null) {
+                backStackHandle.remove<String>(SAVED_MEAL_NAME_RESULT)
+                snackbar.showSnackbar(context.getString(R.string.overview_meal_saved, name))
+            }
+        }
+    }
 
     // The shell's plus button logs food for the day being viewed, not always for today.
     ProvidePrimaryAction(
@@ -254,9 +271,12 @@ fun OverviewScreen(
                         return@forEach
                     }
                     item(key = "header_${category.name}") {
+                        val categoryName = category.displayName()
                         MealSectionHeader(
-                            name = category.displayName(),
+                            name = categoryName,
                             kcal = state.kcalForMeal(category).toInt(),
+                            saveAsMealDescription = stringResource(R.string.overview_save_as_meal_content_description, categoryName),
+                            onSaveAsMeal = { navController.navigate(Screen.AddFood.saveMeal(state.date, category)) },
                         )
                     }
                     items(categoryEntries, key = { it.id }) { entry ->
@@ -1027,24 +1047,38 @@ private fun SecondaryMacro(label: String, valueG: Double) {
 }
 
 @Composable
-private fun MealSectionHeader(name: String, kcal: Int) {
+private fun MealSectionHeader(
+    name: String,
+    kcal: Int,
+    saveAsMealDescription: String,
+    onSaveAsMeal: () -> Unit,
+) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(top = 8.dp, bottom = 2.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.Bottom,
+            .padding(top = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(
             name,
             style = MaterialTheme.typography.titleMedium,
             color = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.weight(1f),
         )
         Text(
             "$kcal kcal",
             style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
+        // Saves the section's entries as one of "Meine Mahlzeiten" — the quickest way to one.
+        IconButton(onClick = onSaveAsMeal, modifier = Modifier.size(36.dp)) {
+            Icon(
+                Icons.Rounded.BookmarkAdd,
+                contentDescription = saveAsMealDescription,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(20.dp),
+            )
+        }
     }
 }
 

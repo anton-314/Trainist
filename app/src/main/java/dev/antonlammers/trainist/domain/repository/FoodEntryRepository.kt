@@ -10,6 +10,10 @@ interface FoodEntryRepository {
     fun recentEntries(limit: Int = 500): Flow<List<FoodEntry>>
     suspend fun allEntries(): List<FoodEntry>
     suspend fun add(entry: FoodEntry)
+
+    /** Adds all [entries] at once — either every one of them is stored or none is. */
+    suspend fun addAll(entries: List<FoodEntry>)
+
     suspend fun update(entry: FoodEntry)
     suspend fun delete(id: Long)
 }

@@ -13,6 +13,7 @@ import dev.antonlammers.trainist.data.local.dao.CustomFoodDao
 import dev.antonlammers.trainist.data.local.dao.DailyGoalDao
 import dev.antonlammers.trainist.data.local.dao.ExerciseDao
 import dev.antonlammers.trainist.data.local.dao.FoodEntryDao
+import dev.antonlammers.trainist.data.local.dao.SavedMealDao
 import dev.antonlammers.trainist.data.local.dao.WeightEntryDao
 import dev.antonlammers.trainist.data.local.dao.WorkoutSessionDao
 import dev.antonlammers.trainist.data.local.dao.WorkoutTemplateDao
@@ -40,6 +41,7 @@ object DatabaseModule {
                 AppDatabase.MIGRATION_11_12,
                 AppDatabase.MIGRATION_12_13,
                 AppDatabase.MIGRATION_13_14,
+                AppDatabase.MIGRATION_14_15,
             )
             .build()
 
@@ -66,4 +68,7 @@ object DatabaseModule {
 
     @Provides
     fun provideBodyMeasurementDao(db: AppDatabase): BodyMeasurementDao = db.bodyMeasurementDao()
+
+    @Provides
+    fun provideSavedMealDao(db: AppDatabase): SavedMealDao = db.savedMealDao()
 }

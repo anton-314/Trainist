@@ -28,6 +28,8 @@ class FoodEntryRepositoryImpl @Inject constructor(
 
     override suspend fun add(entry: FoodEntry) = dao.insert(entry.toEntity())
 
+    override suspend fun addAll(entries: List<FoodEntry>) = dao.insertAll(entries.map { it.toEntity() })
+
     override suspend fun update(entry: FoodEntry) = dao.update(entry.toEntity())
 
     override suspend fun delete(id: Long) = dao.delete(id)

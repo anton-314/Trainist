@@ -65,7 +65,7 @@
     <!-- AddFoodScreen (ui/addfood/AddFoodScreen.kt) -->
     <string name="addfood_title">Añadir comida</string>
     <string name="addfood_title_for_date">Entrada del %1$s</string>
-    <string name="addfood_add_custom_food_content_description">Alimento personalizado</string>
+    <string name="addfood_create_content_description">Crear alimento o comida</string>
     <string name="addfood_tab_history">Historial</string>
     <string name="addfood_tab_custom_foods">Mis alimentos</string>
     <string name="addfood_empty_custom_foods">Aún no hay alimentos personalizados.\nToca + para crear uno.</string>
@@ -98,6 +98,25 @@
     <string name="addfood_barcode_error_server_unavailable">Open Food Facts no disponible</string>
     <string name="addfood_barcode_error_network_unavailable">Sin conexión a internet</string>
     <string name="addfood_barcode_error_unknown">Error desconocido</string>
+    <string name="addfood_tab_saved_meals">Mis comidas</string>
+    <string name="addfood_empty_saved_meals">Aún no hay comidas.\nToca + y elige «Comida» para crear una.</string>
+    <string name="addfood_saved_meal_deleted">Comida eliminada</string>
+    <string name="addfood_create_kind_food">Alimento</string>
+    <string name="addfood_create_kind_meal">Comida</string>
+    <string name="addfood_meal_dialog_title_new">Nueva comida</string>
+    <string name="addfood_meal_dialog_title_edit">Editar comida</string>
+    <string name="addfood_meal_add_ingredient">Añadir ingrediente</string>
+    <string name="addfood_meal_no_ingredients">Aún no hay ingredientes. Añade los alimentos que siempre comes juntos.</string>
+    <string name="addfood_meal_remove_ingredient_content_description">Quitar ingrediente</string>
+    <string name="addfood_pick_ingredient_title">Ingrediente para «%1$s»</string>
+    <string name="addfood_pick_ingredient_title_unnamed">Elegir ingrediente</string>
+    <string name="addfood_pick_ingredient_cancel_content_description">Cancelar la elección del ingrediente</string>
+    <string name="addfood_add_to_meal_button">Añadir a la comida</string>
+    <string name="addfood_meal_log_hint">Estas cantidades solo valen para esta entrada. Vacía un campo para omitir ese ingrediente.</string>
+    <plurals name="addfood_meal_detail">
+        <item quantity="one">%1$d ingrediente · %2$d kcal</item>
+        <item quantity="other">%1$d ingredientes · %2$d kcal</item>
+    </plurals>
 
     <!-- BarcodeScannerScreen (ui/addfood/BarcodeScannerScreen.kt) -->
     <string name="barcode_scanner_torch_off_content_description">Apagar la linterna</string>
@@ -112,6 +131,8 @@
     <!-- OverviewScreen (ui/overview/OverviewScreen.kt) -->
     <string name="overview_empty_state">Aún no hay entradas hoy</string>
     <string name="overview_copy_meal_button">Copiar %1$s de ayer</string>
+    <string name="overview_save_as_meal_content_description">Guardar %1$s como comida</string>
+    <string name="overview_meal_saved">«%1$s» guardada en Mis comidas</string>
     <string name="overview_macro_protein">Proteínas</string>
     <string name="overview_macro_carbs">Carbohidratos</string>
     <string name="overview_macro_fat">Grasas</string>
@@ -228,6 +249,7 @@
     <string name="data_import_weight_entries">%1$d entradas de peso</string>
     <string name="data_import_goal_restored">Objetivos restaurados</string>
     <string name="data_import_custom_foods">%1$d alimentos personalizados</string>
+    <string name="data_import_saved_meals">%1$d comidas</string>
     <string name="data_import_exercises">%1$d ejercicios personalizados</string>
     <string name="data_import_templates">%1$d plantillas</string>
     <string name="data_import_sessions">%1$d sesiones</string>
@@ -475,6 +497,8 @@
     <string name="help_nutrition_a_tags">Son las etiquetas «clean». El verde cuenta entero en tu proporción clean, el ámbar la mitad y el rojo nada. Verás la proporción como porcentaje en el anillo de calorías y como tarjeta propia en Estadísticas. Una etiqueta rige desde el momento en que la pones — las entradas antiguas no cambian.</string>
     <string name="help_nutrition_q_copy">¿Puedo reutilizar una comida de ayer?</string>
     <string name="help_nutrition_a_copy">Sí. Si una comida principal sigue vacía hoy y ayer tenía entradas, en su lugar aparece un botón para copiarla. Para los snacks no se ofrece, a propósito.</string>
+    <string name="help_nutrition_q_saved_meals">¿Cómo guardo una comida que como a menudo?</string>
+    <string name="help_nutrition_a_saved_meals">Al añadir alimentos, toca + y cambia a «Comida». Ponle un nombre y añade los ingredientes con la búsqueda normal, también por código de barras. Desde el resumen es aún más rápido: el marcador junto a una comida guarda todas sus entradas de una vez. En «Mis comidas» la registras con un toque; cada ingrediente se convierte en su propia entrada y puedes ajustar las cantidades antes.</string>
 
     <string name="help_section_training">ENTRENAMIENTO</string>
     <string name="help_training_q_start">¿Cómo empiezo un entrenamiento?</string>

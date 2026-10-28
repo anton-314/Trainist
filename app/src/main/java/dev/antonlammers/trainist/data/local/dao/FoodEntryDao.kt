@@ -21,6 +21,10 @@ interface FoodEntryDao {
     @Insert
     suspend fun insert(entry: FoodEntryEntity)
 
+    /** One statement, so a multi-entry add (a saved meal) is atomic. */
+    @Insert
+    suspend fun insertAll(entries: List<FoodEntryEntity>)
+
     @Update
     suspend fun update(entry: FoodEntryEntity)
 

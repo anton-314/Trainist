@@ -36,6 +36,11 @@ class FakeFoodEntryRepository : FoodEntryRepository {
         _entries.update { it + entry.copy(id = nextId++) }
     }
 
+    override suspend fun addAll(entries: List<FoodEntry>) {
+        addFailure?.let { throw it }
+        _entries.update { list -> list + entries.map { it.copy(id = nextId++) } }
+    }
+
     override suspend fun update(entry: FoodEntry) {
         _entries.update { list -> list.map { if (it.id == entry.id) entry else it } }
     }

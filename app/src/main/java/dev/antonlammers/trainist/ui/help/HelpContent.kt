@@ -40,6 +40,7 @@ object HelpContent {
                 HelpEntry(R.string.help_nutrition_q_edit, R.string.help_nutrition_a_edit),
                 HelpEntry(R.string.help_nutrition_q_tags, R.string.help_nutrition_a_tags),
                 HelpEntry(R.string.help_nutrition_q_copy, R.string.help_nutrition_a_copy),
+                HelpEntry(R.string.help_nutrition_q_saved_meals, R.string.help_nutrition_a_saved_meals),
             ),
         ),
         HelpSection(

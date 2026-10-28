@@ -18,6 +18,7 @@ interface BackupImporter {
         val templatesImported: Int = 0,
         val sessionsImported: Int = 0,
         val measurementsImported: Int = 0,
+        val savedMealsImported: Int = 0,
     )
 
     suspend fun import(uri: String): Result

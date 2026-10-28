@@ -4,14 +4,18 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dev.antonlammers.trainist.domain.FoodPortions
 import dev.antonlammers.trainist.domain.model.BarcodeException
 import dev.antonlammers.trainist.domain.model.Food
 import dev.antonlammers.trainist.domain.model.FoodEntry
 import dev.antonlammers.trainist.domain.model.FoodTag
 import dev.antonlammers.trainist.domain.model.MealCategory
+import dev.antonlammers.trainist.domain.model.SavedMeal
+import dev.antonlammers.trainist.domain.model.SavedMealItem
 import dev.antonlammers.trainist.domain.repository.CustomFoodRepository
 import dev.antonlammers.trainist.domain.repository.FoodEntryRepository
 import dev.antonlammers.trainist.domain.repository.FoodSearchRepository
+import dev.antonlammers.trainist.domain.repository.SavedMealRepository
 import dev.antonlammers.trainist.util.normalizeDecimal
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
@@ -39,6 +43,7 @@ class AddFoodViewModel @Inject constructor(
     private val foodSearchRepository: FoodSearchRepository,
     private val foodEntryRepository: FoodEntryRepository,
     private val customFoodRepository: CustomFoodRepository,
+    private val savedMealRepository: SavedMealRepository,
 ) : ViewModel() {
 
     val targetDate: LocalDate = savedStateHandle.get<String>("date")
@@ -49,6 +54,7 @@ class AddFoodViewModel @Inject constructor(
 
     private val _pendingDeleteCustomFood = MutableStateFlow<Food?>(null)
     private val _pendingDeleteEntry = MutableStateFlow<FoodEntry?>(null)
+    private val _pendingDeleteMeal = MutableStateFlow<SavedMeal?>(null)
 
     val recentEntries: StateFlow<List<FoodEntry>> = combine(
         foodEntryRepository.recentEntries(),
@@ -64,15 +70,26 @@ class AddFoodViewModel @Inject constructor(
         if (pending != null) foods.filter { it.id != pending.id } else foods
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
+    val savedMeals: StateFlow<List<SavedMeal>> = combine(
+        savedMealRepository.meals(),
+        _pendingDeleteMeal,
+    ) { meals, pending ->
+        if (pending != null) meals.filter { it.id != pending.id } else meals
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    /** Local matches for the query: saved meals first, then custom foods, then the history. */
     val localSearchResults: StateFlow<List<LocalSearchResult>> = combine(
         _uiState.map { it.query },
         customFoodRepository.allFoods(),
         foodEntryRepository.recentEntries(),
-        _pendingDeleteCustomFood,
-        _pendingDeleteEntry,
-    ) { query, customs, entries, pendingFood, pendingEntry ->
+        savedMeals,
+        combine(_pendingDeleteCustomFood, _pendingDeleteEntry, ::Pair),
+    ) { query, customs, entries, meals, (pendingFood, pendingEntry) ->
         if (query.isBlank()) emptyList()
         else {
+            val matchedMeals = meals
+                .filter { it.name.contains(query, ignoreCase = true) }
+                .map { LocalSearchResult.SavedMealResult(it) }
             val filteredCustoms = if (pendingFood != null) customs.filter { it.id != pendingFood.id } else customs
             val filteredEntries = if (pendingEntry != null) entries.filter { it.id != pendingEntry.id } else entries
             val matchedCustoms = filteredCustoms
@@ -82,7 +99,7 @@ class AddFoodViewModel @Inject constructor(
                 .filter { it.foodName.contains(query, ignoreCase = true) }
                 .distinctBy { it.foodName.lowercase() }
                 .map { LocalSearchResult.HistoryResult(it) }
-            matchedCustoms + matchedHistory
+            matchedMeals + matchedCustoms + matchedHistory
         }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
@@ -123,23 +140,8 @@ class AddFoodViewModel @Inject constructor(
     }
 
     fun selectRecentFood(entry: FoodEntry) {
-        val factor = if (entry.amountGrams > 0) 100.0 / entry.amountGrams else 1.0
-        val food = Food(
-            id = entry.foodName,
-            name = entry.foodName,
-            brand = entry.brand,
-            kcalPer100g = entry.kcal * factor,
-            proteinPer100g = entry.proteinG * factor,
-            carbsPer100g = entry.carbsG * factor,
-            fatPer100g = entry.fatG * factor,
-            sugarPer100g = entry.sugarG * factor,
-            fiberPer100g = entry.fiberG * factor,
-            saltPer100g = entry.saltG * factor,
-            tag = entry.tag,
-        )
-        val prevAmount = if (entry.amountGrams % 1.0 == 0.0) entry.amountGrams.toInt().toString()
-                         else entry.amountGrams.toString()
-        _uiState.update { it.copy(selectedFood = food, amountGrams = prevAmount, mealCategory = defaultMealCategory(), tag = entry.tag) }
+        val food = FoodPortions.per100g(entry)
+        _uiState.update { it.copy(selectedFood = food, amountGrams = entry.amountGrams.formatAmount(), mealCategory = defaultMealCategory(), tag = entry.tag) }
     }
 
     fun saveCustomFood(food: Food) {
@@ -195,28 +197,80 @@ class AddFoodViewModel @Inject constructor(
         val state = _uiState.value
         val food = state.selectedFood ?: return
         val amount = state.amountGrams.normalizeDecimal().toDoubleOrNull()?.takeIf { it > 0 } ?: return
-        val factor = amount / 100.0
         viewModelScope.launch {
             foodEntryRepository.add(
-                FoodEntry(
-                    foodName = food.name,
-                    brand = food.brand,
-                    amountGrams = amount,
-                    kcal = food.kcalPer100g * factor,
-                    proteinG = food.proteinPer100g * factor,
-                    carbsG = food.carbsPer100g * factor,
-                    fatG = food.fatPer100g * factor,
-                    sugarG = food.sugarPer100g * factor,
-                    fiberG = food.fiberPer100g * factor,
-                    saltG = food.saltPer100g * factor,
-                    mealCategory = state.mealCategory,
-                    tag = state.tag,
-                    date = targetDate,
-                    timestampMs = System.currentTimeMillis(),
-                )
+                FoodPortions.entry(food, amount, state.mealCategory, state.tag, targetDate, System.currentTimeMillis()),
             )
             _uiState.update { it.copy(selectedFood = null, amountGrams = "100", mealCategory = defaultMealCategory(), tag = FoodTag.NONE, entryAdded = true) }
         }
+    }
+
+    /**
+     * Hands the food in the amount sheet over as a meal ingredient (instead of logging it) and closes
+     * the sheet. The query is cleared too, so the next ingredient starts from a fresh search. Null
+     * while nothing is selected or the amount isn't a positive number.
+     */
+    fun takeIngredient(): SavedMealItem? {
+        val state = _uiState.value
+        val food = state.selectedFood ?: return null
+        val amount = state.amountGrams.normalizeDecimal().toDoubleOrNull()?.takeIf { it > 0 } ?: return null
+        _uiState.update { it.copy(selectedFood = null, amountGrams = "100", tag = FoodTag.NONE, query = "") }
+        return SavedMealItem(food.copy(tag = state.tag), amount)
+    }
+
+    // --- saved meals: logging ---
+
+    /** Opens the log sheet for [meal], every ingredient pre-filled with its saved amount. */
+    fun selectMeal(meal: SavedMeal) = _uiState.update {
+        it.copy(
+            mealToLog = MealLogDraft(meal, meal.items.map { item -> item.amountGrams.formatAmount() }),
+            mealCategory = defaultMealCategory(),
+        )
+    }
+
+    fun onMealLogAmountChange(index: Int, amount: String) = _uiState.update { state ->
+        val draft = state.mealToLog ?: return@update state
+        state.copy(mealToLog = draft.copy(amounts = draft.amounts.toMutableList().also { it[index] = amount }))
+    }
+
+    fun dismissMealLog() = _uiState.update { it.copy(mealToLog = null) }
+
+    /**
+     * Logs the meal as one entry per ingredient. An ingredient whose amount was cleared or set to 0
+     * is left out for today ("ohne Milch") — the saved meal itself is not changed.
+     */
+    fun confirmLogMeal() {
+        val state = _uiState.value
+        val draft = state.mealToLog ?: return
+        val portions = draft.portions()
+        if (portions.isEmpty()) return
+        viewModelScope.launch {
+            foodEntryRepository.addAll(
+                FoodPortions.mealEntries(
+                    items = portions.map { it.first },
+                    amounts = portions.map { it.second },
+                    mealCategory = state.mealCategory,
+                    date = targetDate,
+                    nowMs = System.currentTimeMillis(),
+                ),
+            )
+            _uiState.update { it.copy(mealToLog = null, mealCategory = defaultMealCategory(), entryAdded = true) }
+        }
+    }
+
+    // --- saved meals: deferred delete ---
+
+    fun deletePendingMeal(meal: SavedMeal) {
+        _pendingDeleteMeal.value = meal
+    }
+
+    fun confirmDeleteMeal(meal: SavedMeal) {
+        if (_pendingDeleteMeal.value?.id == meal.id) _pendingDeleteMeal.value = null
+        viewModelScope.launch { savedMealRepository.delete(meal.id) }
+    }
+
+    fun undoDeleteMeal(meal: SavedMeal) {
+        if (_pendingDeleteMeal.value?.id == meal.id) _pendingDeleteMeal.value = null
     }
 
     fun handleBarcode(barcode: String) {
@@ -249,6 +303,7 @@ class AddFoodViewModel @Inject constructor(
 }
 
 sealed interface LocalSearchResult {
+    data class SavedMealResult(val meal: SavedMeal) : LocalSearchResult
     data class HistoryResult(val entry: FoodEntry) : LocalSearchResult
     data class CustomFoodResult(val food: Food) : LocalSearchResult
 }
@@ -281,7 +336,22 @@ data class AddFoodUiState(
     val mealCategory: MealCategory = MealCategory.SNACK,
     val tag: FoodTag = FoodTag.NONE,
     val entryAdded: Boolean = false,
+    val mealToLog: MealLogDraft? = null,
 )
+
+/** A saved meal about to be logged: one editable amount (as typed) per ingredient, same order. */
+data class MealLogDraft(
+    val meal: SavedMeal,
+    val amounts: List<String>,
+) {
+    /** The ingredients to log with their parsed amounts — cleared or non-positive ones left out. */
+    fun portions(): List<Pair<SavedMealItem, Double>> = meal.items.zip(amounts).mapNotNull { (item, raw) ->
+        raw.normalizeDecimal().toDoubleOrNull()?.takeIf { it > 0 }?.let { item to it }
+    }
+}
+
+/** An amount as an input-field string: whole grams without a trailing ".0". */
+internal fun Double.formatAmount(): String = if (this % 1.0 == 0.0) toInt().toString() else toString()
 
 /** Below this many characters a query is too vague to be worth a request. */
 private const val MIN_REMOTE_QUERY_LENGTH = 3

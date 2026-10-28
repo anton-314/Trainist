@@ -1,10 +1,15 @@
 package dev.antonlammers.trainist.data.backup
 
+import dev.antonlammers.trainist.domain.backup.BackupImporter
 import dev.antonlammers.trainist.domain.model.BodyMeasurementEntry
 import dev.antonlammers.trainist.domain.model.Exercise
 import dev.antonlammers.trainist.domain.model.ExerciseType
-import dev.antonlammers.trainist.domain.model.Mechanic
+import dev.antonlammers.trainist.domain.model.Food
+import dev.antonlammers.trainist.domain.model.FoodTag
 import dev.antonlammers.trainist.domain.model.MeasurementType
+import dev.antonlammers.trainist.domain.model.Mechanic
+import dev.antonlammers.trainist.domain.model.SavedMeal
+import dev.antonlammers.trainist.domain.model.SavedMealItem
 import dev.antonlammers.trainist.domain.model.SessionExercise
 import dev.antonlammers.trainist.domain.model.SetEntry
 import dev.antonlammers.trainist.domain.model.SetType
@@ -16,9 +21,15 @@ import dev.antonlammers.trainist.fake.FakeCustomFoodRepository
 import dev.antonlammers.trainist.fake.FakeExerciseCatalogRepository
 import dev.antonlammers.trainist.fake.FakeFoodEntryRepository
 import dev.antonlammers.trainist.fake.FakeGoalRepository
+import dev.antonlammers.trainist.fake.FakeSavedMealRepository
 import dev.antonlammers.trainist.fake.FakeWeightRepository
 import dev.antonlammers.trainist.fake.FakeWorkoutSessionRepository
 import dev.antonlammers.trainist.fake.FakeWorkoutTemplateRepository
+import java.io.ByteArrayInputStream
+import java.io.ByteArrayOutputStream
+import java.time.LocalDate
+import java.util.zip.ZipEntry
+import java.util.zip.ZipOutputStream
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
@@ -27,11 +38,6 @@ import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
-import java.io.ByteArrayInputStream
-import java.io.ByteArrayOutputStream
-import java.time.LocalDate
-import java.util.zip.ZipEntry
-import java.util.zip.ZipOutputStream
 
 class BackupImporterTest {
 
@@ -314,6 +320,78 @@ class BackupImporterTest {
     }
 
     @Test
+    fun `a backup written before saved meals existed still restores everything it holds`() = runTest {
+        val custom = FakeCustomFoodRepository()
+        val meals = FakeSavedMealRepository()
+        // Exactly the custom-food section an older app version wrote — no saved-meal sections at all.
+        val zip = zipOf(
+            "custom_foods.csv" to """
+                name,brand,kcal_per_100g,protein_per_100g,carbs_per_100g,fat_per_100g,sugar_per_100g,fiber_per_100g,salt_per_100g,tag
+                Haferflocken,Kölln,370,13.5,59,7,1,10,0.02,HEALTHY
+            """.trimIndent(),
+        )
+
+        val result = importZipEntries(ByteArrayInputStream(zip), targetsOf(custom = custom, meals = meals))
+
+        assertEquals(1, result.customFoodsImported)
+        assertEquals(0, result.savedMealsImported)
+        assertEquals("Haferflocken", custom.allFoods().first().single().name)
+        assertTrue(meals.meals().first().isEmpty())
+    }
+
+    @Test
+    fun `a full backup with training but no saved meals reports zero meals`() = runTest {
+        val result = importZipEntries(ByteArrayInputStream(fullBackupZip()), targetsOf())
+
+        assertEquals(1, result.foodImported)
+        assertEquals(1, result.sessionsImported)
+        assertEquals(0, result.savedMealsImported)
+    }
+
+    @Test
+    fun `saved meals round-trip through a backup ZIP and are not duplicated by a re-import`() = runTest {
+        val meals = FakeSavedMealRepository()
+        val custom = FakeCustomFoodRepository()
+        val meal = muesliMeal()
+        val zip = zipOf(
+            SavedMealBackupEntries.SAVED_MEALS to section(SavedMealCsvFormat.HEADER, listOf(SavedMealCsvFormat.toRow(meal))),
+            SavedMealBackupEntries.SAVED_MEAL_ITEMS to section(
+                SavedMealItemCsvFormat.HEADER,
+                meal.items.mapIndexed { i, item -> SavedMealItemCsvFormat.toRow(meal.stableId, i, item) },
+            ),
+        )
+        val targets = targetsOf(custom = custom, meals = meals)
+
+        val first = importZipEntries(ByteArrayInputStream(zip), targets)
+        importZipEntries(ByteArrayInputStream(zip), targets)
+
+        assertEquals(1, first.savedMealsImported)
+        // The ingredient rows share the custom-food columns but must never land in custom foods.
+        assertEquals(0, first.customFoodsImported)
+        assertTrue(custom.allFoods().first().isEmpty())
+        val restored = meals.meals().first().single()
+        assertEquals(meal.copy(id = restored.id), restored)
+    }
+
+    @Test
+    fun `single saved-meal CSVs are recognised but only import as part of a ZIP`() = runTest {
+        val meals = FakeSavedMealRepository()
+        val custom = FakeCustomFoodRepository()
+        val meal = muesliMeal()
+        val targets = targetsOf(custom = custom, meals = meals)
+
+        importCsvLines(listOf(SavedMealCsvFormat.HEADER, SavedMealCsvFormat.toRow(meal)), targets)
+        val itemsResult = importCsvLines(
+            listOf(SavedMealItemCsvFormat.HEADER, SavedMealItemCsvFormat.toRow(meal.stableId, 0, meal.items.first())),
+            targets,
+        )
+
+        assertEquals(BackupImporter.Result(), itemsResult)
+        assertTrue(meals.meals().first().isEmpty())
+        assertTrue(custom.allFoods().first().isEmpty())
+    }
+
+    @Test
     fun `single exercises CSV imports custom exercises standalone`() = runTest {
         val catalog = FakeExerciseCatalogRepository()
         val lines = listOf(ExerciseCsvFormat.HEADER, ExerciseCsvFormat.toRow(customKlimmzug()))
@@ -399,6 +477,25 @@ class BackupImporterTest {
         ),
     )
 
+    private fun muesliMeal() = SavedMeal(
+        stableId = "meal-muesli",
+        name = "Müsli",
+        items = listOf(
+            SavedMealItem(
+                Food(
+                    id = "", name = "Haferflocken", brand = "Kölln",
+                    kcalPer100g = 370.0, proteinPer100g = 13.5, carbsPer100g = 59.0, fatPer100g = 7.0,
+                    tag = FoodTag.HEALTHY,
+                ),
+                60.0,
+            ),
+            SavedMealItem(
+                Food(id = "", name = "Milch", brand = null, kcalPer100g = 47.0, proteinPer100g = 3.4, carbsPer100g = 4.9, fatPer100g = 1.5),
+                200.0,
+            ),
+        ),
+    )
+
     /** Builds a complete backup ZIP (nutrition + training) as BackupExporter would write it. */
     private fun fullBackupZip(): ByteArray {
         val exercises = listOf(customKlimmzug())
@@ -441,7 +538,8 @@ class BackupImporterTest {
         templates: FakeWorkoutTemplateRepository = FakeWorkoutTemplateRepository(),
         sessions: FakeWorkoutSessionRepository = FakeWorkoutSessionRepository(),
         measurements: FakeBodyMeasurementRepository = FakeBodyMeasurementRepository(),
-    ) = ImportTargets(food, weight, goal, custom, catalog, templates, sessions, measurements)
+        meals: FakeSavedMealRepository = FakeSavedMealRepository(),
+    ) = ImportTargets(food, weight, goal, custom, catalog, templates, sessions, measurements, meals)
 
     private fun zipOf(vararg entries: Pair<String, String>): ByteArray {
         val bytes = ByteArrayOutputStream()

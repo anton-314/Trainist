@@ -1,5 +1,6 @@
 package dev.antonlammers.trainist.ui.addfood
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -7,6 +8,7 @@ import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
@@ -26,6 +28,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.Add
+import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.Edit
 import androidx.compose.material.icons.rounded.QrCodeScanner
@@ -61,22 +64,27 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import dev.antonlammers.trainist.R
+import dev.antonlammers.trainist.domain.FoodPortions
 import dev.antonlammers.trainist.domain.model.Food
 import dev.antonlammers.trainist.domain.model.FoodEntry
 import dev.antonlammers.trainist.domain.model.FoodTag
 import dev.antonlammers.trainist.domain.model.MealCategory
+import dev.antonlammers.trainist.domain.model.SavedMeal
 import dev.antonlammers.trainist.ui.components.NumericTextField
 import dev.antonlammers.trainist.ui.components.TagDot
 import dev.antonlammers.trainist.ui.components.TagSelector
@@ -93,23 +101,30 @@ import kotlinx.coroutines.launch
 fun AddFoodScreen(
     navController: NavController,
     viewModel: AddFoodViewModel = hiltViewModel(),
+    mealEditor: MealEditorViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val recentEntries by viewModel.recentEntries.collectAsStateWithLifecycle()
     val customFoods by viewModel.customFoods.collectAsStateWithLifecycle()
+    val savedMeals by viewModel.savedMeals.collectAsStateWithLifecycle()
+    val mealState by mealEditor.uiState.collectAsStateWithLifecycle()
     val localSearchResults by viewModel.localSearchResults.collectAsStateWithLifecycle()
     val remoteSearch by viewModel.remoteSearchResults.collectAsStateWithLifecycle()
     val snackbar = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
 
-    var showCreateDialog by remember { mutableStateOf(false) }
+    // The "+" sheet in food mode. Meal mode needs no flag of its own: it is open whenever the meal
+    // editor holds a draft (unless the user switched the sheet over to food).
+    var showCreateFood by rememberSaveable { mutableStateOf(false) }
     var foodToEdit by remember { mutableStateOf<Food?>(null) }
-    var selectedTab by remember { mutableIntStateOf(0) }
+    var selectedTab by rememberSaveable { mutableIntStateOf(TAB_HISTORY) }
+    val picking = mealState.picking
 
     // Resolved here (not inside the snackbar-launching lambdas below, which run in a coroutine
     // scope rather than a @Composable context, so stringResource() isn't callable there).
     val customFoodDeletedMessage = stringResource(R.string.addfood_custom_food_deleted)
     val entryDeletedMessage = stringResource(R.string.addfood_entry_deleted)
+    val mealDeletedMessage = stringResource(R.string.addfood_saved_meal_deleted)
     val undoLabel = stringResource(R.string.common_undo)
 
     LaunchedEffect(state.entryAdded) {
@@ -129,24 +144,103 @@ fun AddFoodScreen(
         }
     }
 
-    if (showCreateDialog) {
-        CustomFoodDialog(
-            onDismiss = { showCreateDialog = false },
-            onSave = { food ->
-                viewModel.saveCustomFood(food)
-                showCreateDialog = false
+    LaunchedEffect(mealState.saved) {
+        val saved = mealState.saved ?: return@LaunchedEffect
+        mealEditor.savedHandled()
+        showCreateFood = false
+        when (saved.origin) {
+            // Created via "+": most likely about to be eaten — offer to log it right away, like a
+            // freshly created custom food.
+            MealDraftOrigin.NEW -> {
+                selectedTab = TAB_MEALS
+                viewModel.selectMeal(saved.meal)
+            }
+            MealDraftOrigin.EDIT -> Unit
+            // Its entries are already in the diary; go back to where the user came from.
+            MealDraftOrigin.FROM_DAY -> {
+                navController.previousBackStackEntry?.savedStateHandle?.set(SAVED_MEAL_NAME_RESULT, saved.meal.name)
+                navController.popBackStack()
+            }
+        }
+    }
+
+    BackHandler(enabled = picking) { mealEditor.cancelPicking() }
+
+    val mealDraft = mealState.draft
+    val createKind = when {
+        showCreateFood -> CreateKind.FOOD
+        mealDraft != null -> CreateKind.MEAL
+        else -> null
+    }
+    if (createKind != null && !picking && state.selectedFood == null && state.mealToLog == null) {
+        val dismiss = {
+            showCreateFood = false
+            mealEditor.discard()
+            // Opened from the Overview's bookmark only to save that meal — cancelling goes back there.
+            if (mealDraft?.origin == MealDraftOrigin.FROM_DAY) navController.popBackStack()
+        }
+        CreateSheet(
+            kind = createKind,
+            kindSwitchable = mealDraft == null || mealDraft.origin == MealDraftOrigin.NEW,
+            title = stringResource(
+                when {
+                    createKind == CreateKind.FOOD -> R.string.addfood_custom_food_dialog_title_new
+                    mealDraft?.origin == MealDraftOrigin.EDIT -> R.string.addfood_meal_dialog_title_edit
+                    else -> R.string.addfood_meal_dialog_title_new
+                },
+            ),
+            onKindChange = { kind ->
+                showCreateFood = kind == CreateKind.FOOD
+                if (kind == CreateKind.MEAL) mealEditor.startNew()
             },
-        )
+            onDismiss = dismiss,
+        ) {
+            if (createKind == CreateKind.FOOD || mealDraft == null) {
+                CustomFoodForm(
+                    onSave = { food ->
+                        viewModel.saveCustomFood(food)
+                        dismiss()
+                    },
+                )
+            } else {
+                MealEditorForm(
+                    draft = mealDraft,
+                    onNameChange = mealEditor::onNameChange,
+                    onAmountChange = mealEditor::onAmountChange,
+                    onRemove = mealEditor::removeItem,
+                    onAddIngredient = mealEditor::startPicking,
+                    onSave = mealEditor::save,
+                )
+            }
+        }
     }
 
     foodToEdit?.let { food ->
-        CustomFoodDialog(
-            initial = food,
+        CreateSheet(
+            kind = CreateKind.FOOD,
+            kindSwitchable = false,
+            title = stringResource(R.string.addfood_custom_food_dialog_title_edit),
+            onKindChange = {},
             onDismiss = { foodToEdit = null },
-            onSave = { updated ->
-                viewModel.updateCustomFood(updated.copy(id = food.id))
-                foodToEdit = null
-            },
+        ) {
+            CustomFoodForm(
+                initial = food,
+                onSave = { updated ->
+                    viewModel.updateCustomFood(updated.copy(id = food.id))
+                    foodToEdit = null
+                },
+            )
+        }
+    }
+
+    state.mealToLog?.let { draft ->
+        MealLogSheet(
+            draft = draft,
+            mealCategory = state.mealCategory,
+            onAmountChange = viewModel::onMealLogAmountChange,
+            onMealCategoryChange = viewModel::onMealCategoryChange,
+            onConfirm = viewModel::confirmLogMeal,
+            onDismiss = viewModel::dismissMealLog,
         )
     }
 
@@ -167,10 +261,13 @@ fun AddFoodScreen(
             amount = state.amountGrams,
             mealCategory = state.mealCategory,
             tag = state.tag,
+            forIngredient = picking,
             onAmountChange = viewModel::onAmountChange,
             onMealCategoryChange = viewModel::onMealCategoryChange,
             onTagChange = viewModel::onTagChange,
-            onConfirm = viewModel::confirmAdd,
+            onConfirm = {
+                if (picking) viewModel.takeIngredient()?.let(mealEditor::addItem) else viewModel.confirmAdd()
+            },
             onDismiss = viewModel::dismissSelection,
         )
     }
@@ -180,20 +277,42 @@ fun AddFoodScreen(
             TopAppBar(
                 title = {
                     val isToday = viewModel.targetDate == LocalDate.now()
-                    if (isToday) {
+                    val mealName = mealDraft?.name?.trim().orEmpty()
+                    if (picking) {
+                        Text(
+                            if (mealName.isEmpty()) {
+                                stringResource(R.string.addfood_pick_ingredient_title_unnamed)
+                            } else {
+                                stringResource(R.string.addfood_pick_ingredient_title, mealName)
+                            },
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    } else if (isToday) {
                         Text(stringResource(R.string.addfood_title))
                     } else {
                         Text(stringResource(R.string.addfood_title_for_date, viewModel.targetDate.formatRelative()))
                     }
                 },
                 navigationIcon = {
-                    IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = stringResource(R.string.common_back))
+                    if (picking) {
+                        IconButton(onClick = mealEditor::cancelPicking) {
+                            Icon(
+                                Icons.Rounded.Close,
+                                contentDescription = stringResource(R.string.addfood_pick_ingredient_cancel_content_description),
+                            )
+                        }
+                    } else {
+                        IconButton(onClick = { navController.popBackStack() }) {
+                            Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = stringResource(R.string.common_back))
+                        }
                     }
                 },
                 actions = {
-                    IconButton(onClick = { showCreateDialog = true }) {
-                        Icon(Icons.Rounded.Add, contentDescription = stringResource(R.string.addfood_add_custom_food_content_description))
+                    if (!picking) {
+                        IconButton(onClick = { showCreateFood = true }) {
+                            Icon(Icons.Rounded.Add, contentDescription = stringResource(R.string.addfood_create_content_description))
+                        }
                     }
                 },
             )
@@ -211,18 +330,53 @@ fun AddFoodScreen(
                 onScanClick = { navController.navigate(Screen.BarcodeScanner.route) },
             )
 
+            // While picking an ingredient, a meal can't be one — the meals tab steps aside.
+            val tab = if (picking && selectedTab == TAB_MEALS) TAB_HISTORY else selectedTab
+            val shownLocalResults =
+                if (picking) localSearchResults.filterNot { it is LocalSearchResult.SavedMealResult } else localSearchResults
             if (state.query.isEmpty() && !state.isLoading) {
                 Row(modifier = Modifier.fillMaxWidth()) {
-                    MonoTab(stringResource(R.string.addfood_tab_history), selectedTab == 0) { selectedTab = 0 }
-                    MonoTab(stringResource(R.string.addfood_tab_custom_foods), selectedTab == 1) { selectedTab = 1 }
+                    MonoTab(stringResource(R.string.addfood_tab_history), tab == TAB_HISTORY) { selectedTab = TAB_HISTORY }
+                    MonoTab(stringResource(R.string.addfood_tab_custom_foods), tab == TAB_CUSTOM_FOODS) { selectedTab = TAB_CUSTOM_FOODS }
+                    if (!picking) {
+                        MonoTab(stringResource(R.string.addfood_tab_saved_meals), tab == TAB_MEALS) { selectedTab = TAB_MEALS }
+                    }
+                }
+            }
+
+            val onDeleteMeal: (SavedMeal) -> Unit = { meal ->
+                viewModel.deletePendingMeal(meal)
+                coroutineScope.launch {
+                    val result = snackbar.showSnackbar(
+                        message = mealDeletedMessage,
+                        actionLabel = undoLabel,
+                        duration = SnackbarDuration.Short,
+                    )
+                    when (result) {
+                        SnackbarResult.ActionPerformed -> viewModel.undoDeleteMeal(meal)
+                        SnackbarResult.Dismissed -> viewModel.confirmDeleteMeal(meal)
+                    }
                 }
             }
 
             LazyColumn {
                 // Empty state: active tab content
                 if (state.query.isEmpty() && !state.isLoading) {
-                    // Tab 0 = Verlauf (default), Tab 1 = Meine Lebensmittel.
-                    if (selectedTab == 1) {
+                    if (tab == TAB_MEALS) {
+                        if (savedMeals.isEmpty()) {
+                            item { EmptyHint(stringResource(R.string.addfood_empty_saved_meals)) }
+                        } else {
+                            items(savedMeals, key = { "meal_${it.id}" }) { meal ->
+                                SwipeableMealRow(
+                                    meal = meal,
+                                    onClick = { viewModel.selectMeal(meal) },
+                                    onEdit = { mealEditor.edit(meal) },
+                                    onDelete = { onDeleteMeal(meal) },
+                                )
+                                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                            }
+                        }
+                    } else if (tab == TAB_CUSTOM_FOODS) {
                         if (customFoods.isEmpty()) {
                             item {
                                 EmptyHint(stringResource(R.string.addfood_empty_custom_foods))
@@ -303,21 +457,28 @@ fun AddFoodScreen(
                 if (state.query.isNotBlank() && !state.isLoading) {
                     // Only speak of "no results" once the online search has had its say too —
                     // otherwise the hint flashes up in the pause before the request even goes out.
-                    if (localSearchResults.isEmpty() && remoteSearch.results.isEmpty() &&
+                    if (shownLocalResults.isEmpty() && remoteSearch.results.isEmpty() &&
                         !remoteSearch.isLoading && !remoteSearch.failed
                     ) {
                         item { EmptyHint(stringResource(R.string.addfood_empty_search_results)) }
                     } else {
                         items(
-                            localSearchResults,
+                            shownLocalResults,
                             key = { result ->
                                 when (result) {
+                                    is LocalSearchResult.SavedMealResult -> "search_meal_${result.meal.id}"
                                     is LocalSearchResult.CustomFoodResult -> "search_custom_${result.food.id}"
                                     is LocalSearchResult.HistoryResult -> "search_history_${result.entry.id}"
                                 }
                             },
                         ) { result ->
                             when (result) {
+                                is LocalSearchResult.SavedMealResult -> SwipeableMealRow(
+                                    meal = result.meal,
+                                    onClick = { viewModel.selectMeal(result.meal) },
+                                    onEdit = { mealEditor.edit(result.meal) },
+                                    onDelete = { onDeleteMeal(result.meal) },
+                                )
                                 is LocalSearchResult.CustomFoodResult -> SwipeableCustomFoodRow(
                                     food = result.food,
                                     onClick = { viewModel.selectFood(result.food) },
@@ -589,6 +750,43 @@ private fun SwipeableHistoryRow(
     }
 }
 
+/** A saved meal: name over "n ingredients · kcal"; swipe to edit or delete, like a custom food. */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun SwipeableMealRow(
+    meal: SavedMeal,
+    onClick: () -> Unit,
+    onEdit: () -> Unit,
+    onDelete: () -> Unit,
+) {
+    val dismissState = rememberSwipeToDismissBoxState(
+        confirmValueChange = { value ->
+            when (value) {
+                SwipeToDismissBoxValue.EndToStart -> { onDelete(); true }
+                SwipeToDismissBoxValue.StartToEnd -> { onEdit(); false }
+                else -> false
+            }
+        }
+    )
+    SwipeToDismissBox(
+        state = dismissState,
+        enableDismissFromStartToEnd = true,
+        backgroundContent = { SwipeBackground(dismissState.targetValue) },
+    ) {
+        FoodRowContent(
+            tag = FoodTag.NONE,
+            title = meal.name,
+            detail = pluralStringResource(
+                R.plurals.addfood_meal_detail,
+                meal.items.size,
+                meal.items.size,
+                FoodPortions.totals(meal.items).kcal.toInt(),
+            ),
+            onClick = onClick,
+        )
+    }
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun SwipeBackground(target: SwipeToDismissBoxValue) {
@@ -663,11 +861,13 @@ private fun FoodRowContent(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+/**
+ * The custom-food body of [CreateSheet] — new (via "+") or edited (via swipe, with [initial]). Only
+ * the field list scrolls; the save button stays pinned below it.
+ */
 @Composable
-private fun CustomFoodDialog(
+private fun ColumnScope.CustomFoodForm(
     initial: Food? = null,
-    onDismiss: () -> Unit,
     onSave: (Food) -> Unit,
 ) {
     var name by remember { mutableStateOf(initial?.name ?: "") }
@@ -687,68 +887,49 @@ private fun CustomFoodDialog(
         && carbs.normalizeDecimal().toDoubleOrNull() != null
         && fat.normalizeDecimal().toDoubleOrNull() != null
 
-    val sheetState = rememberModalBottomSheetState()
-    ModalBottomSheet(
-        onDismissRequest = onDismiss,
-        modifier = Modifier.statusBarsPadding(),
-        sheetState = sheetState,
-        shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
-        containerColor = MaterialTheme.colorScheme.surface,
+    Column(
+        modifier = Modifier
+            .weight(1f, fill = false)
+            .verticalScroll(rememberScrollState())
+            .padding(horizontal = 20.dp, vertical = 16.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 20.dp)
-                .navigationBarsPadding()
-                .imePadding()
-                .verticalScroll(rememberScrollState())
-                .padding(bottom = 20.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
-        ) {
-            Text(
-                stringResource(
-                    if (initial == null) {
-                        R.string.addfood_custom_food_dialog_title_new
-                    } else {
-                        R.string.addfood_custom_food_dialog_title_edit
-                    },
-                ),
-                style = MaterialTheme.typography.titleLarge,
-            )
-            OutlinedTextField(name, { name = it }, label = { Text(stringResource(R.string.addfood_field_name)) }, singleLine = true, modifier = Modifier.fillMaxWidth())
-            OutlinedTextField(brand, { brand = it }, label = { Text(stringResource(R.string.addfood_field_brand)) }, singleLine = true, modifier = Modifier.fillMaxWidth())
-            NumericTextField(kcal, { kcal = it }, label = stringResource(R.string.addfood_field_kcal), modifier = Modifier.fillMaxWidth())
-            NumericTextField(protein, { protein = it }, label = stringResource(R.string.addfood_field_protein), modifier = Modifier.fillMaxWidth())
-            NumericTextField(carbs, { carbs = it }, label = stringResource(R.string.addfood_field_carbs), modifier = Modifier.fillMaxWidth())
-            NumericTextField(fat, { fat = it }, label = stringResource(R.string.addfood_field_fat), modifier = Modifier.fillMaxWidth())
-            NumericTextField(sugar, { sugar = it }, label = stringResource(R.string.addfood_field_sugar), modifier = Modifier.fillMaxWidth())
-            NumericTextField(fiber, { fiber = it }, label = stringResource(R.string.addfood_field_fiber), modifier = Modifier.fillMaxWidth())
-            NumericTextField(salt, { salt = it }, label = stringResource(R.string.addfood_field_salt), modifier = Modifier.fillMaxWidth())
-            TagSelector(selected = tag, onSelected = { tag = it })
-            Button(
-                onClick = {
-                    onSave(
-                        Food(
-                            id = initial?.id ?: "",
-                            name = name.trim(),
-                            brand = brand.trim().takeIf { it.isNotBlank() },
-                            kcalPer100g = kcal.normalizeDecimal().toDouble(),
-                            proteinPer100g = protein.normalizeDecimal().toDouble(),
-                            carbsPer100g = carbs.normalizeDecimal().toDouble(),
-                            fatPer100g = fat.normalizeDecimal().toDouble(),
-                            sugarPer100g = sugar.normalizeDecimal().toDoubleOrNull() ?: 0.0,
-                            fiberPer100g = fiber.normalizeDecimal().toDoubleOrNull() ?: 0.0,
-                            saltPer100g = salt.normalizeDecimal().toDoubleOrNull() ?: 0.0,
-                            tag = tag,
-                        )
-                    )
-                },
-                enabled = isValid,
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(14.dp),
-            ) { Text(stringResource(R.string.common_save), style = MaterialTheme.typography.labelLarge) }
-        }
+        OutlinedTextField(name, { name = it }, label = { Text(stringResource(R.string.addfood_field_name)) }, singleLine = true, modifier = Modifier.fillMaxWidth())
+        OutlinedTextField(brand, { brand = it }, label = { Text(stringResource(R.string.addfood_field_brand)) }, singleLine = true, modifier = Modifier.fillMaxWidth())
+        NumericTextField(kcal, { kcal = it }, label = stringResource(R.string.addfood_field_kcal), modifier = Modifier.fillMaxWidth())
+        NumericTextField(protein, { protein = it }, label = stringResource(R.string.addfood_field_protein), modifier = Modifier.fillMaxWidth())
+        NumericTextField(carbs, { carbs = it }, label = stringResource(R.string.addfood_field_carbs), modifier = Modifier.fillMaxWidth())
+        NumericTextField(fat, { fat = it }, label = stringResource(R.string.addfood_field_fat), modifier = Modifier.fillMaxWidth())
+        NumericTextField(sugar, { sugar = it }, label = stringResource(R.string.addfood_field_sugar), modifier = Modifier.fillMaxWidth())
+        NumericTextField(fiber, { fiber = it }, label = stringResource(R.string.addfood_field_fiber), modifier = Modifier.fillMaxWidth())
+        NumericTextField(salt, { salt = it }, label = stringResource(R.string.addfood_field_salt), modifier = Modifier.fillMaxWidth())
+        TagSelector(selected = tag, onSelected = { tag = it })
     }
+    Button(
+        onClick = {
+            onSave(
+                Food(
+                    id = initial?.id ?: "",
+                    name = name.trim(),
+                    brand = brand.trim().takeIf { it.isNotBlank() },
+                    kcalPer100g = kcal.normalizeDecimal().toDouble(),
+                    proteinPer100g = protein.normalizeDecimal().toDouble(),
+                    carbsPer100g = carbs.normalizeDecimal().toDouble(),
+                    fatPer100g = fat.normalizeDecimal().toDouble(),
+                    sugarPer100g = sugar.normalizeDecimal().toDoubleOrNull() ?: 0.0,
+                    fiberPer100g = fiber.normalizeDecimal().toDoubleOrNull() ?: 0.0,
+                    saltPer100g = salt.normalizeDecimal().toDoubleOrNull() ?: 0.0,
+                    tag = tag,
+                )
+            )
+        },
+        enabled = isValid,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 20.dp)
+            .padding(bottom = 20.dp),
+        shape = RoundedCornerShape(14.dp),
+    ) { Text(stringResource(R.string.common_save), style = MaterialTheme.typography.labelLarge) }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -762,6 +943,7 @@ private fun AmountSheet(
     amount: String,
     mealCategory: MealCategory,
     tag: FoodTag,
+    forIngredient: Boolean,
     onAmountChange: (String) -> Unit,
     onMealCategoryChange: (MealCategory) -> Unit,
     onTagChange: (FoodTag) -> Unit,
@@ -806,7 +988,8 @@ private fun AmountSheet(
                 )
             }
 
-            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            // An ingredient is logged with its meal, whose category is chosen when the meal is.
+            if (!forIngredient) Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Text(
                     stringResource(R.string.addfood_meal_label),
                     style = MaterialTheme.typography.labelMedium,
@@ -857,7 +1040,10 @@ private fun AmountSheet(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(14.dp),
             ) {
-                Text(stringResource(R.string.addfood_add_button), style = MaterialTheme.typography.labelLarge)
+                Text(
+                    stringResource(if (forIngredient) R.string.addfood_add_to_meal_button else R.string.addfood_add_button),
+                    style = MaterialTheme.typography.labelLarge,
+                )
             }
         }
     }
@@ -872,6 +1058,13 @@ private fun LocalDate.formatRelative(): String {
         else -> format(localizedDateFormatter("EEE, d. MMM"))
     }
 }
+
+private const val TAB_HISTORY = 0
+private const val TAB_CUSTOM_FOODS = 1
+private const val TAB_MEALS = 2
+
+/** Back-stack result key: the name of a meal saved from the Overview, for its confirmation snackbar. */
+internal const val SAVED_MEAL_NAME_RESULT = "savedMealName"
 
 private fun BarcodeError.messageRes(): Int = when (this) {
     BarcodeError.PRODUCT_NOT_FOUND -> R.string.addfood_barcode_error_not_found

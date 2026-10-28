@@ -46,6 +46,7 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import dev.antonlammers.trainist.R
 import dev.antonlammers.trainist.ui.addfood.AddFoodScreen
+import dev.antonlammers.trainist.ui.addfood.MealEditorViewModel
 import dev.antonlammers.trainist.ui.addfood.BarcodeScannerScreen
 import dev.antonlammers.trainist.ui.bmr.BmrCalculatorScreen
 import dev.antonlammers.trainist.ui.foodimport.FoodImportHost
@@ -66,12 +67,16 @@ import dev.antonlammers.trainist.ui.workout.TemplateEditorScreen
 import dev.antonlammers.trainist.ui.workout.TemplatesScreen
 import dev.antonlammers.trainist.ui.workout.WorkoutHistoryScreen
 import dev.antonlammers.trainist.ui.workout.WorkoutSessionScreen
+import dev.antonlammers.trainist.domain.model.MealCategory
 import java.time.LocalDate
 
 sealed class Screen(val route: String) {
     object Overview : Screen("overview")
-    object AddFood : Screen("add_food/{date}") {
+    object AddFood : Screen("add_food/{date}?saveMeal={saveMeal}") {
         fun withDate(date: LocalDate) = "add_food/$date"
+
+        /** Opens AddFood with a new saved meal pre-filled from [category]'s entries on [date]. */
+        fun saveMeal(date: LocalDate, category: MealCategory) = "add_food/$date?saveMeal=${category.name}"
     }
     object Workout : Screen("workout")
     object WorkoutHistory : Screen("workout_history")
@@ -217,7 +222,14 @@ fun AppNavigation(
                     composable(Screen.Overview.route) { OverviewScreen(navController) }
                     composable(
                         route = Screen.AddFood.route,
-                        arguments = listOf(navArgument("date") { type = NavType.StringType }),
+                        arguments = listOf(
+                            navArgument("date") { type = NavType.StringType },
+                            navArgument(MealEditorViewModel.SAVE_MEAL_ARG) {
+                                type = NavType.StringType
+                                nullable = true
+                                defaultValue = null
+                            },
+                        ),
                     ) { AddFoodScreen(navController) }
                     composable(Screen.Workout.route) { TemplatesScreen(navController) }
                     composable(Screen.WorkoutHistory.route) { WorkoutHistoryScreen(navController) }
