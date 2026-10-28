@@ -68,7 +68,6 @@
     <string name="addfood_tab_history">History</string>
     <string name="addfood_tab_custom_foods">My foods</string>
     <string name="addfood_empty_custom_foods">Add foods the database doesn\'t know – homemade dishes, for example.</string>
-    <string name="addfood_empty_history">No entries in your history yet.</string>
     <string name="addfood_empty_search_results">No results</string>
     <string name="addfood_online_search_failed">Can\'t reach Open Food Facts</string>
     <string name="addfood_custom_food_deleted">Food deleted</string>

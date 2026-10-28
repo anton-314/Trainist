@@ -484,7 +484,6 @@ private fun LazyListScope.historyItems(days: List<HistoryDay>, actions: ListActi
             EmptyState(
                 icon = Icons.Rounded.History,
                 title = stringResource(R.string.addfood_empty_history_title),
-                text = stringResource(R.string.addfood_empty_history),
             )
         }
         return

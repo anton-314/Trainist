@@ -68,7 +68,6 @@
     <string name="addfood_tab_history">Historial</string>
     <string name="addfood_tab_custom_foods">Mis alimentos</string>
     <string name="addfood_empty_custom_foods">Añade alimentos que la base de datos no conoce, como platos caseros.</string>
-    <string name="addfood_empty_history">Aún no hay entradas en el historial.</string>
     <string name="addfood_empty_search_results">Sin resultados</string>
     <string name="addfood_online_search_failed">Open Food Facts no disponible</string>
     <string name="addfood_custom_food_deleted">Alimento eliminado</string>

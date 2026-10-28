@@ -681,7 +681,7 @@ internal fun EmptyHint(text: String) {
 internal fun EmptyState(
     icon: ImageVector,
     title: String,
-    text: String,
+    text: String? = null,
     action: Pair<String, () -> Unit>? = null,
     secondary: Triple<ImageVector, String, () -> Unit>? = null,
 ) {
@@ -701,13 +701,15 @@ internal fun EmptyState(
             Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(32.dp))
         }
         Text(title, style = MaterialTheme.typography.headlineSmall.copy(fontSize = 24.sp, lineHeight = 30.sp), textAlign = TextAlign.Center)
-        Text(
-            text,
-            style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            textAlign = TextAlign.Center,
-            modifier = Modifier.widthIn(max = 270.dp),
-        )
+        if (text != null) {
+            Text(
+                text,
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.widthIn(max = 270.dp),
+            )
+        }
         if (action != null) {
             Row(
                 modifier = Modifier

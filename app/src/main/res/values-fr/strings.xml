@@ -68,7 +68,6 @@
     <string name="addfood_tab_history">Historique</string>
     <string name="addfood_tab_custom_foods">Mes aliments</string>
     <string name="addfood_empty_custom_foods">Ajoute les aliments que la base ne connaît pas – tes plats maison, par exemple.</string>
-    <string name="addfood_empty_history">Pas encore d\'entrées dans l\'historique.</string>
     <string name="addfood_empty_search_results">Aucun résultat</string>
     <string name="addfood_online_search_failed">Open Food Facts injoignable</string>
     <string name="addfood_custom_food_deleted">Aliment supprimé</string>

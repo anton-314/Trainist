@@ -68,7 +68,6 @@
     <string name="addfood_tab_history">Verlauf</string>
     <string name="addfood_tab_custom_foods">Meine Lebensmittel</string>
     <string name="addfood_empty_custom_foods">Leg Lebensmittel an, die die Datenbank nicht kennt – etwa Selbstgemachtes.</string>
-    <string name="addfood_empty_history">Noch keine Einträge im Verlauf.</string>
     <string name="addfood_empty_search_results">Keine Ergebnisse</string>
     <string name="addfood_online_search_failed">Open Food Facts nicht erreichbar</string>
     <string name="addfood_custom_food_deleted">Lebensmittel gelöscht</string>
