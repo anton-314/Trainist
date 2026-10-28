@@ -297,6 +297,7 @@
     <string name="data_import_templates">%1$d templates</string>
     <string name="data_import_sessions">%1$d sessions</string>
     <string name="data_import_measurements">%1$d body measurements</string>
+    <string name="data_import_duplicates_skipped">%1$d already present entries skipped</string>
 
     <!-- ExerciseCatalogScreen (ui/workout/ExerciseCatalogScreen.kt) -->
     <string name="exercise_catalog_title">Exercises</string>
@@ -579,7 +580,7 @@
     <string name="help_data_q_new_phone">How do I move to a new phone?</string>
     <string name="help_data_a_new_phone">Export a backup on the old device, then pick “Quick start” on the welcome screen of the new one — or later Settings › Data &amp; backup › Import backup. The links between sessions, exercises and templates are preserved.</string>
     <string name="help_data_q_import_merge">What happens to existing data on import?</string>
-    <string name="help_data_a_import_merge">An import adds rather than replaces. Custom foods and exercises are updated by their identifier; nutrition and training entries are added. Import the same backup twice and those entries will be in the app twice.</string>
+    <string name="help_data_a_import_merge">An import adds rather than replaces. Templates, sessions, meals, custom exercises, weight and body measurements are updated by their identifier or date. Food entries and custom foods that are already in the app exactly as they are get skipped – so importing the same backup more than once is safe.</string>
     <string name="help_data_q_partial_import">Can I import individual sections?</string>
     <string name="help_data_a_partial_import">Yes — besides the full ZIP, the import also accepts single CSV files, for example just your weight entries. The interlinked training data (templates and sessions) only works as a complete ZIP, though.</string>
 

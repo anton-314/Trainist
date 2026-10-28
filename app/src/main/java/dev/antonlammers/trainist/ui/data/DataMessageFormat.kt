@@ -25,6 +25,7 @@ fun DataMessage.toDisplayString(context: Context): String = when (this) {
             if (templatesImported > 0) add(context.getString(R.string.data_import_templates, templatesImported))
             if (sessionsImported > 0) add(context.getString(R.string.data_import_sessions, sessionsImported))
             if (measurementsImported > 0) add(context.getString(R.string.data_import_measurements, measurementsImported))
+            if (duplicatesSkipped > 0) add(context.getString(R.string.data_import_duplicates_skipped, duplicatesSkipped))
         }
         parts.takeIf { it.isNotEmpty() }?.joinToString(", ") ?: context.getString(R.string.data_import_nothing)
     }

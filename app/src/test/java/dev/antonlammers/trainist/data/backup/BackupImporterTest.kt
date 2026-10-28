@@ -529,6 +529,100 @@ class BackupImporterTest {
     private fun section(header: String, rows: List<String>): String =
         (listOf(header) + rows).joinToString("\n")
 
+    // --- no doubling: food entries and custom foods have no stable key ---------------------------
+
+    private val foodCsv = """
+        date,food_name,brand,amount_grams,kcal,protein_g,carbs_g,fat_g,sugar_g,fiber_g,salt_g,meal_category,tag,timestamp_ms
+        2026-06-01,Haferflocken,EDEKA Bio,80.0,297.6,10.8,46.96,5.6,0.56,8.0,0.0,BREAKFAST,NONE,1780299899265
+        2026-06-01,Apfel,,150.0,78.0,0.45,21.0,0.3,15.0,3.6,0.0,SNACK,HEALTHY,1780310000000
+    """.trimIndent()
+
+    private val customFoodCsv = """
+        name,brand,kcal_per_100g,protein_per_100g,carbs_per_100g,fat_per_100g,sugar_per_100g,fiber_per_100g,salt_per_100g,tag
+        1 BigMac (100g=1stk),McDonald's,545.0,27.0,45.0,29.0,8.6,3.9,2.3,NONE
+        Magerquark,,67.0,12.0,4.0,0.3,4.0,0.0,0.1,HEALTHY
+    """.trimIndent()
+
+    @Test
+    fun `restoring the same backup ZIP twice does not double food entries or custom foods`() = runTest {
+        val food = FakeFoodEntryRepository()
+        val custom = FakeCustomFoodRepository()
+        val targets = targetsOf(food = food, custom = custom)
+        val zip = zipOf("food_entries.csv" to foodCsv, "custom_foods.csv" to customFoodCsv)
+
+        importZipEntries(ByteArrayInputStream(zip), targets)
+        val second = importZipEntries(ByteArrayInputStream(zip), targets)
+
+        assertEquals(2, food.allEntries().size)
+        assertEquals(2, custom.allFoods().first().size)
+        assertEquals(0, second.foodImported)
+        assertEquals(0, second.customFoodsImported)
+        assertEquals(4, second.duplicatesSkipped)
+    }
+
+    @Test
+    fun `a backup that already carries copies of its rows restores each one once`() = runTest {
+        // What a device that had been restored onto itself exported: every row several times.
+        val lines = foodCsv.lines()
+        val doubledFood = (listOf(lines.first()) + List(8) { lines.drop(1) }.flatten()).joinToString("\n")
+        val customLines = customFoodCsv.lines()
+        val doubledCustom = (listOf(customLines.first()) + List(8) { customLines.drop(1) }.flatten()).joinToString("\n")
+        val food = FakeFoodEntryRepository()
+        val custom = FakeCustomFoodRepository()
+
+        val result = importZipEntries(
+            ByteArrayInputStream(zipOf("food_entries.csv" to doubledFood, "custom_foods.csv" to doubledCustom)),
+            targetsOf(food = food, custom = custom),
+        )
+
+        assertEquals(listOf("Haferflocken", "Apfel"), food.allEntries().map { it.foodName })
+        assertEquals(2, custom.allFoods().first().size)
+        assertEquals(2, result.foodImported)
+        assertEquals(28, result.duplicatesSkipped)
+    }
+
+    @Test
+    fun `an entry that differs from the stored one in any field is still imported`() = runTest {
+        val food = FakeFoodEntryRepository()
+        val targets = targetsOf(food = food)
+        importZipEntries(ByteArrayInputStream(zipOf("food_entries.csv" to foodCsv)), targets)
+
+        // Same food, same day, same timestamp — but a different amount: not the same entry.
+        val edited = foodCsv.replace("Apfel,,150.0,78.0", "Apfel,,200.0,104.0")
+        val result = importZipEntries(ByteArrayInputStream(zipOf("food_entries.csv" to edited)), targets)
+
+        assertEquals(1, result.foodImported)
+        assertEquals(1, result.duplicatesSkipped)
+        assertEquals(listOf(150.0, 200.0), food.allEntries().filter { it.foodName == "Apfel" }.map { it.amountGrams })
+    }
+
+    @Test
+    fun `a single food-entry or custom-food CSV imported twice does not double either`() = runTest {
+        val food = FakeFoodEntryRepository()
+        val custom = FakeCustomFoodRepository()
+        val targets = targetsOf(food = food, custom = custom)
+
+        importCsvLines(foodCsv.lines(), targets)
+        val secondFood = importCsvLines(foodCsv.lines(), targets)
+        importCsvLines(customFoodCsv.lines(), targets)
+        val secondCustom = importCsvLines(customFoodCsv.lines(), targets)
+
+        assertEquals(2, food.allEntries().size)
+        assertEquals(2, custom.allFoods().first().size)
+        assertEquals(BackupImporter.Result(duplicatesSkipped = 2), secondFood)
+        assertEquals(BackupImporter.Result(duplicatesSkipped = 2), secondCustom)
+    }
+
+    @Test
+    fun `malformed rows still count as skipped, not as duplicates`() = runTest {
+        val withBroken = foodCsv + "\n2026-06-01,,,not-a-number,,,,,,,,,,"
+        val result = importCsvLines(withBroken.lines(), targetsOf())
+
+        assertEquals(2, result.foodImported)
+        assertEquals(1, result.foodSkipped)
+        assertEquals(0, result.duplicatesSkipped)
+    }
+
     private fun targetsOf(
         food: FakeFoodEntryRepository = FakeFoodEntryRepository(),
         weight: FakeWeightRepository = FakeWeightRepository(),

@@ -1,6 +1,7 @@
 package dev.antonlammers.trainist.ui.onboarding
 
 import dev.antonlammers.trainist.fake.FakeSettingsRepository
+import dev.antonlammers.trainist.fake.FakeUserDataRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.StandardTestDispatcher
@@ -29,7 +30,7 @@ class OnboardingViewModelTest {
     @Test
     fun `fresh install shows onboarding`() = runTest {
         val settings = FakeSettingsRepository(onboardingCompleted = false)
-        val viewModel = OnboardingViewModel(settings)
+        val viewModel = OnboardingViewModel(settings, FakeUserDataRepository())
 
         advanceUntilIdle()
 
@@ -39,7 +40,7 @@ class OnboardingViewModelTest {
     @Test
     fun `returning user skips straight to the app`() = runTest {
         val settings = FakeSettingsRepository(onboardingCompleted = true)
-        val viewModel = OnboardingViewModel(settings)
+        val viewModel = OnboardingViewModel(settings, FakeUserDataRepository())
 
         advanceUntilIdle()
 
@@ -47,9 +48,23 @@ class OnboardingViewModelTest {
     }
 
     @Test
+    fun `a reinstall whose database was restored skips onboarding and remembers it`() = runTest {
+        // Auto Backup restores the database but not the preferences: data present, flag unset.
+        val settings = FakeSettingsRepository(onboardingCompleted = false)
+        val viewModel = OnboardingViewModel(settings, FakeUserDataRepository(hasData = true))
+
+        advanceUntilIdle()
+
+        // No welcome flow, so no "Schnellstart" offering to import a backup on top of that data.
+        assertEquals(OnboardingState.Completed, viewModel.state.value)
+        assertTrue(settings.isOnboardingCompleted())
+        assertFalse(settings.isTutorialPending())
+    }
+
+    @Test
     fun `complete persists the flag and leaves the flow`() = runTest {
         val settings = FakeSettingsRepository(onboardingCompleted = false)
-        val viewModel = OnboardingViewModel(settings)
+        val viewModel = OnboardingViewModel(settings, FakeUserDataRepository())
         advanceUntilIdle()
 
         viewModel.complete()
@@ -62,7 +77,7 @@ class OnboardingViewModelTest {
     @Test
     fun `the ordinary paths out do not arm the guided tour`() = runTest {
         val settings = FakeSettingsRepository(onboardingCompleted = false)
-        val viewModel = OnboardingViewModel(settings)
+        val viewModel = OnboardingViewModel(settings, FakeUserDataRepository())
         advanceUntilIdle()
 
         viewModel.complete()
@@ -74,7 +89,7 @@ class OnboardingViewModelTest {
     @Test
     fun `the new-user path arms the guided tour before it hands over to the app`() = runTest {
         val settings = FakeSettingsRepository(onboardingCompleted = false)
-        val viewModel = OnboardingViewModel(settings)
+        val viewModel = OnboardingViewModel(settings, FakeUserDataRepository())
         advanceUntilIdle()
 
         viewModel.complete(startTutorial = true)

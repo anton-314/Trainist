@@ -7,7 +7,10 @@ package dev.antonlammers.trainist.domain.backup
  * typed rather than carrying `Uri` itself.
  */
 interface BackupImporter {
-    /** How much of each section a single import restored. */
+    /**
+     * How much of each section a single import restored. [duplicatesSkipped] counts food entries and
+     * custom foods left out because an identical one was already stored (see [ImportDeduplication]).
+     */
     data class Result(
         val foodImported: Int = 0,
         val foodSkipped: Int = 0,
@@ -19,6 +22,7 @@ interface BackupImporter {
         val sessionsImported: Int = 0,
         val measurementsImported: Int = 0,
         val savedMealsImported: Int = 0,
+        val duplicatesSkipped: Int = 0,
     )
 
     suspend fun import(uri: String): Result

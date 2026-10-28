@@ -70,6 +70,7 @@ class DataViewModel @Inject constructor(
                         sessionsImported = result.sessionsImported,
                         measurementsImported = result.measurementsImported,
                         savedMealsImported = result.savedMealsImported,
+                        duplicatesSkipped = result.duplicatesSkipped,
                     )
                     _uiState.update { it.copy(isLoading = false, message = message) }
                     onSuccess()
@@ -108,5 +109,6 @@ sealed interface DataMessage {
         val sessionsImported: Int,
         val measurementsImported: Int,
         val savedMealsImported: Int,
+        val duplicatesSkipped: Int = 0,
     ) : DataMessage
 }

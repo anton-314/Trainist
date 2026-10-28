@@ -297,6 +297,7 @@
     <string name="data_import_templates">%1$d plantillas</string>
     <string name="data_import_sessions">%1$d sesiones</string>
     <string name="data_import_measurements">%1$d medidas corporales</string>
+    <string name="data_import_duplicates_skipped">%1$d entradas ya existentes omitidas</string>
 
     <!-- ExerciseCatalogScreen (ui/workout/ExerciseCatalogScreen.kt) -->
     <string name="exercise_catalog_title">Ejercicios</string>
@@ -579,7 +580,7 @@
     <string name="help_data_q_new_phone">¿Cómo paso a un móvil nuevo?</string>
     <string name="help_data_a_new_phone">Exporta una copia en el dispositivo antiguo y en el nuevo elige «Inicio rápido» en la pantalla de bienvenida — o más tarde Ajustes › Datos y copia de seguridad › Importar copia. Los vínculos entre sesiones, ejercicios y plantillas se conservan.</string>
     <string name="help_data_q_import_merge">¿Qué pasa con los datos existentes al importar?</string>
-    <string name="help_data_a_import_merge">La importación añade en lugar de reemplazar. Los alimentos y ejercicios personalizados se actualizan por su identificador; las entradas de nutrición y entrenamiento se suman. Si importas la misma copia dos veces, esas entradas quedarán duplicadas.</string>
+    <string name="help_data_a_import_merge">La importación añade en lugar de reemplazar. Las plantillas, sesiones, comidas, ejercicios personalizados, peso y medidas corporales se actualizan por su identificador o fecha. Las entradas de alimentos y los alimentos personalizados que ya están exactamente igual en la app se omiten, así que puedes importar la misma copia varias veces sin riesgo.</string>
     <string name="help_data_q_partial_import">¿Puedo importar solo algunas partes?</string>
     <string name="help_data_a_partial_import">Sí: además del ZIP completo, la importación acepta archivos CSV sueltos, por ejemplo solo las entradas de peso. Los datos de entrenamiento enlazados entre sí — plantillas y sesiones — en cambio solo funcionan como ZIP completo.</string>
 

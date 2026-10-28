@@ -48,6 +48,9 @@ class MealEditorViewModel @Inject constructor(
     /** Synthetic per-draft row keys, so a list row keeps its identity when another is removed. */
     private var nextKey = 1L
 
+    /** A [save] is in flight. */
+    private var saving = false
+
     init {
         val category = savedStateHandle.get<String>(SAVE_MEAL_ARG)
             ?.let { raw -> MealCategory.entries.firstOrNull { it.name == raw } }
@@ -106,12 +109,23 @@ class MealEditorViewModel @Inject constructor(
     /** Drops the draft — the sheet was dismissed. */
     fun discard() = _uiState.update { MealEditorUiState() }
 
+    /**
+     * Stores the draft. A new meal's stable key is minted per [MealDraft.toMeal] call, so a second tap
+     * while the first save is in flight would store a second meal — [saving] lets only one through.
+     * The draft stays up until the save lands, so the sheet doesn't close ahead of the result.
+     */
     fun save() {
+        if (saving) return
         val draft = _uiState.value.draft ?: return
         val meal = draft.toMeal() ?: return
+        saving = true
         viewModelScope.launch {
-            val id = savedMealRepository.save(meal)
-            _uiState.update { MealEditorUiState(saved = MealSaved(meal.copy(id = id), draft.origin)) }
+            try {
+                val id = savedMealRepository.save(meal)
+                _uiState.update { MealEditorUiState(saved = MealSaved(meal.copy(id = id), draft.origin)) }
+            } finally {
+                saving = false
+            }
         }
     }
 

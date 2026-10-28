@@ -204,15 +204,19 @@ class AddFoodViewModel @Inject constructor(
 
     fun onTagChange(tag: FoodTag) = _uiState.update { it.copy(tag = tag) }
 
+    /**
+     * Logs the selected food. The sheet's state is cleared *before* the write, so a second tap while it
+     * is still in flight finds nothing selected and logs nothing.
+     */
     fun confirmAdd() {
         val state = _uiState.value
         val food = state.selectedFood ?: return
         val amount = state.amountGrams.normalizeDecimal().toDoubleOrNull()?.takeIf { it > 0 } ?: return
+        val entry = FoodPortions.entry(food, amount, state.mealCategory, state.tag, targetDate, System.currentTimeMillis())
+        _uiState.update { it.copy(selectedFood = null, amountGrams = "100", mealCategory = defaultMealCategory(), tag = FoodTag.NONE) }
         viewModelScope.launch {
-            foodEntryRepository.add(
-                FoodPortions.entry(food, amount, state.mealCategory, state.tag, targetDate, System.currentTimeMillis()),
-            )
-            _uiState.update { it.copy(selectedFood = null, amountGrams = "100", mealCategory = defaultMealCategory(), tag = FoodTag.NONE, entryAdded = true) }
+            foodEntryRepository.add(entry)
+            _uiState.update { it.copy(entryAdded = true) }
         }
     }
 
@@ -248,26 +252,27 @@ class AddFoodViewModel @Inject constructor(
 
     /**
      * Logs the meal as one entry per ingredient. An ingredient whose amount was cleared or set to 0
-     * is left out for today ("ohne Milch") — the saved meal itself is not changed.
+     * is left out for today ("ohne Milch") — the saved meal itself is not changed. Like [confirmAdd],
+     * the sheet is closed before the write, so a double tap logs the meal once.
      */
     fun confirmLogMeal() {
         val state = _uiState.value
         val draft = state.mealToLog ?: return
         val portions = draft.portions()
         if (portions.isEmpty()) return
+        val nowMs = System.currentTimeMillis()
+        val entries = FoodPortions.mealEntries(
+            items = portions.map { it.first },
+            amounts = portions.map { it.second },
+            mealCategory = state.mealCategory,
+            date = targetDate,
+            nowMs = nowMs,
+        )
+        _uiState.update { it.copy(mealToLog = null, mealCategory = defaultMealCategory()) }
         viewModelScope.launch {
-            val nowMs = System.currentTimeMillis()
-            foodEntryRepository.addAll(
-                FoodPortions.mealEntries(
-                    items = portions.map { it.first },
-                    amounts = portions.map { it.second },
-                    mealCategory = state.mealCategory,
-                    date = targetDate,
-                    nowMs = nowMs,
-                ),
-            )
+            foodEntryRepository.addAll(entries)
             savedMealRepository.markUsed(draft.meal.id, nowMs)
-            _uiState.update { it.copy(mealToLog = null, mealCategory = defaultMealCategory(), entryAdded = true) }
+            _uiState.update { it.copy(entryAdded = true) }
         }
     }
 

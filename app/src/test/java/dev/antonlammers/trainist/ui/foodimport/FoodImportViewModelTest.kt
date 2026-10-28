@@ -114,6 +114,25 @@ class FoodImportViewModelTest {
     }
 
     @Test
+    fun `opening the same file again adds only what is not stored yet`() = runTest {
+        reader.file = FoodEntryFile.Entries(listOf(entry("Hähnchen"), entry("Reis")), skipped = 0)
+        val viewModel = viewModel()
+        viewModel.open("content://x")
+        advanceUntilIdle()
+        viewModel.confirm()
+        advanceUntilIdle()
+
+        reader.file = FoodEntryFile.Entries(listOf(entry("Hähnchen"), entry("Reis"), entry("Brokkoli")), skipped = 0)
+        viewModel.open("content://x")
+        advanceUntilIdle()
+        viewModel.confirm()
+        advanceUntilIdle()
+
+        assertEquals(listOf("Hähnchen", "Reis", "Brokkoli"), repository.allEntries().map { it.foodName })
+        assertEquals(1, viewModel.uiState.value.importedCount)
+    }
+
+    @Test
     fun `confirm without a preview does nothing`() = runTest {
         val viewModel = viewModel()
 

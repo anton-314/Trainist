@@ -122,6 +122,7 @@ class DataViewModelTest {
             sessionsImported = 9,
             measurementsImported = 6,
             savedMealsImported = 8,
+            duplicatesSkipped = 11,
         )
         val viewModel = viewModel()
         advanceUntilIdle()
@@ -142,6 +143,7 @@ class DataViewModelTest {
                 sessionsImported = 9,
                 measurementsImported = 6,
                 savedMealsImported = 8,
+                duplicatesSkipped = 11,
             ),
             viewModel.uiState.value.message,
         )

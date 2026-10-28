@@ -4,6 +4,7 @@ import android.content.Context
 import android.net.Uri
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dev.antonlammers.trainist.domain.backup.BackupImporter
+import dev.antonlammers.trainist.domain.backup.ImportDeduplication
 import dev.antonlammers.trainist.domain.repository.BodyMeasurementRepository
 import dev.antonlammers.trainist.domain.repository.CustomFoodRepository
 import dev.antonlammers.trainist.domain.repository.ExerciseCatalogRepository
@@ -13,6 +14,7 @@ import dev.antonlammers.trainist.domain.repository.SavedMealRepository
 import dev.antonlammers.trainist.domain.repository.WeightRepository
 import dev.antonlammers.trainist.domain.repository.WorkoutSessionRepository
 import dev.antonlammers.trainist.domain.repository.WorkoutTemplateRepository
+import kotlinx.coroutines.flow.first
 import java.io.InputStream
 import java.util.zip.ZipInputStream
 import javax.inject.Inject
@@ -127,17 +129,7 @@ internal suspend fun importZipEntries(input: InputStream, targets: ImportTargets
         }
     }
 
-    var foodImported = 0
-    var foodSkipped = 0
-    sections["food_entries.csv"]?.let { lines ->
-        if (lines.size > 1) {
-            val headers = CsvFormat.parseHeaders(lines.first())
-            lines.drop(1).forEach { line ->
-                val e = runCatching { CsvFormat.fromRow(line, headers) }.getOrNull()
-                if (e != null) { targets.foodEntryRepository.add(e); foodImported++ } else foodSkipped++
-            }
-        }
-    }
+    val food = importFoodEntries(sections["food_entries.csv"], targets)
 
     var weightImported = 0
     sections["weight_entries.csv"]?.let { lines ->
@@ -159,16 +151,7 @@ internal suspend fun importZipEntries(input: InputStream, targets: ImportTargets
         }
     }
 
-    var customFoodsImported = 0
-    sections["custom_foods.csv"]?.let { lines ->
-        if (lines.size > 1) {
-            val headers = CsvFormat.parseHeaders(lines.first())
-            lines.drop(1).forEach { line ->
-                val f = runCatching { CustomFoodCsvFormat.fromRow(line, headers) }.getOrNull()
-                if (f != null) { targets.customFoodRepository.save(f); customFoodsImported++ }
-            }
-        }
-    }
+    val customFoods = importCustomFoods(sections["custom_foods.csv"], targets)
 
     // Saved meals upsert on their stable key, so importing the same backup twice doesn't duplicate them.
     val savedMeals = SavedMealBackup.assemble(
@@ -202,17 +185,47 @@ internal suspend fun importZipEntries(input: InputStream, targets: ImportTargets
     )
 
     return BackupImporter.Result(
-        foodImported = foodImported,
-        foodSkipped = foodSkipped,
+        foodImported = food.added,
+        foodSkipped = food.malformed,
         weightImported = weightImported,
         goalRestored = goalRestored,
-        customFoodsImported = customFoodsImported,
+        customFoodsImported = customFoods.added,
+        duplicatesSkipped = food.duplicates + customFoods.duplicates,
         exercisesImported = exercisesImported,
         templatesImported = templatesImported,
         sessionsImported = sessionsImported,
         measurementsImported = measurementsImported,
         savedMealsImported = savedMeals.size,
     )
+}
+
+/** What a plain-insert section stored, and what it left out (already present, or unparseable). */
+private data class SectionImport(val added: Int = 0, val duplicates: Int = 0, val malformed: Int = 0)
+
+/**
+ * Food entries have no stable key, so they are deduplicated ([ImportDeduplication]) against what is
+ * already stored and within the file itself — restoring the same backup twice must not double them.
+ * The new ones are added in one statement, all or none.
+ */
+private suspend fun importFoodEntries(lines: List<String>?, targets: ImportTargets): SectionImport {
+    if (lines == null || lines.size < 2) return SectionImport()
+    val headers = CsvFormat.parseHeaders(lines.first())
+    val parsed = lines.drop(1).map { line -> runCatching { CsvFormat.fromRow(line, headers) }.getOrNull() }
+    val valid = parsed.filterNotNull()
+    val fresh = ImportDeduplication.newFoodEntries(targets.foodEntryRepository.allEntries(), valid)
+    if (fresh.isNotEmpty()) targets.foodEntryRepository.addAll(fresh)
+    return SectionImport(added = fresh.size, duplicates = valid.size - fresh.size, malformed = parsed.size - valid.size)
+}
+
+/** Custom foods have no stable key either — same deduplication as [importFoodEntries]. */
+private suspend fun importCustomFoods(lines: List<String>?, targets: ImportTargets): SectionImport {
+    if (lines == null || lines.size < 2) return SectionImport()
+    val headers = CsvFormat.parseHeaders(lines.first())
+    val parsed = lines.drop(1).map { line -> runCatching { CustomFoodCsvFormat.fromRow(line, headers) }.getOrNull() }
+    val valid = parsed.filterNotNull()
+    val fresh = ImportDeduplication.newCustomFoods(targets.customFoodRepository.allFoods().first(), valid)
+    fresh.forEach { targets.customFoodRepository.save(it) }
+    return SectionImport(added = fresh.size, duplicates = valid.size - fresh.size, malformed = parsed.size - valid.size)
 }
 
 /**
@@ -255,12 +268,8 @@ internal suspend fun importCsvLines(lines: List<String>, targets: ImportTargets)
     val headers = CsvFormat.parseHeaders(lines.first())
     return when (detectCsvType(headers)) {
         CsvType.FOOD_ENTRIES -> {
-            var imported = 0; var skipped = 0
-            lines.drop(1).forEach { line ->
-                val e = runCatching { CsvFormat.fromRow(line, headers) }.getOrNull()
-                if (e != null) { targets.foodEntryRepository.add(e); imported++ } else skipped++
-            }
-            BackupImporter.Result(foodImported = imported, foodSkipped = skipped)
+            val food = importFoodEntries(lines, targets)
+            BackupImporter.Result(foodImported = food.added, foodSkipped = food.malformed, duplicatesSkipped = food.duplicates)
         }
         CsvType.WEIGHT_ENTRIES -> {
             var imported = 0
@@ -276,12 +285,8 @@ internal suspend fun importCsvLines(lines: List<String>, targets: ImportTargets)
             else BackupImporter.Result()
         }
         CsvType.CUSTOM_FOODS -> {
-            var imported = 0
-            lines.drop(1).forEach { line ->
-                val f = runCatching { CustomFoodCsvFormat.fromRow(line, headers) }.getOrNull()
-                if (f != null) { targets.customFoodRepository.save(f); imported++ }
-            }
-            BackupImporter.Result(customFoodsImported = imported)
+            val customFoods = importCustomFoods(lines, targets)
+            BackupImporter.Result(customFoodsImported = customFoods.added, duplicatesSkipped = customFoods.duplicates)
         }
         CsvType.EXERCISES -> {
             val exercises = WorkoutBackup.parseExercises(lines)

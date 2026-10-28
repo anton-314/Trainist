@@ -272,6 +272,21 @@ class MealEditorViewModelTest {
     }
 
     @Test
+    fun `a double tap on save stores a new meal once`() = runTest {
+        val vm = viewModel()
+        vm.startNew()
+        vm.onNameChange("Müsli")
+        vm.addItem(SavedMealItem(food("Haferflocken"), 60.0))
+
+        // A new meal's stable key is minted per save, so the upsert alone would not catch this.
+        vm.save()
+        vm.save()
+        advanceUntilIdle()
+
+        assertEquals(1, mealRepo.meals().first().size)
+    }
+
+    @Test
     fun `an invalid draft is not saved`() = runTest {
         val vm = viewModel()
         vm.startNew()

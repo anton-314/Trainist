@@ -297,6 +297,7 @@
     <string name="data_import_templates">%1$d modèles</string>
     <string name="data_import_sessions">%1$d séances</string>
     <string name="data_import_measurements">%1$d mensurations</string>
+    <string name="data_import_duplicates_skipped">%1$d entrées déjà présentes ignorées</string>
 
     <!-- ExerciseCatalogScreen (ui/workout/ExerciseCatalogScreen.kt) -->
     <string name="exercise_catalog_title">Exercices</string>
@@ -579,7 +580,7 @@
     <string name="help_data_q_new_phone">Comment passer à un nouveau téléphone ?</string>
     <string name="help_data_a_new_phone">Exporte une sauvegarde sur l\'ancien appareil, puis choisis « Démarrage rapide » sur l\'écran d\'accueil du nouveau — ou plus tard Paramètres › Données et sauvegarde › Importer une sauvegarde. Les liens entre séances, exercices et modèles sont conservés.</string>
     <string name="help_data_q_import_merge">Que deviennent les données existantes lors d\'un import ?</string>
-    <string name="help_data_a_import_merge">L\'import complète au lieu de remplacer. Les aliments et exercices personnels sont mis à jour via leur identifiant ; les entrées de nutrition et d\'entraînement s\'ajoutent. Si tu importes deux fois la même sauvegarde, ces entrées apparaîtront en double.</string>
+    <string name="help_data_a_import_merge">L\'import complète au lieu de remplacer. Les modèles, séances, repas, exercices personnels, poids et mensurations sont mis à jour via leur identifiant ou leur date. Les entrées alimentaires et aliments personnels déjà présents à l\'identique sont ignorés – tu peux donc importer plusieurs fois la même sauvegarde sans risque.</string>
     <string name="help_data_q_partial_import">Puis-je importer certaines parties seulement ?</string>
     <string name="help_data_a_partial_import">Oui : en plus du ZIP complet, l\'import accepte aussi des fichiers CSV isolés, par exemple seulement les entrées de poids. Les données d\'entraînement liées entre elles — modèles et séances — ne fonctionnent en revanche qu\'en ZIP complet.</string>
 

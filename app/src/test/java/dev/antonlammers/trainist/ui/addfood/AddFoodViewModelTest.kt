@@ -164,13 +164,30 @@ class AddFoodViewModelTest {
         viewModel = viewModel()
         viewModel.selectFood(apple())
         viewModel.onAmountChange("150")
-        viewModel.uiState.test {
-            awaitItem()
-            viewModel.confirmAdd()
-            val state = awaitItem()
-            assertTrue(state.entryAdded)
-            assertNull(state.selectedFood)
-        }
+
+        viewModel.confirmAdd()
+        // The sheet closes before the write lands …
+        assertNull(viewModel.uiState.value.selectedFood)
+        assertFalse(viewModel.uiState.value.entryAdded)
+        advanceUntilIdle()
+
+        // … and the screen is told once it has.
+        assertTrue(viewModel.uiState.value.entryAdded)
+        assertEquals(1, entryRepo.allEntries().size)
+    }
+
+    @Test
+    fun `a double tap on confirmAdd logs the food once`() = runTest {
+        viewModel = viewModel()
+        viewModel.selectFood(apple())
+        viewModel.onAmountChange("150")
+
+        // Both taps arrive before the first write has run.
+        viewModel.confirmAdd()
+        viewModel.confirmAdd()
+        advanceUntilIdle()
+
+        assertEquals(1, entryRepo.allEntries().size)
     }
 
     @Test
@@ -178,16 +195,12 @@ class AddFoodViewModelTest {
         viewModel = viewModel()
         viewModel.selectFood(apple()) // 52 kcal / 100g
         viewModel.onAmountChange("1,5")
-        viewModel.uiState.test {
-            awaitItem()
-            viewModel.confirmAdd()
-            val state = awaitItem()
-            assertTrue(state.entryAdded)
-        }
-        entryRepo.entriesForDate(LocalDate.now()).test {
-            val entries = awaitItem()
-            assertEquals(1.5, entries.first().amountGrams, 0.001)
-        }
+
+        viewModel.confirmAdd()
+        advanceUntilIdle()
+
+        assertTrue(viewModel.uiState.value.entryAdded)
+        assertEquals(1.5, entryRepo.allEntries().single().amountGrams, 0.001)
     }
 
     @Test
@@ -207,16 +220,12 @@ class AddFoodViewModelTest {
         viewModel = viewModel()
         viewModel.selectFood(apple()) // 52 kcal / 100g
         viewModel.onAmountChange("200")
-        viewModel.uiState.test {
-            awaitItem()
-            viewModel.confirmAdd()
-            awaitItem()
-        }
+
+        viewModel.confirmAdd()
+        advanceUntilIdle()
+
         // 200g → 104 kcal
-        entryRepo.entriesForDate(LocalDate.now()).test {
-            val entries = awaitItem()
-            assertEquals(104.0, entries.first().kcal, 0.001)
-        }
+        assertEquals(104.0, entryRepo.allEntries().single().kcal, 0.001)
     }
 
     // --- tags ---
@@ -234,14 +243,11 @@ class AddFoodViewModelTest {
         viewModel.selectFood(apple())
         viewModel.onAmountChange("100")
         viewModel.onTagChange(FoodTag.UNHEALTHY)
-        viewModel.uiState.test {
-            awaitItem()
-            viewModel.confirmAdd()
-            awaitItem()
-        }
-        entryRepo.entriesForDate(LocalDate.now()).test {
-            assertEquals(FoodTag.UNHEALTHY, awaitItem().first().tag)
-        }
+
+        viewModel.confirmAdd()
+        advanceUntilIdle()
+
+        assertEquals(FoodTag.UNHEALTHY, entryRepo.allEntries().single().tag)
     }
 
     @Test
@@ -722,6 +728,19 @@ class AddFoodViewModelTest {
         assertNull(viewModel.uiState.value.mealToLog)
         // Logging never changes the meal itself.
         assertEquals(60.0, mealRepo.meals().first().single().items.first().amountGrams, 0.0)
+    }
+
+    @Test
+    fun `a double tap on confirmLogMeal logs the meal once`() = runTest {
+        mealRepo.save(muesli())
+        viewModel = viewModel()
+        viewModel.selectMeal(mealRepo.meals().first().single())
+
+        viewModel.confirmLogMeal()
+        viewModel.confirmLogMeal()
+        advanceUntilIdle()
+
+        assertEquals(listOf("Haferflocken", "Magerquark", "Milch"), entryRepo.allEntries().map { it.foodName })
     }
 
     @Test

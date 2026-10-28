@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dev.antonlammers.trainist.domain.repository.SettingsRepository
+import dev.antonlammers.trainist.domain.repository.UserDataRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -17,10 +18,16 @@ import javax.inject.Inject
  * the backup quick-start reuses [dev.antonlammers.trainist.ui.data.DataViewModel], and the guided
  * tour that the "I'm new here" path hands over to runs in the main app
  * ([dev.antonlammers.trainist.ui.tutorial.TutorialViewModel]).
+ *
+ * The flag lives in SharedPreferences, which Android's Auto Backup does not restore — only the
+ * database. A reinstall therefore comes back with all its data *and* an unset flag. Offering the
+ * welcome flow there invites restoring a backup on top of the restored data, so a database that
+ * already holds user data counts as onboarded.
  */
 @HiltViewModel
 class OnboardingViewModel @Inject constructor(
     private val settingsRepository: SettingsRepository,
+    private val userDataRepository: UserDataRepository,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow<OnboardingState>(OnboardingState.Loading)
@@ -28,9 +35,14 @@ class OnboardingViewModel @Inject constructor(
 
     init {
         viewModelScope.launch {
-            _state.value =
-                if (settingsRepository.isOnboardingCompleted()) OnboardingState.Completed
-                else OnboardingState.Onboarding
+            _state.value = when {
+                settingsRepository.isOnboardingCompleted() -> OnboardingState.Completed
+                userDataRepository.hasUserData() -> {
+                    settingsRepository.setOnboardingCompleted(true)
+                    OnboardingState.Completed
+                }
+                else -> OnboardingState.Onboarding
+            }
         }
     }
 

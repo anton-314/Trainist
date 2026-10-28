@@ -14,6 +14,7 @@ import dev.antonlammers.trainist.data.local.dao.DailyGoalDao
 import dev.antonlammers.trainist.data.local.dao.ExerciseDao
 import dev.antonlammers.trainist.data.local.dao.FoodEntryDao
 import dev.antonlammers.trainist.data.local.dao.SavedMealDao
+import dev.antonlammers.trainist.data.local.dao.UserDataDao
 import dev.antonlammers.trainist.data.local.dao.WeightEntryDao
 import dev.antonlammers.trainist.data.local.dao.WorkoutSessionDao
 import dev.antonlammers.trainist.data.local.dao.WorkoutTemplateDao
@@ -72,4 +73,7 @@ object DatabaseModule {
 
     @Provides
     fun provideSavedMealDao(db: AppDatabase): SavedMealDao = db.savedMealDao()
+
+    @Provides
+    fun provideUserDataDao(db: AppDatabase): UserDataDao = db.userDataDao()
 }

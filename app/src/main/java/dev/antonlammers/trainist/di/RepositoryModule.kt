@@ -18,6 +18,7 @@ import dev.antonlammers.trainist.data.repository.FoodSearchRepositoryImpl
 import dev.antonlammers.trainist.data.repository.GoalRepositoryImpl
 import dev.antonlammers.trainist.data.repository.RoomTransactionRunner
 import dev.antonlammers.trainist.data.repository.SettingsRepositoryImpl
+import dev.antonlammers.trainist.data.repository.UserDataRepositoryImpl
 import dev.antonlammers.trainist.data.repository.TransactionRunner
 import dev.antonlammers.trainist.data.seed.AssetExerciseSnapshotSource
 import dev.antonlammers.trainist.data.seed.ExerciseSnapshotSource
@@ -37,6 +38,7 @@ import dev.antonlammers.trainist.domain.repository.FoodEntryRepository
 import dev.antonlammers.trainist.domain.repository.FoodSearchRepository
 import dev.antonlammers.trainist.domain.repository.GoalRepository
 import dev.antonlammers.trainist.domain.repository.SettingsRepository
+import dev.antonlammers.trainist.domain.repository.UserDataRepository
 import dev.antonlammers.trainist.domain.repository.WeightRepository
 import dev.antonlammers.trainist.domain.repository.WorkoutSessionRepository
 import dev.antonlammers.trainist.domain.repository.WorkoutTemplateRepository
@@ -69,6 +71,9 @@ abstract class RepositoryModule {
 
     @Binds @Singleton
     abstract fun bindSavedMealRepository(impl: SavedMealRepositoryImpl): SavedMealRepository
+
+    @Binds @Singleton
+    abstract fun bindUserDataRepository(impl: UserDataRepositoryImpl): UserDataRepository
 
     @Binds @Singleton
     abstract fun bindSettingsRepository(impl: SettingsRepositoryImpl): SettingsRepository

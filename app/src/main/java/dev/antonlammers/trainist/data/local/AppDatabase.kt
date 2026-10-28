@@ -10,6 +10,7 @@ import dev.antonlammers.trainist.data.local.dao.DailyGoalDao
 import dev.antonlammers.trainist.data.local.dao.ExerciseDao
 import dev.antonlammers.trainist.data.local.dao.FoodEntryDao
 import dev.antonlammers.trainist.data.local.dao.SavedMealDao
+import dev.antonlammers.trainist.data.local.dao.UserDataDao
 import dev.antonlammers.trainist.data.local.dao.WeightEntryDao
 import dev.antonlammers.trainist.data.local.dao.WorkoutSessionDao
 import dev.antonlammers.trainist.data.local.dao.WorkoutTemplateDao
@@ -47,6 +48,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun workoutSessionDao(): WorkoutSessionDao
     abstract fun bodyMeasurementDao(): BodyMeasurementDao
     abstract fun savedMealDao(): SavedMealDao
+    abstract fun userDataDao(): UserDataDao
 
     companion object {
         val MIGRATION_1_2 = object : Migration(1, 2) {

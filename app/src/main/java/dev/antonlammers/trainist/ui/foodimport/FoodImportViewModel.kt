@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dev.antonlammers.trainist.domain.backup.FoodEntryFile
 import dev.antonlammers.trainist.domain.backup.FoodEntryFileReader
+import dev.antonlammers.trainist.domain.backup.ImportDeduplication
 import dev.antonlammers.trainist.domain.model.FoodEntry
 import dev.antonlammers.trainist.domain.repository.FoodEntryRepository
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -17,7 +18,8 @@ import javax.inject.Inject
 /**
  * Imports the food entries of a CSV file opened with the app ("Öffnen mit Trainist"), e.g. one an
  * AI assistant generated: [open] reads the file into a preview, nothing is written until the user
- * [confirm]s. Entries are only ever **added** — an import can't replace or delete existing data.
+ * [confirm]s. Entries are only ever **added** — an import can't replace or delete existing data — and
+ * never twice ([ImportDeduplication]).
  */
 @HiltViewModel
 class FoodImportViewModel @Inject constructor(
@@ -42,13 +44,21 @@ class FoodImportViewModel @Inject constructor(
         }
     }
 
-    /** Saves the previewed entries. A no-op unless a preview is showing, so a double tap saves once. */
+    /**
+     * Saves the previewed entries, all or none. A no-op unless a preview is showing, so a double tap
+     * saves once; entries already stored exactly like this are left out, so opening the same file
+     * twice doesn't double them either. [FoodImportUiState.importedCount] is what was actually added.
+     */
     fun confirm() {
         val preview = _uiState.value.phase as? FoodImportPhase.Preview ?: return
         _uiState.update { it.copy(phase = FoodImportPhase.Idle) }
         viewModelScope.launch {
-            runCatching { preview.entries.forEach { foodEntryRepository.add(it) } }
-                .onSuccess { _uiState.update { it.copy(importedCount = preview.entries.size) } }
+            runCatching {
+                val fresh = ImportDeduplication.newFoodEntries(foodEntryRepository.allEntries(), preview.entries)
+                if (fresh.isNotEmpty()) foodEntryRepository.addAll(fresh)
+                fresh.size
+            }
+                .onSuccess { added -> _uiState.update { it.copy(importedCount = added) } }
                 .onFailure {
                     _uiState.update { it.copy(phase = FoodImportPhase.Failed(FoodImportError.SAVE_FAILED)) }
                 }

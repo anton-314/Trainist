@@ -297,6 +297,7 @@
     <string name="data_import_templates">%1$d Vorlagen</string>
     <string name="data_import_sessions">%1$d Einheiten</string>
     <string name="data_import_measurements">%1$d Körpermaße</string>
+    <string name="data_import_duplicates_skipped">%1$d bereits vorhandene Einträge übersprungen</string>
 
     <!-- ExerciseCatalogScreen (ui/workout/ExerciseCatalogScreen.kt) -->
     <string name="exercise_catalog_title">Übungen</string>
@@ -575,7 +576,7 @@
     <string name="help_data_q_new_phone">Wie ziehe ich auf ein neues Handy um?</string>
     <string name="help_data_a_new_phone">Exportiere auf dem alten Gerät ein Backup und wähle auf dem neuen beim Willkommensbildschirm „Schnellstart“ — oder später Einstellungen › Daten &amp; Backup › Backup importieren. Die Verknüpfungen zwischen Einheiten, Übungen und Vorlagen bleiben dabei erhalten.</string>
     <string name="help_data_q_import_merge">Was passiert beim Import mit vorhandenen Daten?</string>
-    <string name="help_data_a_import_merge">Der Import ergänzt, statt zu ersetzen. Eigene Lebensmittel und Übungen werden anhand ihrer Kennung aktualisiert; Ernährungs- und Trainingseinträge kommen hinzu. Importierst du dasselbe Backup zweimal, stehen diese Einträge doppelt in der App.</string>
+    <string name="help_data_a_import_merge">Der Import ergänzt, statt zu ersetzen. Vorlagen, Einheiten, Mahlzeiten, eigene Übungen, Gewicht und Körpermaße werden anhand ihrer Kennung bzw. ihres Datums aktualisiert. Lebensmitteleinträge und eigene Lebensmittel, die schon genau so in der App stehen, werden übersprungen – du kannst dasselbe Backup also gefahrlos mehrfach einspielen.</string>
     <string name="help_data_q_partial_import">Kann ich einzelne Bereiche importieren?</string>
     <string name="help_data_a_partial_import">Ja, der Import akzeptiert neben der kompletten ZIP-Datei auch einzelne CSV-Dateien, etwa nur die Gewichtseinträge. Die miteinander verknüpften Trainingsdaten — Vorlagen und Einheiten — funktionieren allerdings nur als vollständiges ZIP.</string>
 
