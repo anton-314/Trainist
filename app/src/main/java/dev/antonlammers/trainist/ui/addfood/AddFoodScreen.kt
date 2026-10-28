@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxSize
@@ -85,6 +84,7 @@ import dev.antonlammers.trainist.domain.model.FoodEntry
 import dev.antonlammers.trainist.domain.model.FoodTag
 import dev.antonlammers.trainist.domain.model.MealCategory
 import dev.antonlammers.trainist.domain.model.SavedMeal
+import dev.antonlammers.trainist.domain.model.SavedMealItem
 import dev.antonlammers.trainist.ui.components.NumericTextField
 import dev.antonlammers.trainist.ui.components.TagDot
 import dev.antonlammers.trainist.ui.components.TagSelector
@@ -932,13 +932,16 @@ private fun ColumnScope.CustomFoodForm(
     ) { Text(stringResource(R.string.common_save), style = MaterialTheme.typography.labelLarge) }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Amount entry — a bottom sheet (28dp top radius, scrim) with the same fields and
-// flow as before: amount, meal chips, tag selector, macro preview, confirm button.
-// ─────────────────────────────────────────────────────────────────────────────
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
+/**
+ * Amount entry for a single food: amount, meal-category chips, tag, then the macro preview and the
+ * confirm button. Follows the tall-sheet shape — fully expanded, only the fields scroll, preview and
+ * button pinned below them — so the button stays above the keyboard while the amount is typed.
+ * As an ingredient pick ([forIngredient]) the category chips are left out: an ingredient is logged
+ * with its meal, whose category is chosen then.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun AmountSheet(
+internal fun AmountSheet(
     food: Food,
     amount: String,
     mealCategory: MealCategory,
@@ -950,9 +953,8 @@ private fun AmountSheet(
     onConfirm: () -> Unit,
     onDismiss: () -> Unit,
 ) {
-    val sheetState = rememberModalBottomSheetState()
-    val amt = amount.normalizeDecimal().toDoubleOrNull() ?: 0.0
-    val factor = amt / 100.0
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val amountGrams = amount.normalizeDecimal().toDoubleOrNull()?.takeIf { it > 0 }
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -964,86 +966,80 @@ private fun AmountSheet(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 20.dp)
                 .navigationBarsPadding()
-                .imePadding()
-                .padding(bottom = 20.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
+                .imePadding(),
         ) {
-            Text(food.name, style = MaterialTheme.typography.titleLarge)
+            Text(
+                food.name,
+                style = MaterialTheme.typography.titleLarge,
+                modifier = Modifier.padding(horizontal = 20.dp),
+            )
 
-            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                Text(
-                    stringResource(R.string.addfood_amount_label),
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                NumericTextField(
-                    value = amount,
-                    onValueChange = onAmountChange,
-                    label = null,
-                    suffix = "g",
-                    textStyle = MaterialTheme.typography.titleMedium,
-                    modifier = Modifier.fillMaxWidth(),
-                )
-            }
-
-            // An ingredient is logged with its meal, whose category is chosen when the meal is.
-            if (!forIngredient) Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                Text(
-                    stringResource(R.string.addfood_meal_label),
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                Row(
-                    modifier = Modifier.horizontalScroll(rememberScrollState()),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    MealCategory.entries.forEach { cat ->
-                        FilterChip(
-                            selected = cat == mealCategory,
-                            onClick = { onMealCategoryChange(cat) },
-                            label = { Text(cat.displayName(), style = MaterialTheme.typography.labelSmall) },
-                        )
-                    }
-                }
-            }
-
-            TagSelector(selected = tag, onSelected = onTagChange)
-
-            if (amt > 0) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(50))
-                        .background(MaterialTheme.colorScheme.surfaceVariant)
-                        .padding(horizontal = 16.dp, vertical = 10.dp),
-                    contentAlignment = Alignment.Center,
-                ) {
+            Column(
+                modifier = Modifier
+                    .weight(1f, fill = false)
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = 20.dp, vertical = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+            ) {
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     Text(
-                        stringResource(
-                            R.string.addfood_food_detail_total,
-                            (food.kcalPer100g * factor).toInt(),
-                            (food.proteinPer100g * factor).toInt(),
-                            (food.carbsPer100g * factor).toInt(),
-                            (food.fatPer100g * factor).toInt(),
-                        ),
+                        stringResource(R.string.addfood_amount_label),
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
+                    NumericTextField(
+                        value = amount,
+                        onValueChange = onAmountChange,
+                        label = null,
+                        suffix = "g",
+                        textStyle = MaterialTheme.typography.titleMedium,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
                 }
+
+                if (!forIngredient) Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text(
+                        stringResource(R.string.addfood_meal_label),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Row(
+                        modifier = Modifier.horizontalScroll(rememberScrollState()),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        MealCategory.entries.forEach { cat ->
+                            FilterChip(
+                                selected = cat == mealCategory,
+                                onClick = { onMealCategoryChange(cat) },
+                                label = { Text(cat.displayName(), style = MaterialTheme.typography.labelSmall) },
+                            )
+                        }
+                    }
+                }
+
+                TagSelector(selected = tag, onSelected = onTagChange)
             }
 
-            Button(
-                onClick = onConfirm,
-                enabled = amt > 0,
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(14.dp),
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp)
+                    .padding(bottom = 20.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                Text(
-                    stringResource(if (forIngredient) R.string.addfood_add_to_meal_button else R.string.addfood_add_button),
-                    style = MaterialTheme.typography.labelLarge,
-                )
+                if (amountGrams != null) TotalsPill(FoodPortions.totals(listOf(SavedMealItem(food, amountGrams))))
+                Button(
+                    onClick = onConfirm,
+                    enabled = amountGrams != null,
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(14.dp),
+                ) {
+                    Text(
+                        stringResource(if (forIngredient) R.string.addfood_add_to_meal_button else R.string.addfood_add_button),
+                        style = MaterialTheme.typography.labelLarge,
+                    )
+                }
             }
         }
     }

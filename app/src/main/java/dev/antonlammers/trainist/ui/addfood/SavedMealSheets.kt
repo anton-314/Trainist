@@ -335,8 +335,9 @@ private fun IngredientRow(
     }
 }
 
+/** The kcal/macro preview above a sheet's confirm button. */
 @Composable
-private fun TotalsPill(totals: NutritionTotals) {
+internal fun TotalsPill(totals: NutritionTotals) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
